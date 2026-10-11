@@ -72,7 +72,8 @@ nav button .dot{position:absolute;top:6px;right:8px;width:7px;height:7px;border-
   padding:9px 8px;text-align:center;font-size:17px;font-variant-numeric:tabular-nums}
 .row input:focus{outline:none;border-color:var(--accent)}
 .row input::placeholder{color:var(--muted);opacity:.75}
-.tick{height:42px;border-radius:10px;border:1.5px solid var(--line);background:var(--card);font-size:20px;line-height:1}
+.tick{height:42px;border-radius:10px;border:2px solid var(--accent);background:var(--card);color:var(--accent);font-size:20px;line-height:1;opacity:.55}
+.row.done .tick{opacity:1}
 .row.done input{background:var(--done-bg)}
 .row.done .tick{background:var(--done);border-color:var(--done);color:var(--card)}
 .setbtns{display:flex;gap:8px;padding:2px 14px 12px}
@@ -299,7 +300,7 @@ function renderDay(day){
             <span class="i">${j+1}</span>
             <input inputmode="decimal" data-i="${i}" data-j="${j}" data-f="kg" value="${esc(s.kg)}" placeholder="${ref && ref.kg !== '' ? esc(ref.kg) : '–'}" aria-label="Set ${j+1} kg">
             <input inputmode="numeric" data-i="${i}" data-j="${j}" data-f="reps" value="${esc(s.reps)}" placeholder="${ref ? esc(ref.reps) : ex.max}" aria-label="Set ${j+1} ${ex.time ? 'seconds' : 'reps'}">
-            <button class="tick" data-tick="${i}.${j}" aria-label="Set ${j+1} done">${s.done ? '✓' : ''}</button>
+            <button class="tick" data-tick="${i}.${j}" aria-label="Set ${j+1} done">✓</button>
           </div>`;}).join('')}
       </div>
       <div class="setbtns"><button class="link" data-addset="${i}">+ set</button>
@@ -385,8 +386,16 @@ document.addEventListener('click', e => {
   const act = t.dataset.act;
   if(act === 'finish'){
     const d = drafts[view];
-    if(!d || !d.slots.some(x => x.sets.some(s => s.done))){ toast('Nothing ticked yet'); return; }
-    if(!confirm('Finish and save this workout?')) return;
+    const filled = d ? d.slots.flatMap(x => x.sets).filter(s => !s.done && s.reps !== '') : [];
+    if(!d || !d.slots.some(x => x.sets.some(s => s.done))){
+      // forgiving: sets with numbers typed in but never ticked still count
+      if(!filled.length){ toast('Nothing logged yet — tap ✓ after each set'); return; }
+      if(!confirm(`No sets ticked. Save the ${filled.length} set${filled.length === 1 ? '' : 's'} you filled in?`)) return;
+      filled.forEach(s => s.done = true);
+    } else {
+      if(!confirm(filled.length ? `Finish and save? ${filled.length} filled-in set${filled.length === 1 ? '' : 's'} without ✓ will be saved too.` : 'Finish and save this workout?')) return;
+      filled.forEach(s => s.done = true);
+    }
     history.push({ ...d, id: String(Date.now()), finishedAt: Date.now(), synced: false });
     delete drafts[view]; save(); stopRest(); render(); scrollTo(0, 0); toast('Workout saved ✓'); sync();
   }
