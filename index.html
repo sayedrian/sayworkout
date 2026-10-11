@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Full Body 3</title>
+<style>
+:root{
+  --bg:#f5f4f0; --card:#ffffff; --ink:#1b1d21; --muted:#686c73; --line:#e2e0da;
+  --input:#f0efea; --accent:#2a64d6; --accent-ink:#ffffff; --done:#1d8048;
+  --done-bg:#e3f2e9; --hint:#9a5a12; --hint-bg:#fbf0e1; --bar:#1b1d21; --bar-ink:#ffffff;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#101317; --card:#191d23; --ink:#e7e8eb; --muted:#9a9fa7; --line:#2a3038;
+    --input:#222830; --accent:#5d8ff0; --accent-ink:#0b0d10; --done:#4cc27e;
+    --done-bg:#15301f; --hint:#e3a65e; --hint-bg:#33260f; --bar:#e7e8eb; --bar-ink:#101317;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#101317; --card:#191d23; --ink:#e7e8eb; --muted:#9a9fa7; --line:#2a3038;
+  --input:#222830; --accent:#5d8ff0; --accent-ink:#0b0d10; --done:#4cc27e;
+  --done-bg:#15301f; --hint:#e3a65e; --hint-bg:#33260f; --bar:#e7e8eb; --bar-ink:#101317;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.wrap{max-width:640px;margin:0 auto;padding:0 16px}
+
+header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);
+  padding-top:env(safe-area-inset-top)}
+.top{display:flex;align-items:center;gap:8px;padding:10px 0 6px}
+.top h1{font-size:17px;margin:0;flex:1}
+.clock{font-variant-numeric:tabular-nums;color:var(--muted);font-size:14px}
+.pill{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 11px;font-size:13px}
+.pill.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+nav{display:flex;gap:6px;padding:4px 0 10px}
+nav button{flex:1;border:1px solid var(--line);background:var(--card);border-radius:10px;
+  padding:9px 0;font-weight:600;position:relative}
+nav button[aria-current="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+nav button .dot{position:absolute;top:6px;right:8px;width:7px;height:7px;border-radius:50%;background:var(--done)}
+
+.focus{color:var(--muted);margin:14px 0 4px;font-size:14px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin:10px 0}
+.box h3{margin:0 0 4px;font-size:15px}
+.small{font-size:13px;color:var(--muted)}
+
+.ex{background:var(--card);border:1px solid var(--line);border-radius:14px;margin:10px 0;overflow:hidden}
+.ex.complete{border-color:var(--done)}
+.ex-head{display:flex;gap:10px;padding:12px 14px 6px;align-items:flex-start}
+.num{flex:none;width:26px;height:26px;border-radius:50%;background:var(--input);display:grid;place-items:center;
+  font-size:13px;font-weight:700}
+.ex.complete .num{background:var(--done);color:var(--card)}
+.ex-title{flex:1;min-width:0}
+.ex-title select{width:100%;border:0;background:transparent;font-weight:650;font-size:16px;padding:0;
+  appearance:none;-webkit-appearance:none;text-overflow:ellipsis}
+.ex-title .swap{font-size:12px;color:var(--accent);font-weight:500}
+.rx{font-size:14px;color:var(--muted);margin-top:2px}
+.cue{font-size:13px;color:var(--muted);padding:0 14px 8px;margin:0}
+.hint{margin:0 14px 8px;font-size:13px;background:var(--hint-bg);color:var(--hint);border-radius:8px;padding:6px 9px}
+.last{font-size:12px;color:var(--muted);padding:0 14px 6px}
+
+.sets{padding:2px 10px 10px}
+.row{display:grid;grid-template-columns:28px 1fr 1fr 56px;gap:8px;align-items:center;padding:4px}
+.row.head{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding-bottom:0}
+.row .i{text-align:center;color:var(--muted);font-size:14px}
+.row input{width:100%;min-width:0;border:1px solid transparent;background:var(--input);border-radius:9px;
+  padding:9px 8px;text-align:center;font-size:17px;font-variant-numeric:tabular-nums}
+.row input:focus{outline:none;border-color:var(--accent)}
+.row input::placeholder{color:var(--muted);opacity:.75}
+.tick{height:42px;border-radius:10px;border:1.5px solid var(--line);background:var(--card);font-size:20px;line-height:1}
+.row.done input{background:var(--done-bg)}
+.row.done .tick{background:var(--done);border-color:var(--done);color:var(--card)}
+.setbtns{display:flex;gap:8px;padding:2px 14px 12px}
+.link{border:0;background:none;color:var(--accent);font-size:13px;padding:4px 0}
+
+.actions{display:flex;gap:8px;margin:16px 0}
+.btn{flex:1;border:0;border-radius:12px;padding:13px;font-weight:650;background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+textarea{width:100%;min-height:70px;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:10px}
+
+details.sess{background:var(--card);border:1px solid var(--line);border-radius:14px;margin:10px 0;padding:0 14px}
+details.sess summary{padding:12px 0;cursor:pointer;font-weight:600}
+details.sess summary span{font-weight:400;color:var(--muted);font-size:13px}
+.sess ul{margin:0 0 10px;padding-left:18px;font-size:14px}
+.sess li{margin:3px 0}
+.empty{color:var(--muted);text-align:center;padding:30px 0}
+.gh label{display:block;font-size:13px;color:var(--muted);margin:8px 0}
+.gh input{display:block;width:100%;margin-top:4px;border:1px solid var(--line);background:var(--input);border-radius:9px;padding:9px;font-size:16px;color:var(--ink)}
+
+#bar{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--bar);color:var(--bar-ink);
+  padding:10px 16px calc(10px + env(safe-area-inset-bottom));transform:translateY(110%);transition:transform .2s}
+#bar.show{transform:none}
+#bar .in{max-width:640px;margin:0 auto;display:flex;align-items:center;gap:10px}
+#bar .t{font-size:30px;font-weight:700;font-variant-numeric:tabular-nums;min-width:84px}
+#bar .l{flex:1;font-size:13px;opacity:.8;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#bar button{border:1px solid currentColor;background:transparent;color:inherit;border-radius:9px;padding:7px 10px;font-size:14px}
+#bar.over{background:var(--done);color:#fff}
+#toast{position:fixed;left:50%;top:70px;transform:translateX(-50%);background:var(--ink);color:var(--bg);
+  padding:8px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="top">
+      <h1>Full Body 3</h1>
+      <span class="clock" id="clock"></span>
+      <button class="pill" id="wake" title="Keep the screen on during the workout">Screen on</button>
+    </div>
+    <nav id="tabs"></nav>
+  </div>
+</header>
+<main class="wrap" id="main"></main>
+<div id="bar"><div class="in">
+  <span class="t" id="barT">0:00</span><span class="l" id="barL"></span>
+  <button data-rest="-15">−15</button><button data-rest="15">+15</button><button data-rest="skip">Skip</button>
+</div></div>
+<div id="toast"></div>
+<input type="file" id="importFile" accept="application/json,.json" hidden>
+
+<script>
+// ---------- The plan (fitness.md §2d, updated 2026-10-11) ----------
+const PLAN = {
+  mon: { tab:'Mon', title:'Monday', focus:'Squat · chest · wide pull', ex:[
+    {name:'Barbell back squat', sets:4, min:6, max:10, rest:120,
+      cue:'Brace: belly breath, ribs down, hold through the rep. Two seconds down, drive up.',
+      alts:['Hack squat','Goblet squat','Leg press']},
+    {name:'Weighted dead bug', sets:3, min:8, max:10, side:true, rest:45,
+      cue:'Lower back stays pressed flat. When it lifts, the set is over — even at rep 5.',
+      alts:['Plank','Hollow hold']},
+    {name:'Flat dumbbell press', sets:4, min:6, max:10, rest:90,
+      cue:'Lower to the lower chest, not the armpits. Elbows about 45° from the body.',
+      alts:['Barbell bench press','Chest press machine']},
+    {name:'Wide-grip lat pulldown', sets:4, min:8, max:12, rest:75,
+      cue:'Wide overhand grip. Drive the elbows down, hands are hooks. Squeeze 1 s at the bottom.',
+      alts:['Assisted pull-up (wide overhand)']},
+    {name:'Lying leg curl', sets:3, min:10, max:12, rest:60,
+      cue:'Two seconds on the way down. Hips stay on the pad.',
+      alts:['Seated leg curl','Nordic curl']},
+    {name:'Chest-supported dumbbell row', sets:3, min:10, max:12, rest:75,
+      cue:'Elbows back and close to the ribs. Don’t push the chest into the pad. Squeeze 1 s.',
+      alts:['Seal row','One-arm dumbbell row']},
+    {name:'Dumbbell lateral raise', sets:3, min:12, max:15, rest:45,
+      cue:'Lead with the elbows, stop at shoulder height. Fine to push close to the limit.',
+      alts:['Cable lateral raise','Machine lateral raise']},
+    {name:'Triceps pushdown', sets:2, min:12, max:15, rest:45,
+      cue:'Elbows pinned at your sides; only the forearms move.',
+      alts:['Overhead cable extension','Close-grip push-up']},
+  ]},
+  wed: { tab:'Wed', title:'Wednesday', focus:'Leg press · back · shoulders', ex:[
+    {name:'Leg press', sets:4, min:8, max:12, rest:90,
+      cue:'Go down until just before the bum lifts off the seat — the back is the signal, not the knees.',
+      alts:['Hack squat','Goblet squat']},
+    {name:'Ab wheel rollout', sets:4, min:8, max:12, rest:60,
+      cue:'Distance, not reps. Stop the moment the lower back sags. Ribs down.',
+      alts:['Barbell rollout','Swiss ball rollout']},
+    {name:'Seated cable row (neutral grip)', sets:4, min:8, max:12, rest:90,
+      cue:'Neutral grip. Drive the elbows back, stay tall, squeeze the shoulder blades 1 s.',
+      alts:['Row machine','Chest-supported row machine','Barbell row']},
+    {name:'Seated dumbbell shoulder press', sets:3, min:6, max:10, rest:90,
+      cue:'Ribs down, don’t lean back. Elbows slightly in front of the body.',
+      alts:['Shoulder press machine','Barbell overhead press']},
+    {name:'Bulgarian split squat', sets:3, min:10, max:10, side:true, sideWord:'leg', rest:60,
+      cue:'All reps one leg, then the other, then rest. Front foot far enough forward that the heel stays down.',
+      alts:['Walking lunge','Step-up']},
+    {name:'Machine chest press', sets:3, min:10, max:12, rest:75,
+      cue:'Set the seat so the handles are at mid-chest. Fine to push close to the limit.',
+      alts:['Dumbbell press','Weighted push-up']},
+    {name:'Reverse pec deck', sets:3, min:15, max:15, rest:45,
+      cue:'Arms slightly bent, lead with the elbows, squeeze the shoulder blades 1 s. Light and strict.',
+      alts:['Rear-delt dumbbell fly','Band pull-apart','Cable face pull']},
+    {name:'Hammer curl', sets:2, min:10, max:12, rest:45,
+      cue:'Palms facing each other, elbows still. Two seconds down.',
+      alts:['Cable rope curl','Dumbbell curl']},
+  ]},
+  fri: { tab:'Fri', title:'Friday', focus:'Hip thrust · hinge · incline', ex:[
+    {name:'Barbell hip thrust', sets:4, min:6, max:10, rest:90,
+      cue:'Chin tucked, ribs down, shins vertical at the top. Squeeze the glutes 1 s — don’t arch the lower back.',
+      alts:['Hip thrust machine','Single-leg hip thrust']},
+    {name:'Side plank', time:true, sets:3, min:30, max:45, side:true, rest:45,
+      cue:'Straight line ear–hip–ankle; don’t let the hips sag. At 45 s easy, add a plate on the hip (enter kg).',
+      alts:['Heavy one-arm dumbbell hold','Suitcase carry']},
+    {name:'Romanian deadlift', sets:3, min:8, max:10, rest:90,
+      cue:'Hips back, bar close to the legs, soft knees. Stop where the back would start to round.',
+      alts:['Dumbbell RDL','Cable pull-through']},
+    {name:'Incline dumbbell press', sets:3, min:8, max:12, rest:75,
+      cue:'Low incline. Elbows about 45°, lower to the upper chest.',
+      alts:['Incline barbell press','Incline machine press']},
+    {name:'Neutral-grip pulldown', sets:3, min:8, max:12, rest:75,
+      cue:'Palms facing each other. Elbows down and close to the ribs.',
+      alts:['Neutral-grip assisted pull-up','Single-arm cable pulldown']},
+    {name:'45° back extension', sets:3, min:12, max:12, rest:60,
+      cue:'Hinge at the hips, squeeze the glutes at the top; don’t overextend. kg = extra weight held.',
+      alts:['Cable pull-through','Good morning']},
+    {name:'Weighted crunch', sets:3, min:15, max:20, rest:45,
+      cue:'Plate on the chest, curl the ribs toward the pelvis. Feet free, not anchored (keeps hip flexors out).',
+      alts:['Crunch machine','Cable rope crunch']},
+    {name:'Calf press', sets:3, min:12, max:15, rest:45,
+      cue:'Front half of the feet on the platform. Drop low, push high, hold 1 s.',
+      alts:['Standing calf raise','Seated calf raise']},
+  ]},
+};
+const DAYS = ['mon','wed','fri'];
+
+// ---------- Storage (all of it stays on this device) ----------
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} },
+};
+let history = store.get('fb3.history', []);
+let drafts  = store.get('fb3.drafts', {});
+let view    = DAYS.includes(store.get('fb3.view')) ? store.get('fb3.view') : defaultDay();
+const save = () => { store.set('fb3.history', history); store.set('fb3.drafts', drafts); };
+
+function defaultDay(){
+  const d = new Date().getDay(); // 0 Sun … 6 Sat
+  return d===1||d===2 ? 'mon' : d===3||d===4 ? 'wed' : 'fri';
+}
+function blank(day){
+  return { day, startedAt:null, notes:'',
+    slots: PLAN[day].ex.map(ex => ({ name:ex.name, sets:Array.from({length:ex.sets}, newSet) })) };
+}
+function newSet(){ return { kg:'', reps:'', done:false }; }
+function draft(day, create){
+  if(!drafts[day] && create){ drafts[day] = blank(day); }
+  if(drafts[day] && create && !drafts[day].startedAt){ drafts[day].startedAt = Date.now(); }
+  return drafts[day] || blank(day);
+}
+function lastFor(name){
+  for(let i = history.length - 1; i >= 0; i--){
+    const s = history[i].slots.find(x => x.name === name && x.sets.some(t => t.done));
+    if(s) return { at:history[i].startedAt, sets:s.sets.filter(t => t.done) };
+  }
+  return null;
+}
+
+// ---------- Formatting ----------
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const range = ex => ex.min === ex.max ? ex.min : `${ex.min}–${ex.max}`;
+const rx = ex => `${ex.sets} × ${range(ex)}${ex.time ? ' s' : ''}${ex.side ? ' / ' + (ex.sideWord || 'side') : ''}`;
+const restTxt = s => s >= 60 && s % 60 === 0 ? `${s/60} min` : s > 60 ? `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}` : `${s}s`;
+const mmss = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+const round = (kg, step) => Math.round(kg / step) * step;
+const dateTxt = t => new Date(t).toLocaleDateString(undefined, { weekday:'short', day:'numeric', month:'short' });
+const setTxt = (s, ex) => {
+  const kg = s.kg !== '' && s.kg != null ? `${s.kg} kg` : '';
+  const amt = ex && ex.time ? `${s.reps}s` : s.reps;
+  return kg ? `${kg} × ${amt}` : `${amt}${ex && ex.time ? '' : ' reps'}`;
+};
+
+// ---------- Render ----------
+const $main = document.getElementById('main');
+function render(){
+  document.getElementById('tabs').innerHTML =
+    DAYS.map(d => `<button data-tab="${d}" aria-current="${view===d}">${PLAN[d].tab}${drafts[d]?.startedAt ? '<span class="dot"></span>' : ''}</button>`).join('') +
+    `<button data-tab="log" aria-current="${view==='log'}">Log</button>`;
+  view === 'log' ? renderLog() : renderDay(view);
+  tickClock();
+}
+
+function renderDay(day){
+  const p = PLAN[day], d = draft(day, false);
+  let h = `<p class="focus">${p.title} — ${p.focus}</p>
+  <div class="box"><h3>Warm-up (~4 min)</h3>
+    <div class="small">Foam roll quads and hip flexors 60 s each · kneeling hip-flexor stretch 60 s/side · dead bugs 10/side. Stretch hip flexors, never hamstrings. Warm-up sets only for exercise 1.</div></div>`;
+
+  p.ex.forEach((ex, i) => {
+    const slot = d.slots[i], last = lastFor(slot.name);
+    const doneCount = slot.sets.filter(s => s.done).length;
+    const options = [ex.name, ...ex.alts].map(n => `<option ${n===slot.name?'selected':''}>${esc(n)}</option>`).join('');
+    let hint = '';
+    if(last && last.sets.length >= ex.sets && last.sets.every(s => +s.reps >= ex.max))
+      hint = ex.time ? 'Hit the top time last session → add a little weight and restart at the bottom.'
+                     : 'Hit the top of the range on every set last time → add the smallest step, restart at the bottom.';
+    if(i === 0){
+      const top = last ? Math.max(...last.sets.map(s => +s.kg || 0)) : 0;
+      hint = (top ? `Warm-up sets: ${round(top*.5, 2.5)} kg × 5, then ${round(top*.8, 2.5)} kg × 3. ` : 'Warm-up sets: ~50% × 5, then ~80% × 3. ') + hint;
+    }
+    h += `<article class="ex ${doneCount >= slot.sets.length ? 'complete' : ''}">
+      <div class="ex-head"><div class="num">${i+1}</div>
+        <div class="ex-title">
+          <select data-swap="${i}" aria-label="Exercise (tap to swap)">${options}</select>
+          <div class="rx">${rx(ex)} · rest ${restTxt(ex.rest)} ${slot.name !== ex.name ? '· <span class="swap">swapped</span>' : ''}</div>
+        </div></div>
+      <p class="cue">${esc(ex.cue)}</p>
+      ${hint ? `<div class="hint">${esc(hint)}</div>` : ''}
+      ${last ? `<div class="last">Last (${dateTxt(last.at)}): ${last.sets.map(s => esc(setTxt(s, ex))).join(' · ')}</div>` : ''}
+      <div class="sets">
+        <div class="row head"><span></span><span>kg</span><span>${ex.time ? 'sec' : 'reps'}</span><span></span></div>
+        ${slot.sets.map((s, j) => {
+          const ref = last ? (last.sets[j] || last.sets[last.sets.length-1]) : null;
+          return `<div class="row ${s.done ? 'done' : ''}">
+            <span class="i">${j+1}</span>
+            <input inputmode="decimal" data-i="${i}" data-j="${j}" data-f="kg" value="${esc(s.kg)}" placeholder="${ref && ref.kg !== '' ? esc(ref.kg) : '–'}" aria-label="Set ${j+1} kg">
+            <input inputmode="numeric" data-i="${i}" data-j="${j}" data-f="reps" value="${esc(s.reps)}" placeholder="${ref ? esc(ref.reps) : ex.max}" aria-label="Set ${j+1} ${ex.time ? 'seconds' : 'reps'}">
+            <button class="tick" data-tick="${i}.${j}" aria-label="Set ${j+1} done">${s.done ? '✓' : ''}</button>
+          </div>`;}).join('')}
+      </div>
+      <div class="setbtns"><button class="link" data-addset="${i}">+ set</button>
+        ${slot.sets.length > 1 && !slot.sets[slot.sets.length-1].done ? `<button class="link" data-delset="${i}">− set</button>` : ''}</div>
+    </article>`;
+  });
+
+  h += `<div class="box"><h3>Notes</h3>
+      <textarea id="notes" placeholder="How did it feel? Anything to change?">${esc(d.notes)}</textarea></div>
+    <div class="actions"><button class="btn ghost" data-act="discard">Clear day</button>
+      <button class="btn" data-act="finish">Finish workout</button></div>
+    <div class="box small">Stop each set ~2 reps short of failure (machines and raises can go closer).
+      When every set hits the top of the range, add the smallest step and restart at the bottom.
+      A missed day moves to the next day — never merge two sessions.</div>`;
+  $main.innerHTML = h;
+}
+
+function renderLog(){
+  let h = `<div class="actions">
+    <button class="btn ghost" data-act="csv">Export CSV</button>
+    <button class="btn ghost" data-act="backup">Backup</button>
+    <button class="btn ghost" data-act="restore">Restore</button></div>
+    <p class="small">${syncText()} Export a backup now and then — it can be imported into the app later.</p>`;
+  h += `<details class="sess" ${ghReady() ? '' : 'open'}><summary>GitHub ${ghReady() ? '<span>· connected</span>' : '<span>· not set up</span>'}</summary>
+    <p class="small">Finished workouts are saved as files in <b>data/workouts/</b> of your repo. Use a fine-grained token
+      limited to that one repo, with <b>Contents: read and write</b> and an expiry date. It stays in this browser only.</p>
+    <div class="gh">
+      <label>Repo <input id="ghRepo" value="${esc(gh.repo)}" autocapitalize="off" spellcheck="false"></label>
+      <label>Branch <input id="ghBranch" value="${esc(gh.branch)}" autocapitalize="off" spellcheck="false"></label>
+      <label>Token <input id="ghToken" type="password" placeholder="${gh.token ? 'saved — leave empty to keep' : 'github_pat_…'}" autocomplete="off"></label>
+    </div>
+    <div class="actions"><button class="btn" data-act="ghsave">Save</button>
+      <button class="btn ghost" data-act="ghpull">Load from GitHub</button>
+      ${gh.token ? '<button class="btn ghost" data-act="ghforget">Forget token</button>' : ''}</div></details>`;
+  if(!history.length) h += `<p class="empty">No finished workouts yet.</p>`;
+  [...history].reverse().forEach(s => {
+    const p = PLAN[s.day];
+    const sets = s.slots.reduce((n, x) => n + x.sets.filter(t => t.done).length, 0);
+    const mins = s.finishedAt && s.startedAt ? Math.round((s.finishedAt - s.startedAt) / 60000) : null;
+    h += `<details class="sess"><summary>${dateTxt(s.startedAt)} · ${p ? p.title : s.day} <span>· ${sets} sets${mins ? ` · ${mins} min` : ''}</span></summary><ul>
+      ${s.slots.filter(x => x.sets.some(t => t.done)).map(x => {
+        const ex = p && p.ex.find(e => e.name === x.name || e.alts.includes(x.name));
+        return `<li><b>${esc(x.name)}</b>: ${x.sets.filter(t => t.done).map(t => esc(setTxt(t, ex))).join(' · ')}</li>`;
+      }).join('')}</ul>
+      ${s.notes ? `<p class="small">${esc(s.notes)}</p>` : ''}
+      <p><button class="link" data-delsess="${s.id}">Delete this workout</button></p></details>`;
+  });
+  $main.innerHTML = h;
+}
+
+// ---------- Events ----------
+document.addEventListener('click', e => {
+  const t = e.target.closest('button'); if(!t) return;
+  if(t.dataset.tab){ view = t.dataset.tab; store.set('fb3.view', view); render(); scrollTo(0, 0); return; }
+  if(t.dataset.rest){ adjustRest(t.dataset.rest); return; }
+  if(t.id === 'wake'){ toggleWake(); return; }
+
+  if(t.dataset.tick){
+    const [i, j] = t.dataset.tick.split('.').map(Number), d = draft(view, true), s = d.slots[i].sets[j];
+    const row = t.closest('.row'), [kgIn, repIn] = row.querySelectorAll('input');
+    s.done = !s.done;
+    if(s.done){
+      // one tap if the numbers match last time: take the greyed-in values
+      if(s.kg === '' && kgIn.placeholder !== '–') s.kg = kgIn.placeholder;
+      if(s.reps === '') s.reps = repIn.placeholder;
+      const ex = PLAN[view].ex[i];
+      const lastSet = d.slots[i].sets.every(x => x.done);
+      startRest(ex.rest, lastSet ? `Next: ${PLAN[view].ex[i+1]?.name || 'finish'}` : `${d.slots[i].name} · set ${j+2}`);
+    }
+    save(); render(); return;
+  }
+  if(t.dataset.addset){ draft(view, true).slots[+t.dataset.addset].sets.push(newSet()); save(); render(); return; }
+  if(t.dataset.delset){ draft(view, true).slots[+t.dataset.delset].sets.pop(); save(); render(); return; }
+  if(t.dataset.delsess){
+    if(confirm('Delete this workout from the log?')){
+      const gone = history.find(s => s.id === t.dataset.delsess);
+      history = history.filter(s => s.id !== t.dataset.delsess);
+      if(gone && gone.synced){ deleted.push({ path:pathFor(gone) }); store.set('fb3.deleted', deleted); }
+      save(); render(); sync();
+    }
+    return;
+  }
+  const act = t.dataset.act;
+  if(act === 'finish'){
+    const d = drafts[view];
+    if(!d || !d.slots.some(x => x.sets.some(s => s.done))){ toast('Nothing ticked yet'); return; }
+    if(!confirm('Finish and save this workout?')) return;
+    history.push({ ...d, id: String(Date.now()), finishedAt: Date.now(), synced: false });
+    delete drafts[view]; save(); stopRest(); render(); scrollTo(0, 0); toast('Workout saved ✓'); sync();
+  }
+  if(act === 'discard'){
+    if(drafts[view] && confirm('Clear everything entered for today? (Saved workouts are kept.)')){ delete drafts[view]; save(); render(); }
+  }
+  if(act === 'ghsave'){
+    const v = id => document.getElementById(id).value.trim();
+    gh = { repo:v('ghRepo'), branch:v('ghBranch') || 'main', token:v('ghToken') || gh.token };
+    store.set('fb3.gh', gh); toast('GitHub settings saved'); sync(); render();
+  }
+  if(act === 'ghforget' && confirm('Remove the GitHub token from this phone?')){ gh.token = ''; store.set('fb3.gh', gh); render(); }
+  if(act === 'ghpull') pullFromGitHub();
+  if(act === 'csv') exportCsv();
+  if(act === 'backup') download(`fitness-backup-${new Date().toISOString().slice(0,10)}.json`,
+    JSON.stringify({ version:1, history, drafts }, null, 2), 'application/json');
+  if(act === 'restore') document.getElementById('importFile').click();
+});
+
+document.addEventListener('input', e => {
+  const t = e.target;
+  if(t.dataset.f){ const d = draft(view, true); d.slots[+t.dataset.i].sets[+t.dataset.j][t.dataset.f] = t.value.replace(',', '.'); save(); tickClock(); }
+  if(t.id === 'notes'){ draft(view, true).notes = t.value; save(); }
+});
+document.addEventListener('change', e => {
+  const t = e.target;
+  if(t.dataset.swap){ draft(view, true).slots[+t.dataset.swap].name = t.value; save(); render(); }
+  if(t.id === 'importFile' && t.files[0]){
+    t.files[0].text().then(txt => {
+      const data = JSON.parse(txt), ids = new Set(history.map(s => s.id));
+      const added = (data.history || []).filter(s => !ids.has(s.id)).map(s => ({ ...s, synced: false }));
+      history = [...history, ...added].sort((a, b) => a.startedAt - b.startedAt);
+      save(); render(); sync(); toast(`Restored ${added.length} workout${added.length === 1 ? '' : 's'}`);
+    }).catch(() => toast('That file could not be read'));
+    t.value = '';
+  }
+});
+
+// ---------- Export ----------
+async function download(name, text, type){
+  // Inside claude.ai the viewer hands out files; opened as a plain file, a normal link works.
+  const dl = window.claude && claude.use ? await claude.use('downloads').catch(() => null) : null;
+  if(dl){
+    try{ await dl.save({ filename:name, data:text }); toast('Saved ✓'); }
+    catch(e){ if(e && e.code !== 'declined') toast('Couldn’t save the file here'); }
+    return;
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+function exportCsv(){
+  const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const rows = [['date','day','exercise','set','kg','reps_or_seconds','session_notes']];
+  history.forEach(s => s.slots.forEach(x => x.sets.filter(t => t.done).forEach((t, k) =>
+    rows.push([new Date(s.startedAt).toISOString().slice(0,10), s.day, x.name, k+1, t.kg, t.reps, s.notes]))));
+  download(`fitness-log-${new Date().toISOString().slice(0,10)}.csv`, rows.map(r => r.map(q).join(',')).join('\n'), 'text/csv');
+}
+
+// ---------- Rest timer ----------
+let restEnd = 0, overTimer = null, audio = null;
+const $bar = document.getElementById('bar');
+function startRest(sec, label){
+  primeAudio(); clearTimeout(overTimer);
+  restEnd = Date.now() + sec * 1000;
+  document.getElementById('barL').textContent = label;
+  $bar.classList.remove('over'); $bar.classList.add('show'); tickRest();
+}
+function adjustRest(v){
+  if(v === 'skip'){ stopRest(); return; }
+  if(restEnd) restEnd += (+v) * 1000;
+  tickRest();
+}
+function stopRest(){ restEnd = 0; $bar.classList.remove('show', 'over'); }
+function tickRest(){
+  if(!restEnd) return;
+  const left = Math.ceil((restEnd - Date.now()) / 1000);
+  if(left <= 0){
+    restEnd = 0; $bar.classList.add('over');
+    document.getElementById('barT').textContent = 'Go';
+    beep(); try{ navigator.vibrate && navigator.vibrate([300, 150, 300]); }catch(e){}
+    overTimer = setTimeout(() => $bar.classList.remove('show', 'over'), 5000);
+  } else document.getElementById('barT').textContent = mmss(left);
+}
+function primeAudio(){
+  try{ audio = audio || new (window.AudioContext || window.webkitAudioContext)(); if(audio.state === 'suspended') audio.resume(); }catch(e){}
+}
+function beep(){
+  if(!audio) return;
+  try{
+    [0, .25, .5].forEach(t => {
+      const o = audio.createOscillator(), g = audio.createGain();
+      o.frequency.value = 880; o.connect(g); g.connect(audio.destination);
+      g.gain.setValueAtTime(.25, audio.currentTime + t); g.gain.exponentialRampToValueAtTime(.001, audio.currentTime + t + .18);
+      o.start(audio.currentTime + t); o.stop(audio.currentTime + t + .2);
+    });
+  }catch(e){}
+}
+
+// ---------- Session clock + keep screen on ----------
+function tickClock(){
+  const d = drafts[view], el = document.getElementById('clock');
+  if(!d || !d.startedAt){ el.textContent = ''; return; }
+  const s = Math.floor((Date.now() - d.startedAt) / 1000);
+  el.textContent = s >= 3600 ? `${Math.floor(s/3600)}:${mmss(s % 3600).padStart(5, '0')}` : mmss(s);
+}
+setInterval(() => { tickRest(); tickClock(); }, 250);
+
+let wakeLock = null, wantWake = false;
+async function toggleWake(){
+  wantWake = !wantWake;
+  if(wantWake) await getWake(); else { try{ await wakeLock?.release(); }catch(e){} wakeLock = null; }
+  document.getElementById('wake').classList.toggle('on', wantWake && !!wakeLock);
+  if(wantWake && !wakeLock){ wantWake = false; toast('This browser can’t keep the screen on'); }
+}
+async function getWake(){ try{ wakeLock = await navigator.wakeLock.request('screen'); }catch(e){ wakeLock = null; } }
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible'){ if(wantWake) getWake(); tickRest(); }
+});
+
+// ---------- GitHub sync (finished workouts → data/workouts/ in your private repo) ----------
+// The phone copy is always written first; GitHub follows when there is signal.
+// The token is typed in once on the phone and kept only in this browser.
+let gh = store.get('fb3.gh', { repo:'sayedrian/fitness', branch:'main', token:'' });
+let syncing = false, syncError = '', deleted = store.get('fb3.deleted', []);
+const ghReady = () => !!(gh.token && gh.repo);
+const b64enc = s => btoa(unescape(encodeURIComponent(s)));
+const b64dec = s => decodeURIComponent(escape(atob(s.replace(/\n/g, ''))));
+const pathFor = s => `data/workouts/${new Date(s.startedAt).toISOString().slice(0,10)}-${s.day}-${s.id}.json`;
+async function api(path, opts = {}){
+  const r = await fetch(`https://api.github.com/repos/${gh.repo}/contents/${path}`, { ...opts, headers:{
+    Authorization:`Bearer ${gh.token}`, Accept:'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28' } });
+  if(r.status === 401 || r.status === 403) throw new Error('GitHub refused the token — check it and its access to the repo.');
+  if(r.status === 404 && opts.method !== 'PUT') return null;
+  if(!r.ok) throw new Error(`GitHub error ${r.status}`);
+  return r.status === 204 ? {} : r.json();
+}
+function syncText(){
+  if(!ghReady()) return 'Saved in this browser on this phone only — add GitHub below to keep a copy in your repo.';
+  const waiting = history.filter(s => !s.synced).length;
+  if(syncError) return `Saved on this phone. GitHub: ${syncError}`;
+  return waiting ? `Saved on this phone; ${waiting} waiting to upload to GitHub.` : 'Saved on this phone and in GitHub ✓';
+}
+async function sync(){
+  if(!ghReady() || syncing || !navigator.onLine) return;
+  syncing = true; syncError = '';
+  try{
+    for(const d of [...deleted]){
+      const f = await api(d.path + `?ref=${gh.branch}`);
+      if(f) await api(d.path, { method:'DELETE', body:JSON.stringify({ message:`Delete workout ${d.path}`, sha:f.sha, branch:gh.branch }) });
+      deleted = deleted.filter(x => x.path !== d.path); store.set('fb3.deleted', deleted);
+    }
+    for(const s of history.filter(s => !s.synced)){
+      const { synced, ...body } = s, path = pathFor(s);
+      const existing = await api(path + `?ref=${gh.branch}`);   // already there from an earlier, half-finished upload
+      if(!existing) await api(path, { method:'PUT', body:JSON.stringify({
+        message:`Log ${PLAN[s.day]?.title || s.day} workout ${path.slice(14, 24)}`, content:b64enc(JSON.stringify(body, null, 2)), branch:gh.branch }) });
+      s.synced = true; save();
+    }
+  }catch(e){ syncError = e.message.startsWith('GitHub') ? e.message : 'no connection — will retry.'; }
+  syncing = false;
+  if(view === 'log') render();
+}
+async function pullFromGitHub(){
+  if(!ghReady()){ toast('Add the GitHub token first'); return; }
+  try{
+    const list = await api(`data/workouts?ref=${gh.branch}`) || [];
+    const have = new Set(history.map(s => s.id)), gone = new Set(deleted.map(d => d.path));
+    let added = 0;
+    for(const f of list.filter(f => f.name.endsWith('.json') && !gone.has(f.path))){
+      const id = f.name.replace(/\.json$/, '').split('-').pop();
+      if(have.has(id)) continue;
+      const file = await api(f.path + `?ref=${gh.branch}`);
+      history.push({ ...JSON.parse(b64dec(file.content)), synced:true }); added++;
+    }
+    history.sort((a, b) => a.startedAt - b.startedAt); save(); render();
+    toast(`Loaded ${added} workout${added === 1 ? '' : 's'} from GitHub`);
+  }catch(e){ toast(e.message.startsWith('GitHub') ? e.message : 'No connection'); }
+}
+window.addEventListener('online', sync);
+document.addEventListener('visibilitychange', () => { if(document.visibilityState === 'visible') sync(); });
+sync();
+
+let toastT;
+function toast(msg){ const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2000); }
+
+render();
+</script>
+</body>
+</html>
