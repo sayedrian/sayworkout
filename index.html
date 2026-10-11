@@ -3,12 +3,20 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<!-- Security: the page may only talk to api.github.com, loads nothing from anywhere, and sends no referrer.
-     Even injected code could not send the token to another site. Checked by tests/check-site.sh. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src https://api.github.com; img-src data:; media-src 'none'; base-uri 'none'; form-action 'none'">
+<!-- Security: the page may only talk to api.github.com, loads nothing from other sites (only its own
+     icon, manifest and offline helper), and sends no referrer. Even injected code could not send the
+     token to another site. Checked by tests/check-site.sh. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src https://api.github.com; img-src 'self' data:; manifest-src 'self'; worker-src 'self'; media-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Full Body 3</title>
+<title>Workout</title>
+<!-- Installs as an app: home-screen icon, full screen, opens offline (sw.js) -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#f5f4f0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#101317" media="(prefers-color-scheme: dark)">
 <style>
 :root{
   --bg:#f5f4f0; --card:#ffffff; --ink:#1b1d21; --muted:#686c73; --line:#e2e0da;
@@ -594,6 +602,11 @@ let toastT;
 function toast(msg){ const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2000); }
 
 render();
+
+// Offline helper: lets the installed app open with no signal (see sw.js).
+if('serviceWorker' in navigator && location.protocol !== 'file:'){
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
 </script>
 </body>
 </html>
