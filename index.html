@@ -3,6 +3,10 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- Security: the page may only talk to api.github.com, loads nothing from anywhere, and sends no referrer.
+     Even injected code could not send the token to another site. Checked by tests/check-site.sh. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src https://api.github.com; img-src data:; media-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Full Body 3</title>
 <style>
@@ -397,7 +401,8 @@ document.addEventListener('click', e => {
       if(!confirm(filled.length ? `Finish and save? ${filled.length} filled-in set${filled.length === 1 ? '' : 's'} without ✓ will be saved too.` : 'Finish and save this workout?')) return;
       filled.forEach(s => s.done = true);
     }
-    history.push({ ...d, id: String(Date.now()), finishedAt: Date.now(), synced: false });
+    // id: time + random suffix, so two workouts can never share one (or one file name)
+    history.push({ ...d, id: Date.now() + Math.random().toString(36).slice(2, 7), finishedAt: Date.now(), synced: false });
     delete drafts[view]; save(); stopRest(); render(); scrollTo(0, 0); toast('Workout saved ✓'); sync();
   }
   if(act === 'discard'){
@@ -405,7 +410,11 @@ document.addEventListener('click', e => {
   }
   if(act === 'ghsave'){
     const v = id => document.getElementById(id).value.trim();
-    gh = { repo:v('ghRepo'), branch:v('ghBranch') || 'main', token:v('ghToken') || gh.token };
+    const next = { repo:v('ghRepo'), branch:v('ghBranch') || 'main', token:v('ghToken') || gh.token };
+    if(!/^[\w.-]+\/[\w.-]+$/.test(next.repo) || !/^[\w./-]+$/.test(next.branch) || /\s/.test(next.token)){
+      toast('Check the repo (owner/name), branch and token'); return;
+    }
+    gh = next;
     store.set('fb3.gh', gh); toast('GitHub settings saved'); sync(); render();
   }
   if(act === 'ghforget' && confirm('Remove the GitHub token from this phone?')){ gh.token = ''; store.set('fb3.gh', gh); render(); }
