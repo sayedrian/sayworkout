@@ -160,7 +160,7 @@ details.sess summary span{font-weight:400;color:var(--muted);font-size:13px}
 <script>
 // ---------- The plan (fitness.md §2d, updated 2026-10-11) ----------
 const PLAN = {
-  mon: { tab:'Mon', title:'Monday', focus:'Squat · chest · wide pull', ex:[
+  mon: { tab:'A', title:'Workout A', focus:'Squat · chest · wide pull', ex:[
     {name:'Barbell back squat', sets:4, min:6, max:10, rest:120,
       cue:'Brace: belly breath, ribs down, hold through the rep. Two seconds down, drive up.',
       alts:['Hack squat','Goblet squat','Leg press']},
@@ -186,7 +186,7 @@ const PLAN = {
       cue:'Elbows pinned at your sides; only the forearms move.',
       alts:['Overhead cable extension','Close-grip push-up']},
   ]},
-  wed: { tab:'Wed', title:'Wednesday', focus:'Leg press · back · shoulders', ex:[
+  wed: { tab:'B', title:'Workout B', focus:'Leg press · back · shoulders', ex:[
     {name:'Leg press', sets:4, min:8, max:12, rest:90,
       cue:'Go down until just before the bum lifts off the seat — the back is the signal, not the knees.',
       alts:['Hack squat','Goblet squat']},
@@ -212,7 +212,7 @@ const PLAN = {
       cue:'Palms facing each other, elbows still. Two seconds down.',
       alts:['Cable rope curl','Dumbbell curl']},
   ]},
-  fri: { tab:'Fri', title:'Friday', focus:'Hip thrust · hinge · incline', ex:[
+  fri: { tab:'C', title:'Workout C', focus:'Hip thrust · hinge · incline', ex:[
     {name:'Barbell hip thrust', sets:4, min:6, max:10, rest:90,
       cue:'Chin tucked, ribs down, shins vertical at the top. Squeeze the glutes 1 s — don’t arch the lower back.',
       alts:['Hip thrust machine','Single-leg hip thrust']},
@@ -266,14 +266,18 @@ const store = {
 };
 let history = store.get('fb3.history', []);
 let drafts  = store.get('fb3.drafts', {});
-let view    = DAYS.includes(store.get('fb3.view')) ? store.get('fb3.view') : defaultDay();
+let view    = defaultDay();
 const save = () => { store.set('fb3.history', history); store.set('fb3.drafts', drafts); };
 let bodyweight = store.get('fb3.bw', '');   // typed in on the phone, never in this file
 let reportId = null;                        // which workout the Report tab shows (null = latest)
 
+// Opens on the workout in progress, otherwise the next one in the rotation A → B → C → A.
+// (Internally A/B/C are still 'mon'/'wed'/'fri', so saved workouts and file names stay the same.)
 function defaultDay(){
-  const d = new Date().getDay(); // 0 Sun … 6 Sat
-  return d===1||d===2 ? 'mon' : d===3||d===4 ? 'wed' : 'fri';
+  const open = DAYS.filter(d => drafts[d]?.startedAt).sort((a, b) => drafts[b].startedAt - drafts[a].startedAt)[0];
+  if(open) return open;
+  const last = [...history].reverse().find(s => DAYS.includes(s.day));
+  return last ? DAYS[(DAYS.indexOf(last.day) + 1) % DAYS.length] : DAYS[0];
 }
 function blank(day){
   return { day, startedAt:null, notes:'',
@@ -485,7 +489,7 @@ function renderReport(){
   DAYS.forEach(d => PLAN[d].ex.forEach(ex => {
     const last = [ex.name, ...ex.alts].map(n => ({ n, l:lastFor(n) })).filter(o => o.l).sort((a, b) => b.l.at - a.l.at)[0];
     if(last && last.l.sets.length >= ex.sets && last.l.sets.every(t => +t.reps >= ex.max))
-      next.push(`<li><b>${esc(last.n)}</b> (${PLAN[d].tab}) — ${ex.time ? 'add a little weight' : loadOf(last.n) === 'assist' ? 'lower the assist one step' : 'add the smallest weight step'}</li>`);
+      next.push(`<li><b>${esc(last.n)}</b> (${PLAN[d].title}) — ${ex.time ? 'add a little weight' : loadOf(last.n) === 'assist' ? 'lower the assist one step' : 'add the smallest weight step'}</li>`);
   }));
   h += `<div class="box rep"><h3>Next time</h3>${next.length ? `<ul>${next.join('')}</ul>`
     : '<p class="small">Nothing to raise yet — keep adding reps until every set reaches the top of its range.</p>'}</div>`;
