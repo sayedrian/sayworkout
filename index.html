@@ -712,23 +712,31 @@ async function sync(){
         message:`Log ${PLAN[s.day]?.title || s.day} workout ${path.slice(14, 24)}`, content:b64enc(JSON.stringify(body, null, 2)), branch:gh.branch }) });
       s.synced = true; save();
     }
+    // and the other way: workouts saved from another phone (or a new phone) come in by themselves
+    const added = await pullNew();
+    if(added){ toast(`Loaded ${added} workout${added === 1 ? '' : 's'} from GitHub`); render(); }
   }catch(e){ syncError = e.message.startsWith('GitHub') ? e.message : 'no connection — will retry.'; }
   syncing = false;
   if(view === 'log') render();
 }
+// Fetches workouts that are in GitHub but not on this phone. Returns how many were added.
+async function pullNew(){
+  const list = await api(`data/workouts?ref=${gh.branch}`) || [];
+  const have = new Set(history.map(s => s.id)), gone = new Set(deleted.map(d => d.path));
+  let added = 0;
+  for(const f of list.filter(f => f.name.endsWith('.json') && !gone.has(f.path))){
+    const id = f.name.replace(/\.json$/, '').split('-').pop();
+    if(have.has(id)) continue;
+    const file = await api(f.path + `?ref=${gh.branch}`);
+    history.push({ ...JSON.parse(b64dec(file.content)), synced:true }); added++;
+  }
+  if(added){ history.sort((a, b) => a.startedAt - b.startedAt); save(); }
+  return added;
+}
 async function pullFromGitHub(){
   if(!ghReady()){ toast('Add the GitHub token first'); return; }
   try{
-    const list = await api(`data/workouts?ref=${gh.branch}`) || [];
-    const have = new Set(history.map(s => s.id)), gone = new Set(deleted.map(d => d.path));
-    let added = 0;
-    for(const f of list.filter(f => f.name.endsWith('.json') && !gone.has(f.path))){
-      const id = f.name.replace(/\.json$/, '').split('-').pop();
-      if(have.has(id)) continue;
-      const file = await api(f.path + `?ref=${gh.branch}`);
-      history.push({ ...JSON.parse(b64dec(file.content)), synced:true }); added++;
-    }
-    history.sort((a, b) => a.startedAt - b.startedAt); save(); render();
+    const added = await pullNew(); render();
     toast(`Loaded ${added} workout${added === 1 ? '' : 's'} from GitHub`);
   }catch(e){ toast(e.message.startsWith('GitHub') ? e.message : 'No connection'); }
 }
