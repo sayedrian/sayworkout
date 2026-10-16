@@ -83,6 +83,9 @@ nav button .dot{position:absolute;top:6px;right:8px;width:7px;height:7px;border-
 .row .i{text-align:center;color:var(--muted);font-size:14px}
 .row input{width:100%;min-width:0;border:1px solid transparent;background:var(--input);border-radius:9px;
   padding:9px 8px;text-align:center;font-size:17px;font-variant-numeric:tabular-nums}
+.rrow{display:grid;grid-template-columns:1fr 56px;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--line);font-size:14px}
+.rrow.done .tick{opacity:1;background:var(--done);border-color:var(--done);color:var(--card)}
+.reset h3 .small{font-weight:400}
 .row .bwcell{text-align:center;color:var(--muted);font-size:14px;padding:9px 0}
 .row input:focus{outline:none;border-color:var(--accent)}
 .row input::placeholder{color:var(--muted);opacity:.75}
@@ -242,6 +245,16 @@ const PLAN = {
 };
 const DAYS = ['mon','wed','fri'];
 
+// Desk reset before every session (fitness.md §2b "Warm-up", 2026-10-16). Ticks are saved with the workout as `reset`.
+const RESET = [
+  { name:'Couch stretch', dose:'45 s / side', cue:'Back foot up on a bench, squeeze that glute, ribs down.' },
+  { name:'90/90 hip switches', dose:'8 / side', cue:'Sit tall, knees bent 90°, rotate both knees side to side.' },
+  { name:'Open book', dose:'8 / side', cue:'Lie on your side, knees bent, open the top arm and follow it with your eyes.' },
+  { name:'Deep squat hold', dose:'45 s', cue:'Hold a rack, heels down, chest up. +15 s when easy.' },
+  { name:'Dead hang', dose:'30 s', cue:'Shoulders slightly active, breathe. +15 s when easy.' },
+];
+const resetDone = s => (s.reset || []).filter(Boolean).length;
+
 // Muscle group per exercise slot (swaps count for the same group). Used by the weekly report.
 const MG = {
   mon:['Quads','Core','Chest','Back','Hamstrings & glutes','Back','Shoulders','Arms'],
@@ -288,7 +301,7 @@ function defaultDay(){
   return last ? DAYS[(DAYS.indexOf(last.day) + 1) % DAYS.length] : DAYS[0];
 }
 function blank(day){
-  return { day, startedAt:null, notes:'',
+  return { day, startedAt:null, notes:'', reset:RESET.map(() => false),
     slots: PLAN[day].ex.map(ex => ({ name:lastUsed(ex), sets:Array.from({length:ex.sets}, newSet) })) };
 }
 // a slot starts on the variant done most recently (e.g. assisted pull-up instead of pulldown)
@@ -378,8 +391,11 @@ function render(){
 function renderDay(day){
   const p = PLAN[day], d = draft(day, false);
   let h = `<p class="focus">${p.title} — ${p.focus}</p>
-  <div class="box"><h3>Warm-up (~4 min)</h3>
-    <div class="small">Foam roll quads and hip flexors 60 s each · kneeling hip-flexor stretch 60 s/side · dead bugs 10/side. Stretch hip flexors, never hamstrings. Warm-up sets only for exercise 1.</div></div>`;
+  <div class="box reset"><h3>Desk reset (~5 min) <span class="small">${resetDone(d)}/${RESET.length}</span></h3>
+    ${RESET.map((r, k) => `<div class="rrow ${(d.reset || [])[k] ? 'done' : ''}">
+      <div><b>${esc(r.name)}</b> · ${esc(r.dose)}<div class="small">${esc(r.cue)}</div></div>
+      <button class="tick" data-reset="${k}" aria-label="${esc(r.name)} done">✓</button></div>`).join('')}
+    <div class="small">Stretch hip flexors, never hamstrings. Warm-up sets only for exercise 1.</div></div>`;
 
   p.ex.forEach((ex, i) => {
     const slot = d.slots[i], last = lastFor(slot.name);
@@ -500,7 +516,7 @@ function renderReport(){
     return `<tr><td><b>${esc(x.name)}</b>${count}</td><td>${esc(setTxt(b, ex, x.name, s.bw))}</td><td class="n">${vs}</td></tr>`;
   }).join('');
   h += `<div class="box rep"><h3>${dateTxt(s.startedAt)} · ${p ? p.title : esc(s.day)}</h3>
-    <p class="small">${done} of ${all.length} sets${mins ? ` · ${mins} min` : ''}</p>
+    <p class="small">${done} of ${all.length} sets${mins ? ` · ${mins} min` : ''} · desk reset ${resetDone(s) === RESET.length ? '✓' : `${resetDone(s)}/${RESET.length}`}</p>
     <table><tr><th>Exercise</th><th>Best set</th><th class="n">vs last time</th></tr>${rows}</table>
     ${s.notes ? `<p class="small">Notes: ${esc(s.notes)}</p>` : ''}</div>`;
 
@@ -519,11 +535,19 @@ function renderReport(){
   const tally = (from, to) => {
     const ses = history.filter(o => o.startedAt >= from && o.startedAt < to), g = {};
     ses.forEach(o => o.slots.forEach(x => { const mg = exFor(x.name)?.mg || 'Other'; g[mg] = (g[mg] || 0) + x.sets.filter(t => t.done).length; }));
-    return { n:ses.length, g };
+    return { n:ses.length, g, reset:ses.filter(o => resetDone(o) === RESET.length).length };
   };
   const a = tally(wk, wk + 7 * 864e5), b = tally(prevWk, wk);
+  // habit streak: weeks in a row where every workout started with the full desk reset
+  let streak = 0;
+  for(let w = a.n ? wk : prevWk; ; w -= 7 * 864e5){
+    const x = tally(w, w + 7 * 864e5);
+    if(!x.n || x.reset < x.n) break;
+    streak++;
+  }
   h += `<div class="box rep"><h3>This week</h3>
     <p class="small">${a.n} of 3 workouts done (last week ${b.n}).</p>
+    <p class="small">Desk reset: ${a.reset} of ${a.n} workouts (last week ${b.reset} of ${b.n})${streak ? ` · <b>${streak} week${streak === 1 ? '' : 's'} in a row</b>` : ''}.</p>
     <table><tr><th>Sets per muscle</th><th class="n">This week</th><th class="n">Last week</th></tr>
     ${GROUPS.concat(a.g.Other || b.g.Other ? ['Other'] : []).map(g => `<tr><td>${g}</td><td class="n">${a.g[g] || 0}</td><td class="n">${b.g[g] || 0}</td></tr>`).join('')}</table></div>
     <div class="actions noprint"><button class="btn ghost" data-act="print">Save as PDF</button></div>`;
@@ -549,6 +573,11 @@ document.addEventListener('click', e => {
       const lastSet = d.slots[i].sets.every(x => x.done);
       startRest(ex.rest, lastSet ? `Next: ${PLAN[view].ex[i+1]?.name || 'finish'}` : `${d.slots[i].name} · set ${j+2}`);
     }
+    save(); render(); return;
+  }
+  if(t.dataset.reset){
+    const d = draft(view, true), k = +t.dataset.reset;
+    d.reset = RESET.map((_, n) => !!(d.reset || [])[n]); d.reset[k] = !d.reset[k];
     save(); render(); return;
   }
   if(t.dataset.addset){ draft(view, true).slots[+t.dataset.addset].sets.push(newSet()); save(); render(); return; }
