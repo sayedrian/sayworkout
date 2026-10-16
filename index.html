@@ -83,6 +83,7 @@ nav button .dot{position:absolute;top:6px;right:8px;width:7px;height:7px;border-
 .row .i{text-align:center;color:var(--muted);font-size:14px}
 .row input{width:100%;min-width:0;border:1px solid transparent;background:var(--input);border-radius:9px;
   padding:9px 8px;text-align:center;font-size:17px;font-variant-numeric:tabular-nums}
+.row .bwcell{text-align:center;color:var(--muted);font-size:14px;padding:9px 0}
 .row input:focus{outline:none;border-color:var(--accent)}
 .row input::placeholder{color:var(--muted);opacity:.75}
 .tick{height:42px;border-radius:10px;border:2px solid var(--accent);background:var(--card);color:var(--accent);font-size:20px;line-height:1;opacity:.55}
@@ -258,6 +259,13 @@ const PER_HAND = new Set(['Weighted dead bug','Flat dumbbell press','Dumbbell pr
   'Step-up','Rear-delt dumbbell fly','Hammer curl','Dumbbell curl','Incline dumbbell press','Dumbbell RDL','Heavy one-arm dumbbell hold']);
 const loadOf = name => /assisted/i.test(name) ? 'assist' : PER_HAND.has(name) ? 'hand' : 'total';
 const LOAD_HEAD = { total:'kg total', hand:'kg / hand', assist:'assist kg' };
+// Body-weight exercises (2026-10-16): 'only' → no weight box at all; 'plus' → body weight, extra kg optional.
+const BW_ONLY = new Set(['Ab wheel rollout','Barbell rollout','Swiss ball rollout','Hollow hold','Band pull-apart',
+  'Nordic curl','Close-grip push-up']);
+const BW_PLUS = new Set(['Bulgarian split squat','Walking lunge','Step-up','Plank','Side plank','Single-leg hip thrust',
+  '45° back extension','Weighted push-up']);
+const bwOf = name => BW_ONLY.has(name) ? 'only' : BW_PLUS.has(name) ? 'plus' : null;
+const headOf = name => bwOf(name) === 'only' ? 'body weight' : bwOf(name) === 'plus' ? '+' + LOAD_HEAD[loadOf(name)] : LOAD_HEAD[loadOf(name)];
 
 // ---------- Storage (all of it stays on this device) ----------
 const store = {
@@ -321,12 +329,22 @@ function lifted(s, name, bw){
 }
 // one number to compare sets: estimated 1-rep max, or reps/seconds when there is no weight
 function score(s, name, bw){
+  // body-weight exercises: body (or 80 kg if unknown) + any extra, so 10 reps with a dumbbell beats 10 without
+  if(bwOf(name)) return ((parseFloat(bw || bodyweight) || 80) + (parseFloat(s.kg) || 0)) * (1 + (+s.reps || 0) / 30);
   let kg = lifted(s, name, bw);
   if(kg == null) kg = 100 - (parseFloat(s.kg) || 0);   // no body weight yet: less assist still ranks higher
   const r = +s.reps || 0;
   return kg > 0 ? kg * (1 + r / 30) : r;
 }
 const best = (sets, name, bw) => sets.reduce((b, s) => !b || score(s, name, bw) > score(b, name, bw) ? s : b, null);
+// what to change once every set hit the top of the range
+function nextStep(ex, name, sets){
+  const bwk = bwOf(name);
+  if(bwk === 'only') return 'make it harder (further range, slower, or a harder variant)';
+  if(bwk === 'plus' && !sets.some(s => parseFloat(s.kg) > 0)) return loadOf(name) === 'hand' ? 'hold light dumbbells' : 'hold a light weight';
+  if(ex.time) return 'add a little weight';
+  return loadOf(name) === 'assist' ? 'lower the assist one step' : 'add the smallest weight step';
+}
 function weekStart(t){ const d = new Date(t); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return d.getTime(); }
 
 // ---------- Formatting ----------
@@ -341,6 +359,7 @@ const setTxt = (s, ex, name, bw) => {
   const amt = ex && ex.time ? `${s.reps}s` : s.reps;
   if(s.kg === '' || s.kg == null) return `${amt}${ex && ex.time ? '' : ' reps'}`;
   const load = loadOf(name || (ex && ex.name) || '');
+  if(bwOf(name || (ex && ex.name) || '')) return `BW + ${s.kg} kg${load === 'hand' ? '/hand' : ''} × ${amt}`;
   if(load === 'assist'){ const l = lifted(s, name, bw); return `assist ${s.kg} kg${l != null ? ` (lift ${l})` : ''} × ${amt}`; }
   return `${s.kg} kg${load === 'hand' ? '/hand' : ''} × ${amt}`;
 };
@@ -366,13 +385,12 @@ function renderDay(day){
     const slot = d.slots[i], last = lastFor(slot.name);
     const doneCount = slot.sets.filter(s => s.done).length;
     const options = [ex.name, ...ex.alts].map(n => `<option ${n===slot.name?'selected':''}>${esc(n)}</option>`).join('');
-    const load = loadOf(slot.name);
+    const load = loadOf(slot.name), bwk = bwOf(slot.name);
     let hint = '';
     if(last && last.sets.length >= ex.sets && last.sets.every(s => +s.reps >= ex.max))
-      hint = ex.time ? 'Hit the top time last session → add a little weight and restart at the bottom.'
-           : load === 'assist' ? 'Hit the top of the range on every set last time → lower the assist one step, restart at the bottom.'
-                               : 'Hit the top of the range on every set last time → add the smallest step, restart at the bottom.';
-    let unit = load === 'hand' ? 'Dumbbells: enter the weight of one dumbbell.' : '';
+      hint = `Hit the top of the range on every set last time → ${nextStep(ex, slot.name, last.sets)}, restart at the bottom.`;
+    let unit = bwk === 'plus' ? `Body weight. Holding weight? Enter ${load === 'hand' ? 'one dumbbell' : 'the extra kg'}; leave it empty if none.`
+             : bwk === 'only' ? '' : load === 'hand' ? 'Dumbbells: enter the weight of one dumbbell.' : '';
     if(load === 'assist'){
       const lifts = slot.sets.filter(s => s.kg !== '').map(s => lifted(s, slot.name));
       unit = !bodyweight ? 'Enter the assist. Add your body weight in Log to see what you lift.'
@@ -393,12 +411,14 @@ function renderDay(day){
       ${last ? `<div class="last">Last (${dateTxt(last.at)}): ${last.sets.map(s => esc(setTxt(s, ex, slot.name))).join(' · ')}</div>` : ''}
       ${unit ? `<div class="unitnote">${esc(unit)}</div>` : ''}
       <div class="sets">
-        <div class="row head"><span></span><span>${LOAD_HEAD[load]}</span><span>${ex.time ? 'sec' : 'reps'}</span><span></span></div>
+        <div class="row head"><span></span><span>${headOf(slot.name)}</span><span>${ex.time ? 'sec' : 'reps'}</span><span></span></div>
         ${slot.sets.map((s, j) => {
           const ref = last ? (last.sets[j] || last.sets[last.sets.length-1]) : null;
+          const lastKg = ref && ref.kg !== '' && ref.kg != null ? ref.kg : '';
           return `<div class="row ${s.done ? 'done' : ''}">
             <span class="i">${j+1}</span>
-            <input inputmode="decimal" data-i="${i}" data-j="${j}" data-f="kg" value="${esc(s.kg)}" placeholder="${ref && ref.kg !== '' ? esc(ref.kg) : '–'}" aria-label="Set ${j+1} ${LOAD_HEAD[load]}">
+            ${bwk === 'only' ? '<span class="bwcell">BW</span>'
+              : `<input inputmode="decimal" data-i="${i}" data-j="${j}" data-f="kg" data-last="${esc(lastKg)}" value="${esc(s.kg)}" placeholder="${lastKg !== '' ? esc(lastKg) : bwk ? 'BW' : '–'}" aria-label="Set ${j+1} ${headOf(slot.name)}">`}
             <input inputmode="numeric" data-i="${i}" data-j="${j}" data-f="reps" value="${esc(s.reps)}" placeholder="${ref ? esc(ref.reps) : ex.max}" aria-label="Set ${j+1} ${ex.time ? 'seconds' : 'reps'}">
             <button class="tick" data-tick="${i}.${j}" aria-label="Set ${j+1} done">✓</button>
           </div>`;}).join('')}
@@ -424,7 +444,7 @@ function renderLog(){
     <button class="btn ghost" data-act="restore">Restore</button></div>
     <p class="small">${syncText()} Export a backup now and then — it can be imported into the app later.</p>
     <div class="box gh"><h3>Body weight</h3>
-      <label>kg — used for assisted pull-ups (you lift body weight − assist)
+      <label>kg — used for assisted pull-ups (you lift body weight − assist), body-weight exercises and the report
         <input id="bw" inputmode="decimal" value="${esc(bodyweight)}" placeholder="kg"></label></div>`;
   h += `<details class="sess" ${ghReady() ? '' : 'open'}><summary>GitHub ${ghReady() ? '<span>· connected</span>' : '<span>· not set up</span>'}</summary>
     <p class="small">Finished workouts are saved as files in <b>data/workouts/</b> of your repo. Use a fine-grained token
@@ -489,7 +509,7 @@ function renderReport(){
   DAYS.forEach(d => PLAN[d].ex.forEach(ex => {
     const last = [ex.name, ...ex.alts].map(n => ({ n, l:lastFor(n) })).filter(o => o.l).sort((a, b) => b.l.at - a.l.at)[0];
     if(last && last.l.sets.length >= ex.sets && last.l.sets.every(t => +t.reps >= ex.max))
-      next.push(`<li><b>${esc(last.n)}</b> (${PLAN[d].title}) — ${ex.time ? 'add a little weight' : loadOf(last.n) === 'assist' ? 'lower the assist one step' : 'add the smallest weight step'}</li>`);
+      next.push(`<li><b>${esc(last.n)}</b> (${PLAN[d].title}) — ${nextStep(ex, last.n, last.l.sets)}</li>`);
   }));
   h += `<div class="box rep"><h3>Next time</h3>${next.length ? `<ul>${next.join('')}</ul>`
     : '<p class="small">Nothing to raise yet — keep adding reps until every set reaches the top of its range.</p>'}</div>`;
@@ -519,11 +539,11 @@ document.addEventListener('click', e => {
 
   if(t.dataset.tick){
     const [i, j] = t.dataset.tick.split('.').map(Number), d = draft(view, true), s = d.slots[i].sets[j];
-    const row = t.closest('.row'), [kgIn, repIn] = row.querySelectorAll('input');
+    const row = t.closest('.row'), kgIn = row.querySelector('[data-f="kg"]'), repIn = row.querySelector('[data-f="reps"]');
     s.done = !s.done;
     if(s.done){
-      // one tap if the numbers match last time: take the greyed-in values
-      if(s.kg === '' && kgIn.placeholder !== '–') s.kg = kgIn.placeholder;
+      // one tap if the numbers match last time: take the greyed-in values (body-weight exercises have none)
+      if(s.kg === '' && kgIn && kgIn.dataset.last) s.kg = kgIn.dataset.last;
       if(s.reps === '') s.reps = repIn.placeholder;
       const ex = PLAN[view].ex[i];
       const lastSet = d.slots[i].sets.every(x => x.done);
