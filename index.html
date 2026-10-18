@@ -101,6 +101,19 @@ nav button .dot{position:absolute;top:6px;right:8px;width:7px;height:7px;border-
 .row input{width:100%;min-width:0;border:1px solid transparent;background:var(--input);border-radius:9px;
   padding:9px 8px;text-align:center;font-size:17px;font-variant-numeric:tabular-nums}
 .rrow{display:grid;grid-template-columns:1fr 56px;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--line);font-size:14px}
+.demowrap{grid-column:1 / -1}
+.demo{display:block;width:100%;max-width:340px;margin:2px auto;background:var(--input);border-radius:12px}
+.demo .floor{stroke:var(--line);stroke-width:2}
+.demo .prop{fill:var(--muted);opacity:.45}
+.demo .bar{stroke:var(--muted);stroke-width:4;stroke-linecap:round}
+.demo .near polyline,.demo .far polyline,.demo .torso{fill:none;stroke:var(--ink);stroke-width:4.5;stroke-linecap:round;stroke-linejoin:round}
+.demo .far{opacity:.3}
+.demo .head{fill:var(--input);stroke:var(--ink);stroke-width:4}
+.demo .roller{fill:var(--line);stroke:var(--muted);stroke-width:2}
+.demo .gaze{stroke:var(--ink);stroke-width:2.5;stroke-linecap:round}
+.demo .hot{fill:var(--hint);opacity:.6}
+.demo .say{font-size:9px;fill:var(--muted);text-anchor:middle}
+.demo .say.left{text-anchor:start}
 .rrow.done .tick{opacity:1;background:var(--done);border-color:var(--done);color:var(--card)}
 .reset h3 .small{font-weight:400}
 .row .bwcell{text-align:center;color:var(--muted);font-size:14px;padding:9px 0}
@@ -476,6 +489,104 @@ function nextStep(ex, name, sets){
 }
 function weekStart(t){ const d = new Date(t); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return d.getTime(); }
 
+// ---------- Exercise demos: short looping stick-figure animations, drawn here (no files) ----------
+// Side views use angles (0 = right, 90 = down) so limbs keep their length while moving.
+// Near limbs solid, far limbs faded. Each demo: keyframes {p: pose, hold, move, say}; `say` shows while held.
+const vec = (a, l) => [l * Math.cos(a * Math.PI / 180), l * Math.sin(a * Math.PI / 180)];
+const add = (p, a, l) => { const v = vec(a, l); return [p[0] + v[0], p[1] + v[1]]; };
+function side(q, root){
+  const k = q.k || 1, T = 40 * k, L = 30 * k, U = 22 * k, F = 20 * k;
+  let hip, kn, fn, el, hn, neck;
+  if(root === 'foot'){ fn = [q.x, q.y]; kn = add(fn, q.ns, -L); hip = add(kn, q.nt, -L); }
+  else if(root === 'hand'){ hn = [q.x, q.y]; el = add(hn, q.nf, -F); neck = add(el, q.nu, -U); hip = add(neck, q.to, -T); }
+  else hip = [q.x, q.y];
+  neck = neck || add(hip, q.to, T);
+  kn = kn || add(hip, q.nt, L); fn = fn || add(kn, q.ns, L);
+  el = el || add(neck, q.nu, U); hn = hn || add(el, q.nf, F);
+  const kf = add(hip, q.ft, L), ef = add(neck, q.fu, U);
+  return { near:[[hip, kn, fn], [hip, neck], [neck, el, hn]], far:[[hip, kf, add(kf, q.fs, L)], [neck, ef, add(ef, q.ff, F)]],
+    head:add(neck, q.hd ?? q.to, 11 * k), hr:8 * k, hip, neck };
+}
+const DEMO = {
+  'Couch stretch': { root:'hip', props:'<rect class="prop" x="10" y="104" width="50" height="21" rx="3"/>',
+    hot:f => add(f.hip, -20, 6), keys:[
+    { p:{x:63, y:93, nt:84, ns:221, ft:0, fs:92, to:-60, nu:60, nf:100, fu:55, ff:95}, hold:600, move:1200 },
+    { p:{x:68, y:92, nt:94, ns:221, ft:2, fs:95, to:-95, nu:110, nf:70, fu:105, ff:65}, hold:2400, move:1200, say:'squeeze the glute · ribs down' }]},
+  '90/90 hip switches': { build:q => {
+      const neck = [100, 74], hl = [91, 116], hr = [109, 116];
+      return { near:[[[64, 123], [q.lx, q.ly], hl, hr, [q.rx, q.ry], [136, 123]], [[100, 116], neck],
+        [neck, [84, 95], [79, 118]], [neck, [116, 95], [121, 118]]], far:[], head:[100, 63], hr:8 };
+    }, keys:[
+    { p:{lx:80, ly:92, rx:120, ry:92}, hold:300, move:900 },
+    { p:{lx:56, ly:113, rx:94, ry:104}, hold:900, move:900, say:'both knees left' },
+    { p:{lx:80, ly:92, rx:120, ry:92}, hold:300, move:900 },
+    { p:{lx:106, ly:104, rx:144, ry:113}, hold:900, move:900, say:'both knees right' }]},
+  'Open book': { build:q => {
+      const c = [100, 100], s = add(c, q.r - 90, 18), hand = add(s, q.a, 44);
+      return { near:[[s, hand]], far:[[[100, 120], [150, 121]], [[104, 121], [134, 117]]], head:c, hr:9,
+        extra:`<ellipse class="torso" cx="100" cy="100" rx="11" ry="21" transform="rotate(${q.r.toFixed(1)} 100 100)"/>`,
+        after:`<line class="gaze" x1="${add(c, q.a, 4)[0].toFixed(1)}" y1="${add(c, q.a, 4)[1].toFixed(1)}" x2="${add(c, q.a, 12)[0].toFixed(1)}" y2="${add(c, q.a, 12)[1].toFixed(1)}"/>` +
+          '<text class="say left" x="4" y="127">seen from your head</text>' };
+    }, keys:[
+    { p:{a:45, r:0}, hold:700, move:900, say:'lie on your side, arms together' },
+    { p:{a:-90, r:-12}, hold:0, move:900 },
+    { p:{a:-225, r:-25}, hold:1500, move:900, say:'open · eyes follow the hand' },
+    { p:{a:-90, r:-12}, hold:0, move:900 }]},
+  'Deep squat hold': { root:'foot', props:'<rect class="prop" x="133" y="16" width="5" height="109" rx="2"/>', keys:[
+    { p:{x:90, y:124, nt:90, ns:90, ft:90, fs:90, to:-90, nu:15, nf:5, fu:18, ff:8}, hold:700, move:1300 },
+    { p:{x:90, y:124, nt:-10, ns:110, ft:-14, fs:112, to:-60, nu:2, nf:-8, fu:6, ff:-4}, hold:2200, move:1300, say:'heels down · chest up' }]},
+  'Dead hang': { root:'hand', floor:false, props:'<line class="bar" x1="60" y1="26" x2="140" y2="26"/>', keys:[
+    { p:{x:100, y:27, k:.78, nu:-60, nf:-95, fu:-64, ff:-95, to:-92, hd:-115, nt:96, ns:140, ft:100, fs:135}, hold:1300, move:800, say:'hang long, breathe' },
+    { p:{x:100, y:27, k:.78, nu:-48, nf:-104, fu:-52, ff:-104, to:-92, hd:-115, nt:96, ns:140, ft:100, fs:135}, hold:1500, move:800, say:'shoulders slightly active' }]},
+  'Foam roll upper back': { root:'foot', build:q => {
+      const f = side(q, 'foot'), m = add([88, 114], (q.x - 150) * 25, 9);
+      f.extra = `<circle class="roller" cx="88" cy="114" r="11"/><line class="gaze" x1="88" y1="114" x2="${m[0].toFixed(1)}" y2="${m[1].toFixed(1)}"/>`;
+      return f;
+    }, hot:() => [88, 101], caption:'roll slowly · not the lower back', keys:[
+    { p:{x:150, y:124, ns:70, nt:-15, ft:-12, fs:72, to:185, nu:-100, nf:120, fu:-80, ff:115}, hold:300, move:1400 },
+    { p:{x:160, y:124, ns:70, nt:-15, ft:-12, fs:72, to:185, nu:-100, nf:120, fu:-80, ff:115}, hold:300, move:1400 }]},
+};
+function demoAt(d, t){
+  const total = d.keys.reduce((n, k) => n + k.hold + k.move, 0);
+  t %= total;
+  for(let i = 0; i < d.keys.length; i++){
+    const k = d.keys[i], nx = d.keys[(i + 1) % d.keys.length];
+    if(t < k.hold) return { q:k.p, say:k.say };
+    t -= k.hold;
+    if(t < k.move){
+      const u = t / k.move, e = u < .5 ? 2 * u * u : 1 - (2 - 2 * u) ** 2 / 2, q = {};
+      for(const n in k.p) q[n] = k.p[n] + (nx.p[n] - k.p[n]) * e;
+      return { q };
+    }
+    t -= k.move;
+  }
+  return { q:d.keys[0].p };
+}
+const demoSvg = name => `<svg class="demo" viewBox="0 0 200 130" data-name="${esc(name)}" role="img" aria-label="${esc(name)}, animated">
+  ${DEMO[name].floor === false ? '' : '<line class="floor" x1="0" y1="125" x2="200" y2="125"/>'}${DEMO[name].props || ''}<g class="anim"></g></svg>`;
+function drawDemo(svg, name, t){
+  const d = DEMO[name], { q, say } = demoAt(d, t), f = d.build ? d.build(q) : side(q, d.root);
+  const pl = ps => `<polyline points="${ps.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ')}"/>`;
+  const hot = d.hot && d.hot(f);
+  svg.querySelector('.anim').innerHTML = `<g class="far">${f.far.map(pl).join('')}</g>${f.extra || ''}` +
+    `<circle class="head" cx="${f.head[0].toFixed(1)}" cy="${f.head[1].toFixed(1)}" r="${f.hr}"/>` +
+    `<g class="near">${f.near.map(pl).join('')}</g>${f.after || ''}` +
+    (hot ? `<circle class="hot" cx="${hot[0].toFixed(1)}" cy="${hot[1].toFixed(1)}" r="${(4.5 + 1.5 * Math.sin(t / 180)).toFixed(1)}"/>` : '') +
+    (say || d.caption ? `<text class="say" x="100" y="10">${esc(say || d.caption)}</text>` : '');
+}
+// one animation loop while a demo is on screen
+let demoOpen = null, demoRaf = 0;
+function runDemos(){
+  if(demoRaf) return;
+  const frame = now => {
+    const svgs = document.querySelectorAll('svg.demo');
+    if(!svgs.length){ demoRaf = 0; return; }
+    svgs.forEach(s => drawDemo(s, s.dataset.name, now));
+    demoRaf = requestAnimationFrame(frame);
+  };
+  demoRaf = requestAnimationFrame(frame);
+}
+
 // ---------- Formatting ----------
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const range = ex => ex.min === ex.max ? ex.min : `${ex.min}–${ex.max}`;
@@ -510,7 +621,7 @@ function render(){
     ALL.map(d => `<button data-tab="${d}" aria-current="${view===d}">${PLAN[d].tab}${drafts[d]?.startedAt ? '<span class="dot"></span>' : ''}</button>`).join('');
   document.querySelectorAll('#menu [data-tab]').forEach(b => b.setAttribute('aria-current', b.dataset.tab === view));
   view === 'history' ? renderHistory() : view === 'settings' ? renderSettings() : view === 'report' ? renderReport() : renderDay(view);
-  tickClock();
+  tickClock(); runDemos();
 }
 function showMenu(on){
   document.getElementById('menu').hidden = !on;
@@ -532,8 +643,10 @@ function renderDay(day){
       <span class="small">${reset.length}/${reset.length} · tap to open</span></span></button>`;
   else h += `<div class="box reset"><h3>Desk reset (~5 min) <span class="small">${resetDone(d)}/${reset.length}</span></h3>
     ${reset.map((r, k) => `<div class="rrow ${(d.reset || [])[k] ? 'done' : ''}">
-      <div><b>${esc(r.name)}</b> · ${esc(r.dose)}<div class="small">${esc(r.cue)}</div></div>
-      <button class="tick" data-reset="${k}" aria-label="${esc(r.name)} done">✓</button></div>`).join('')}
+      <div><b>${esc(r.name)}</b> · ${esc(r.dose)}<div class="small">${esc(r.cue)}</div>
+        ${DEMO[r.name] ? `<button class="link" data-demo="${esc(r.name)}">${demoOpen === r.name ? '✕ hide' : '▶ how'}</button>` : ''}</div>
+      <button class="tick" data-reset="${k}" aria-label="${esc(r.name)} done">✓</button>
+      ${demoOpen === r.name ? `<div class="demowrap">${demoSvg(r.name)}</div>` : ''}</div>`).join('')}
     <div class="small">Hip flexors are the stretch that matters most. ${day === 'home' ? 'Start every set with the same band and distance as last time.' : 'Warm-up sets only for exercise 1.'}</div></div>`;
 
   p.ex.forEach((ex, i) => {
@@ -769,6 +882,7 @@ document.addEventListener('click', e => {
     slot.band.sort((x, y) => b.list.findIndex(z => z[0] === x) - b.list.findIndex(z => z[0] === y));
     save(); render(); return;
   }
+  if(t.dataset.demo){ demoOpen = demoOpen === t.dataset.demo ? null : t.dataset.demo; render(); return; }
   if(t.dataset.addset){ draft(view, true).slots[+t.dataset.addset].sets.push(newSet()); save(); render(); return; }
   if(t.dataset.delset){ draft(view, true).slots[+t.dataset.delset].sets.pop(); save(); render(); return; }
   if(t.dataset.delsess){
