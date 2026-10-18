@@ -65,7 +65,8 @@ button.fold .num{background:var(--done);color:var(--card)}
 button.fold .what{flex:1;min-width:0}
 button.fold .small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pill{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 11px;font-size:13px}
-.pill.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.pill.on{background:var(--done);color:#fff;border-color:var(--done)}
+#wake .clock{color:inherit;font-size:13px}
 nav{display:flex;gap:6px;padding:4px 0 10px}
 nav button{flex:1;border:1px solid var(--line);background:var(--card);border-radius:10px;
   padding:9px 0;font-weight:600;position:relative}
@@ -169,9 +170,9 @@ details.sess summary span{font-weight:400;color:var(--muted);font-size:13px}
       <button class="icon" id="back" aria-label="Back to the workout" hidden>←</button>
       <h1 id="title">Full Body 3</h1>
       <span class="prog" id="prog"></span>
-      <span class="clock" id="clock"></span>
       <span class="sdot" id="sdot" hidden></span>
-      <button class="pill" id="wake" title="Keep the screen on during the workout">Screen on</button>
+      <!-- keeps the screen on (green when on); during a workout it shows how long you've been training -->
+      <button class="pill" id="wake" title="Keep the screen on during the workout"><span id="wakeTxt">Screen on</span><span class="clock" id="clock"></span></button>
       <button class="icon" id="more" aria-label="Menu" aria-expanded="false">⋯</button>
     </div>
     <div class="menu" id="menu" hidden>
@@ -722,6 +723,7 @@ document.addEventListener('click', e => {
       // one tap if the numbers match last time: take the greyed-in values (body-weight exercises have none)
       if(s.kg === '' && kgIn && kgIn.dataset.last) s.kg = kgIn.dataset.last;
       if(s.reps === '') s.reps = repIn.placeholder;
+      autoWake();
       // bands: the colours tapped for this exercise, and their kg
       if(bandOf(d.slots[i].name)){ const c = d.slots[i].band || []; s.band = c.join('+'); s.kg = bandKg(d.slots[i].name, c); }
       const ex = PLAN[view].ex[i];
@@ -774,10 +776,10 @@ document.addEventListener('click', e => {
     // id: time + random suffix, so two workouts can never share one (or one file name)
     history.push({ ...d, id: Date.now() + Math.random().toString(36).slice(2, 7), finishedAt: Date.now(),
       ...(bodyweight ? { bw: bodyweight } : {}), synced: false });
-    delete drafts[view]; save(); stopRest(); render(); scrollTo(0, 0); toast('Workout saved ✓'); sync();
+    delete drafts[view]; autoWoken = false; save(); stopRest(); render(); scrollTo(0, 0); toast('Workout saved ✓'); sync();
   }
   if(act === 'discard'){
-    if(drafts[view] && confirm('Clear everything entered for today? (Saved workouts are kept.)')){ delete drafts[view]; save(); render(); }
+    if(drafts[view] && confirm('Clear everything entered for today? (Saved workouts are kept.)')){ delete drafts[view]; autoWoken = false; save(); render(); }
   }
   if(act === 'ghsave'){
     const v = id => document.getElementById(id).value.trim();
@@ -880,19 +882,24 @@ function tickClock(){
   dot.hidden = !ghReady(); dot.classList.toggle('wait', waiting); dot.title = syncText();
   const all = d && d.startedAt && !PAGES[view] ? d.slots.flatMap(x => x.sets) : [];
   prog.textContent = all.length ? `${all.filter(s => s.done).length}/${all.length} sets` : '';
-  if(!d || !d.startedAt || PAGES[view]){ el.textContent = ''; return; }
+  const txt = document.getElementById('wakeTxt');
+  if(!d || !d.startedAt || PAGES[view]){ el.textContent = ''; txt.textContent = 'Screen on'; return; }
   const s = Math.floor((Date.now() - d.startedAt) / 1000);
+  txt.textContent = '☀ ';
   el.textContent = s >= 3600 ? `${Math.floor(s/3600)}:${mmss(s % 3600).padStart(5, '0')}` : mmss(s);
 }
 setInterval(() => { tickRest(); tickClock(); }, 250);
 
 let wakeLock = null, wantWake = false;
-async function toggleWake(){
+async function toggleWake(quiet){
   wantWake = !wantWake;
   if(wantWake) await getWake(); else { try{ await wakeLock?.release(); }catch(e){} wakeLock = null; }
   document.getElementById('wake').classList.toggle('on', wantWake && !!wakeLock);
-  if(wantWake && !wakeLock){ wantWake = false; toast('This browser can’t keep the screen on'); }
+  if(wantWake && !wakeLock){ wantWake = false; if(!quiet) toast('This browser can’t keep the screen on'); }
 }
+// the first ✓ of a workout switches the screen on by itself (tap the button to switch it off)
+const autoWake = () => { if(!wantWake && !autoWoken){ autoWoken = true; toggleWake(true); } };
+let autoWoken = false;
 async function getWake(){ try{ wakeLock = await navigator.wakeLock.request('screen'); }catch(e){ wakeLock = null; } }
 document.addEventListener('visibilitychange', () => {
   if(document.visibilityState === 'visible'){ if(wantWake) getWake(); tickRest(); }
