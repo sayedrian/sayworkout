@@ -20,8 +20,9 @@ self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   const scope = new URL(self.registration.scope);
   if (e.request.method !== 'GET' || url.origin !== scope.origin || !url.pathname.startsWith(scope.pathname)) return;
+  // always ask the server whether the file changed (no 10-minute stale copy); the saved copy is only for offline
   e.respondWith(
-    fetch(e.request)
+    fetch(url.href, { cache:'no-cache' })   // by URL: a page-load request can't be copied with options
       .then(r => {
         if (r.ok) { const copy = r.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); }
         return r;
