@@ -124,6 +124,13 @@ button.cue.mv{padding:0 14px 8px;font-size:13px;color:var(--muted)}
 .demo .hot{fill:var(--hint);opacity:.6}
 .demo .say{font-size:9px;fill:var(--muted);text-anchor:middle}
 .demo .say.left{text-anchor:start}
+.demo .bad{fill:none;stroke:var(--bad);stroke-width:2.2}
+.demo .badx{fill:var(--bad);font-size:10px;font-weight:700;text-anchor:middle}
+.demo .gear{fill:var(--muted);stroke:var(--muted)}
+.demo .band{fill:none;stroke-width:2;stroke-linecap:round}
+.demowrap .cap{font-size:14px;font-weight:600;text-align:center;padding:4px 8px 2px;min-height:1.4em}
+.demowrap .cap.good{color:var(--done)}
+.demowrap .cap.bad{color:var(--bad)}
 .rrow.done .tick{opacity:1;background:var(--done);border-color:var(--done);color:var(--card)}
 .reset h3 .small{font-weight:400}
 .row .bwcell{text-align:center;color:var(--muted);font-size:14px;padding:9px 0}
@@ -505,7 +512,8 @@ function weekStart(t){ const d = new Date(t); d.setHours(0, 0, 0, 0); d.setDate(
 
 // ---------- Exercise demos: short looping stick-figure animations, drawn here (no files) ----------
 // Side views use angles (0 = right, 90 = down) so limbs keep their length while moving.
-// Near limbs solid, far limbs faded. Each demo: keyframes {p: pose, hold, move, say}; `say` shows while held.
+// Near limbs solid, far limbs faded. Each demo: keyframes {p: pose, hold, move, say, mark, cp}. How to write one: docs/demo-2d.md.
+// `say` names a line of HOW (c1… cues, m1/m2 the ✗ part of a mistake, m1fix the ✓ part); it shows under the picture.
 const vec = (a, l) => [l * Math.cos(a * Math.PI / 180), l * Math.sin(a * Math.PI / 180)];
 const add = (p, a, l) => { const v = vec(a, l); return [p[0] + v[0], p[1] + v[1]]; };
 function side(q, root){
@@ -518,48 +526,630 @@ function side(q, root){
   kn = kn || add(hip, q.nt, L); fn = fn || add(kn, q.ns, L);
   el = el || add(neck, q.nu, U); hn = hn || add(el, q.nf, F);
   const kf = add(hip, q.ft, L), ef = add(neck, q.fu, U);
-  return { near:[[hip, kn, fn], [hip, neck], [neck, el, hn]], far:[[hip, kf, add(kf, q.fs, L)], [neck, ef, add(ef, q.ff, F)]],
-    head:add(neck, q.hd ?? q.to, 11 * k), hr:8 * k, hip, neck };
+  const ff = add(kf, q.fs, L), hf = add(ef, q.ff, F);
+  return { near:[[hip, kn, fn], [hip, neck], [neck, el, hn]], far:[[hip, kf, ff], [neck, ef, hf]],
+    head:add(neck, q.hd ?? q.to, 11 * k), hr:8 * k, hip, neck, kn, fn, el, hn, kf, ff, ef, hf, back:[(hip[0] + neck[0]) / 2, (hip[1] + neck[1]) / 2] };
 }
-const DEMO = {
-  'Couch stretch': { root:'hip', props:'<rect class="prop" x="10" y="104" width="50" height="21" rx="3"/>',
-    hot:f => add(f.hip, -20, 6), keys:[
-    { p:{x:63, y:93, nt:84, ns:221, ft:0, fs:92, to:-60, nu:60, nf:100, fu:55, ff:95}, hold:600, move:1200 },
-    { p:{x:68, y:92, nt:94, ns:221, ft:2, fs:95, to:-95, nu:110, nf:70, fu:105, ff:65}, hold:2400, move:1200, say:'squeeze the glute · ribs down' }]},
-  '90/90 hip switches': { build:q => {
-      const neck = [100, 74], hl = [91, 116], hr = [109, 116];
-      return { near:[[[64, 123], [q.lx, q.ly], hl, hr, [q.rx, q.ry], [136, 123]], [[100, 116], neck],
-        [neck, [84, 95], [79, 118]], [neck, [116, 95], [121, 118]]], far:[], head:[100, 63], hr:8 };
-    }, keys:[
-    { p:{lx:80, ly:92, rx:120, ry:92}, hold:300, move:900 },
-    { p:{lx:56, ly:113, rx:94, ry:104}, hold:900, move:900, say:'both knees left' },
-    { p:{lx:80, ly:92, rx:120, ry:92}, hold:300, move:900 },
-    { p:{lx:106, ly:104, rx:144, ry:113}, hold:900, move:900, say:'both knees right' }]},
-  'Open book': { build:q => {
-      const c = [100, 100], s = add(c, q.r - 90, 18), hand = add(s, q.a, 44);
-      return { near:[[s, hand]], far:[[[100, 120], [150, 121]], [[104, 121], [134, 117]]], head:c, hr:9,
-        extra:`<ellipse class="torso" cx="100" cy="100" rx="11" ry="21" transform="rotate(${q.r.toFixed(1)} 100 100)"/>`,
-        after:`<line class="gaze" x1="${add(c, q.a, 4)[0].toFixed(1)}" y1="${add(c, q.a, 4)[1].toFixed(1)}" x2="${add(c, q.a, 12)[0].toFixed(1)}" y2="${add(c, q.a, 12)[1].toFixed(1)}"/>` +
-          '<text class="say left" x="4" y="127">seen from your head</text>' };
-    }, keys:[
-    { p:{a:45, r:0}, hold:700, move:900, say:'lie on your side, arms together' },
-    { p:{a:-90, r:-12}, hold:0, move:900 },
-    { p:{a:-225, r:-25}, hold:1500, move:900, say:'open · eyes follow the hand' },
-    { p:{a:-90, r:-12}, hold:0, move:900 }]},
-  'Deep squat hold': { root:'foot', props:'<rect class="prop" x="133" y="16" width="5" height="109" rx="2"/>', keys:[
-    { p:{x:90, y:124, nt:90, ns:90, ft:90, fs:90, to:-90, nu:15, nf:5, fu:18, ff:8}, hold:700, move:1300 },
-    { p:{x:90, y:124, nt:-10, ns:110, ft:-14, fs:112, to:-60, nu:2, nf:-8, fu:6, ff:-4}, hold:2200, move:1300, say:'heels down · chest up' }]},
-  'Dead hang': { root:'hand', floor:false, props:'<line class="bar" x1="60" y1="26" x2="140" y2="26"/>', keys:[
-    { p:{x:100, y:27, k:.78, nu:-60, nf:-95, fu:-64, ff:-95, to:-92, hd:-115, nt:96, ns:140, ft:100, fs:135}, hold:1300, move:800, say:'hang long, breathe' },
-    { p:{x:100, y:27, k:.78, nu:-48, nf:-104, fu:-52, ff:-104, to:-92, hd:-115, nt:96, ns:140, ft:100, fs:135}, hold:1500, move:800, say:'shoulders slightly active' }]},
-  'Foam roll upper back': { root:'foot', build:q => {
-      const f = side(q, 'foot'), m = add([88, 114], (q.x - 150) * 25, 9);
-      f.extra = `<circle class="roller" cx="88" cy="114" r="11"/><line class="gaze" x1="88" y1="114" x2="${m[0].toFixed(1)}" y2="${m[1].toFixed(1)}"/>`;
-      return f;
-    }, hot:() => [88, 101], caption:'roll slowly · not the lower back', keys:[
-    { p:{x:150, y:124, ns:70, nt:-15, ft:-12, fs:72, to:185, nu:-100, nf:120, fu:-80, ff:115}, hold:300, move:1400 },
-    { p:{x:160, y:124, ns:70, nt:-15, ft:-12, fs:72, to:185, nu:-100, nf:120, fu:-80, ff:115}, hold:300, move:1400 }]},
-};
+const DEMO = {};   // filled below: one illustration per exercise in docs/exercises.md (docs/demo-2d.md)
+// Couch stretch: back shin up on a bench (or sofa), back knee on a pad close to it, front foot forward.
+DEMO['Couch stretch'] = { root:'foot', sides:{ back:'N', front:'F' },
+  props:'<rect class="prop" x="4" y="98" width="38" height="27" rx="3"/><rect class="gear" x="50" y="121" width="17" height="4" rx="2"/>',
+  hot:f => f.hip, keys:[
+  { p:{x:40, y:96, nt:95, ns:233, ft:7.6, fs:93.3, to:-52, nu:125, nf:48, fu:129, ff:52}, hold:2200, move:1000, say:'c1', cp:'start' },
+  { p:{x:40, y:96, nt:95, ns:233, ft:7.6, fs:93.3, to:-62, nu:106, nf:51, fu:110, ff:55}, hold:2000, move:1200, say:'c2' },
+  { p:{x:40, y:96, nt:105, ns:233, ft:7.3, fs:103.2, to:-62, nu:106, nf:51, fu:110, ff:55}, hold:2400, move:1200, say:'c3', cp:'hold' },
+  { p:{x:40, y:96, nt:108, ns:233, ft:7.2, fs:106.2, to:-102, nu:100, nf:70, fu:104, ff:74}, hold:2000, move:1200, say:'m1', mark:['back'] },
+  { p:{x:40, y:96, nt:105, ns:233, ft:7.3, fs:103.2, to:-62, nu:106, nf:51, fu:110, ff:55}, hold:2200, move:1200, say:'m1fix', cp:'hold' }]};
+// 90/90 hip switches, seen from the front: feet wide and planted, both knees drop to one side, then the other.
+// lx/ly, rx/ry = the left and right knee; n = neck height (lower = slouching); t = chest turn; h = 0 hands on the floor behind, 1 hands off (in front).
+DEMO['90/90 hip switches'] = { build:q => {
+    const neck = [100 + q.t, q.n], hl = [91, 116], hr = [109, 116], h = q.h, m = (a, b) => a + (b - a) * h;
+    const el = [m(85, 84) + q.t, q.n + m(22, 20)], er = [m(115, 98) + q.t, q.n + m(22, 24)];
+    const hdl = [m(82, 70), m(116, 104)], hdr = [m(118, 76), m(116, 108)], arms = [[neck, el, hdl], [neck, er, hdr]];
+    return { near:[[[64, 123], [q.lx, q.ly], hl, hr, [q.rx, q.ry], [136, 123]], [[100, 116], neck], ...(h > .5 ? arms : [])], far:h > .5 ? [] : arms,
+      head:[100 + q.t * 1.6, q.n - 11 + (74 - q.n) * .6], hr:8, back:[100 + q.t / 2, (116 + q.n) / 2], neck, kn:[q.lx, q.ly], kf:[q.rx, q.ry],
+      after:'<text class="say left" x="4" y="10">seen from the front</text>' };
+  }, keys:[
+  { p:{lx:80, ly:92, rx:120, ry:92, n:74, t:0, h:0}, hold:2000, move:1600, say:'c1', cp:'middle' },
+  { p:{lx:106, ly:105, rx:144, ry:114, n:74, t:5, h:0}, hold:1600, move:1400, cp:'side' },
+  { p:{lx:80, ly:92, rx:120, ry:92, n:74, t:0, h:0}, hold:1600, move:1600, say:'c2', cp:'middle' },
+  { p:{lx:56, ly:114, rx:94, ry:105, n:74, t:-5, h:1}, hold:2000, move:1200, say:'c3', cp:'other side' },
+  { p:{lx:56, ly:114, rx:94, ry:105, n:84, t:-2, h:1}, hold:2000, move:1200, say:'m1', mark:['back'] },
+  { p:{lx:56, ly:114, rx:94, ry:105, n:74, t:-5, h:1}, hold:2000, move:1600, say:'m1fix' }]};
+// Open book, seen from the head: lying on the side, knees bent in front (to the right), top arm opens over to the floor behind.
+// a = top arm direction, r = chest turn, p = pelvis turn (0 = top knee on the bottom knee; negative = top knee slides back, hips roll open).
+DEMO['Open book'] = { build:q => {
+    const Z = p => [112 + (p[0] - 100) * 1.4, 125 + (p[1] - 125) * 1.4], c = [100, 100], s = add(c, q.r - 90, 18), hand = add(s, q.a, 44);
+    const bh = [100, 119], th = add(bh, q.p - 90, 16), tk = add(th, q.p + 12, 44), C = Z(c), e = Z(add(c, q.a, 4)), g = Z(add(c, q.a, 12));
+    return { near:[[Z(s), Z(hand)]], far:[[Z(bh), Z([144, 121])], [Z(th), Z(tk)]], head:C, hr:12.6, hn:Z(hand), kn:Z(tk), hip:Z(th),
+      extra:`<ellipse class="torso" cx="${C[0]}" cy="${C[1]}" rx="15.4" ry="29.4" transform="rotate(${q.r.toFixed(1)} ${C[0]} ${C[1]})"/>`,
+      after:`<line class="gaze" x1="${e[0].toFixed(1)}" y1="${e[1].toFixed(1)}" x2="${g[0].toFixed(1)}" y2="${g[1].toFixed(1)}"/>` +
+        '<text class="say left" x="4" y="10">seen from your head</text>' };
+  }, hot:f => f.kn, keys:[
+  { p:{a:35, r:0, p:0}, hold:2000, move:1200, say:'c1', cp:'start' },
+  { p:{a:-90, r:-12, p:0}, hold:1600, move:1200, say:'c3' },
+  { p:{a:-195, r:-25, p:0}, hold:2200, move:1600, say:'c2', cp:'open' },
+  { p:{a:35, r:0, p:0}, hold:600, move:1400 },
+  { p:{a:-200, r:-30, p:-38}, hold:2000, move:1200, say:'m1', mark:['kn'] },
+  { p:{a:-195, r:-25, p:0}, hold:2000, move:1600, say:'m1fix', cp:'open' }]};
+// Deep squat hold: facing a rack upright (home: the sofa), hands on it; the feet are drawn so a lifted heel shows.
+DEMO['Deep squat hold'] = { root:'foot', props:'<rect class="prop" x="142" y="14" width="6" height="111" rx="2"/>',
+  gear:f => `<line class="gaze" style="stroke-width:4" x1="${f.fn[0].toFixed(1)}" y1="${f.fn[1].toFixed(1)}" x2="116" y2="124"/>`,
+  hot:f => f.kn, keys:[
+  { p:{x:105, y:124, nt:90, ns:90, ft:90, fs:90, to:-87, nu:42.6, nf:20.6, fu:45.6, ff:23.6}, hold:1500, move:3000, cp:'stand' },
+  { p:{x:105, y:124, nt:-13, ns:122, ft:-13, fs:122, to:-55, nu:59.8, nf:-35.3, fu:62.8, ff:-32.3}, hold:2200, move:300, say:'c1', cp:'hold' },
+  { p:{x:105, y:124, nt:-13, ns:122, ft:-13, fs:122, to:-55, nu:59.8, nf:-35.3, fu:62.8, ff:-32.3}, hold:2200, move:900, say:'c2', cp:'hold' },
+  { p:{x:105, y:124, nt:-13, ns:122, ft:-13, fs:122, to:-60, nu:55.7, nf:-26.2, fu:58.7, ff:-23.2}, hold:2200, move:1000, say:'c3', cp:'hold' },
+  { p:{x:107, y:116, nt:-13, ns:122, ft:-13, fs:122, to:-55, nu:67.1, nf:-32.7, fu:70.1, ff:-29.7}, hold:2000, move:1000, say:'m1', mark:['fn'] },
+  { p:{x:105, y:124, nt:-13, ns:122, ft:-13, fs:122, to:-60, nu:55.7, nf:-26.2, fu:58.7, ff:-23.2}, hold:2200, move:2000, say:'m1fix', cp:'hold' }]};
+// Dead hang (side view; e = how far the head sits above the shoulders: low = shoulders up by the ears): step up on a box under the bar, hang with straight arms, knees a little bent so the feet clear the box, step back down.
+DEMO['Dead hang'] = { root:'hand', props:'<line class="bar" x1="55" y1="10" x2="145" y2="10"/><rect class="prop" x="58" y="113" width="56" height="12" rx="2"/>',
+  build:q => { const f = side(q, 'hand'); f.head = add(f.neck, q.hd, 8.25 * q.e); return f; }, keys:[
+  { p:{x:100, y:10, k:.75, nu:-55.7, nf:-106.7, fu:-57.7, ff:-108.7, to:-90, hd:-95, e:1.25, nt:90, ns:90, ft:92, fs:92}, hold:1300, move:1200 },
+  { p:{x:100, y:10, k:.75, nu:-82, nf:-82, fu:-84, ff:-84, to:-90, hd:-95, e:1.25, nt:95, ns:150, ft:97, fs:152}, hold:2200, move:900, say:'c1', cp:'active shoulders' },
+  { p:{x:100, y:10, k:.75, nu:-82, nf:-82, fu:-84, ff:-84, to:-90, hd:-95, e:1.25, nt:95, ns:150, ft:97, fs:152}, hold:2200, move:1000, say:'c2', cp:'hang' },
+  { p:{x:100, y:10, k:.75, nu:-82, nf:-82, fu:-84, ff:-84, to:-90, hd:-95, e:.2, nt:95, ns:150, ft:97, fs:152}, hold:2000, move:1000, say:'m1', mark:['neck'] },
+  { p:{x:100, y:10, k:.75, nu:-82, nf:-82, fu:-84, ff:-84, to:-90, hd:-95, e:1.25, nt:95, ns:150, ft:97, fs:152}, hold:2000, move:1200, say:'m1fix', cp:'hang' },
+  { p:{x:100, y:10, k:.75, nu:-55.7, nf:-106.7, fu:-57.7, ff:-108.7, to:-90, hd:-95, e:1.25, nt:90, ns:90, ft:92, fs:92}, hold:2000, move:1200, say:'c3' }]};
+// Foam roll upper back: on the back, head to the left, roller under the shoulder blades, feet flat; bending the knees moves the roller up the back.
+DEMO['Foam roll upper back'] = { root:'foot', props:'<circle class="roller" cx="85" cy="116" r="9"/>', keys:[
+  { p:{x:160, y:124, nt:-33.3, ns:48.5, ft:-33.3, fs:48.5, to:205.3, nu:-86.7, nf:126.7, fu:-86.7, ff:126.7}, hold:2200, move:2500, say:'c1', cp:'bottom' },
+  { p:{x:160, y:124, nt:-34, ns:63.2, ft:-34, fs:63.2, to:194.3, nu:-97.7, nf:117.8, fu:-97.7, ff:117.8}, hold:2000, move:2500, say:'c2', cp:'top' },
+  { p:{x:160, y:124, nt:-35.6, ns:51.4, ft:-35.6, fs:51.4, to:203.7, nu:-88.3, nf:125.4, fu:-88.3, ff:125.4}, hold:2400, move:1500, say:'c3', cp:'relax' },
+  { p:{x:160, y:124, nt:-11.6, ns:25.7, ft:-11.6, fs:25.7, to:219.3, nu:-72.7, nf:138.3, fu:-72.7, ff:138.3}, hold:2000, move:1500, say:'m1', mark:['back'] },
+  { p:{x:160, y:124, nt:-33.3, ns:48.5, ft:-33.3, fs:48.5, to:205.3, nu:-86.7, nf:126.7, fu:-86.7, ff:126.7}, hold:2200, move:1500, say:'m1fix', cp:'bottom' }]};
+DEMO['Knees-to-chest stretch'] = { root:'hip',
+  props:'<rect class="prop" x="30" y="121" width="150" height="4" rx="2"/>',
+  keys:[
+  { p:{x:112, y:116, to:180, nt:-40, ns:54, ft:-38, fs:52, nu:2, nf:0, fu:4, ff:0}, hold:1500, move:1200, cp:'start' },
+  { p:{x:112, y:116, to:180, nt:-130, ns:-5, ft:-38, fs:52, nu:-73, nf:-11, fu:4, ff:0}, hold:1800, move:1200, say:'c1' },
+  { p:{x:112, y:116, to:180, nt:-130, ns:-5, ft:-127, fs:-2, nu:-73, nf:-11, fu:-71, ff:-9}, hold:2200, move:600, say:'c2', cp:'hold' },
+  { p:{x:112, y:116, to:180, nt:-133, ns:-8, ft:-130, fs:-5, nu:-75, nf:-14, fu:-73, ff:-12}, hold:2000, move:1200, say:'c3' },
+  { p:{x:112, y:116, to:180, nt:-28, ns:-28, ft:-26, fs:-26, nu:2, nf:0, fu:4, ff:0}, hold:2000, move:1200, say:'m1', mark:['back'] },
+  { p:{x:112, y:116, to:180, nt:-130, ns:-5, ft:-38, fs:52, nu:-73, nf:-11, fu:4, ff:0}, hold:1800, move:1200, say:'m1fix' }]};
+DEMO['Lying hamstring stretch'] = { root:'hip',
+  props:'<rect class="prop" x="25" y="121" width="155" height="4" rx="2"/>',
+  sides:{ 'stretched leg':'N', other:'F' }, measure:['N'],
+  gear:f => `<polyline class="band" style="stroke:#d0342c" points="${f.hn[0].toFixed(1)},${f.hn[1].toFixed(1)} ${(f.fn[0] + 2).toFixed(1)},${(f.fn[1] - 1).toFixed(1)} ${f.hf[0].toFixed(1)},${(f.hf[1] + 1).toFixed(1)}"/>`,
+  keys:[
+  { p:{x:105, y:116, to:180, nt:-40, ns:54, ft:-38, fs:52, nu:14, nf:-74, fu:16, ff:-72}, hold:1300, move:1200 },
+  { p:{x:105, y:116, to:180, nt:-115, ns:-20, ft:-38, fs:52, nu:-7, nf:-59, fu:-5, ff:-57}, hold:1800, move:1500, say:'c2', cp:'start' },
+  { p:{x:105, y:116, to:180, nt:-52, ns:-46, ft:-38, fs:52, nu:-14, nf:-47, fu:-12, ff:-45}, hold:2400, move:600, say:'c1', cp:'hold' },
+  { p:{x:105, y:116, to:180, nt:-53, ns:-47, ft:-38, fs:52, nu:-14, nf:-47, fu:-12, ff:-45}, hold:2200, move:1200, say:'c3' },
+  { p:{x:105, y:104, to:162.5, nt:-84, ns:-78, ft:-20, fs:65.5, nu:-30, nf:-62, fu:-28, ff:-60}, hold:2000, move:1200, say:'m1', mark:['hip'] },
+  { p:{x:105, y:116, to:180, nt:-52, ns:-46, ft:-38, fs:52, nu:-14, nf:-47, fu:-12, ff:-45}, hold:2000, move:1500, say:'m1fix' }]};
+DEMO['Glute bridge'] = { root:'foot',
+  props:'<rect class="prop" x="30" y="121" width="140" height="4" rx="2"/>',
+  front:f => { const b = [f.hip[0] + (f.kn[0] - f.hip[0]) * .78, f.hip[1] + (f.kn[1] - f.hip[1]) * .78],
+      a = Math.atan2(f.kn[1] - f.hip[1], f.kn[0] - f.hip[0]) + Math.PI / 2, d = [5 * Math.cos(a), 5 * Math.sin(a)];
+    return `<line class="band" style="stroke:#d0342c;stroke-width:3.5" x1="${(b[0] - d[0]).toFixed(1)}" y1="${(b[1] - d[1]).toFixed(1)}" x2="${(b[0] + d[0]).toFixed(1)}" y2="${(b[1] + d[1]).toFixed(1)}"/>`; },
+  keys:[
+  { p:{x:148.7, y:121, nt:-42, ns:56.8, ft:-40, fs:58, to:180, nu:2, nf:0, fu:3, ff:0, hd:180}, hold:1800, move:1000, say:'c1', cp:'start' },
+  { p:{x:148.7, y:121, nt:-18.5, ns:65.5, ft:-17, fs:66.5, to:161.5, nu:1, nf:0, fu:2, ff:0, hd:180}, hold:1500, move:300, say:'c3', cp:'top' },
+  { p:{x:148.7, y:121, nt:-18.5, ns:65.5, ft:-17, fs:66.5, to:161.5, nu:1, nf:0, fu:2, ff:0, hd:180}, hold:1500, move:2000, say:'c2' },
+  { p:{x:148.7, y:121, nt:-42, ns:56.8, ft:-40, fs:58, to:180, nu:2, nf:0, fu:3, ff:0, hd:180}, hold:500, move:1000 },
+  { p:{x:148.7, y:121, nt:-5, ns:65.5, ft:-4, fs:66.5, to:151.6, nu:1, nf:0, fu:2, ff:0, hd:180}, hold:2000, move:1000, say:'m1', mark:['back'] },
+  { p:{x:148.7, y:121, nt:-18.5, ns:65.5, ft:-17, fs:66.5, to:161.5, nu:1, nf:0, fu:2, ff:0, hd:180}, hold:1800, move:2000, say:'m1fix' }]};
+DEMO['Lying back raise'] = { root:'hip',
+  props:'<rect class="prop" x="25" y="121" width="155" height="4" rx="2"/><ellipse class="gear" cx="92" cy="118" rx="8" ry="3.5"/>',
+  front:(f, q) => { const a = add(f.head, q.hd - 90, 9), b = add(f.head, q.hd - 90, 15);
+    if(b[1] > 124) return '';
+    return `<line class="gaze" x1="${a[0].toFixed(1)}" y1="${a[1].toFixed(1)}" x2="${b[0].toFixed(1)}" y2="${b[1].toFixed(1)}"/>`; },
+  keys:[
+  { p:{x:100, y:115, to:180, hd:180, nt:2, ns:3, ft:1, fs:2, nu:3, nf:1, fu:2, ff:0}, hold:1200, move:1000, cp:'start' },
+  { p:{x:100, y:115, to:188, hd:188, nt:2, ns:3, ft:1, fs:2, nu:9, nf:6, fu:8, ff:5}, hold:1800, move:200, say:'c1' },
+  { p:{x:100, y:115, to:188, hd:188, nt:2, ns:3, ft:1, fs:2, nu:9, nf:6, fu:8, ff:5}, hold:1800, move:200, say:'c2' },
+  { p:{x:100, y:115, to:188, hd:188, nt:2, ns:3, ft:1, fs:2, nu:9, nf:6, fu:8, ff:5}, hold:1800, move:2000, say:'c3', cp:'hold' },
+  { p:{x:100, y:115, to:206, hd:245, nt:2, ns:3, ft:1, fs:2, nu:28, nf:20, fu:27, ff:19}, hold:2000, move:1200, say:'m1', mark:['neck', 'back'] },
+  { p:{x:100, y:115, to:188, hd:188, nt:2, ns:3, ft:1, fs:2, nu:9, nf:6, fu:8, ff:5}, hold:1800, move:2000, say:'m1fix' }]};
+DEMO['Weighted dead bug'] = { root:'hip',
+  props:'<rect class="prop" x="25" y="121" width="160" height="4" rx="2"/>',
+  sides:{ 'working leg':'N', 'working arm':'F' }, measure:['N'],
+  gear:f => `<circle class="gear" cx="${f.hf[0].toFixed(1)}" cy="${f.hf[1].toFixed(1)}" r="5"/>`,
+  front:f => `<circle class="gear" cx="${f.hn[0].toFixed(1)}" cy="${f.hn[1].toFixed(1)}" r="5"/>`,
+  keys:[
+  { p:{x:110, y:116, to:180, hd:180, nt:-90, ns:0, ft:-88, fs:2, nu:-90, nf:-90, fu:-92, ff:-92}, hold:1600, move:2000, say:'c1', cp:'start' },
+  { p:{x:110, y:116, to:180, hd:180, nt:-2, ns:-1, ft:-88, fs:2, nu:-90, nf:-90, fu:-170, ff:-170}, hold:1600, move:2000, say:'c2', cp:'reach' },
+  { p:{x:110, y:116, to:180, hd:180, nt:-90, ns:0, ft:-88, fs:2, nu:-90, nf:-90, fu:-92, ff:-92}, hold:400, move:2000 },
+  { p:{x:110, y:116, to:180, hd:180, nt:-90, ns:0, ft:-2, fs:-1, nu:-170, nf:-170, fu:-92, ff:-92}, hold:1800, move:2000, say:'c3' },
+  { p:{x:110, y:116, to:180, hd:180, nt:-90, ns:0, ft:-88, fs:2, nu:-90, nf:-90, fu:-92, ff:-92}, hold:400, move:1000 },
+  { p:{x:110, y:108, to:168.5, hd:180, nt:8, ns:6, ft:-88, fs:2, nu:-90, nf:-90, fu:-184, ff:-180}, hold:2000, move:1200, say:'m1', mark:['back'] },
+  { p:{x:110, y:116, to:180, hd:180, nt:-28, ns:-20, ft:-88, fs:2, nu:-90, nf:-90, fu:-140, ff:-140}, hold:1800, move:2000, say:'m1fix' }]};
+// Ab wheel rollout: kneeling on the mat, wheel under the shoulders, rolls out and back with straight arms.
+DEMO['Ab wheel rollout'] = { root:'foot',
+  props:'<rect class="prop" x="30" y="122" width="60" height="3" rx="1"/>',
+  gear:f => `<circle class="gear" cx="${f.hn[0].toFixed(1)}" cy="${f.hn[1].toFixed(1)}" r="9.5"/>` +
+    `<line class="bar" x1="${(f.hn[0] - 4).toFixed(1)}" y1="${f.hn[1].toFixed(1)}" x2="${(f.hn[0] + 4).toFixed(1)}" y2="${f.hn[1].toFixed(1)}"/>`,
+  keys:[
+  { p:{x:40, y:124, ns:180, nt:82, fs:180, ft:82, to:-33, nu:90, nf:90, fu:90, ff:90, hd:-33}, hold:1800, move:2500, say:'c2', cp:'start' },
+  { p:{x:40, y:124, ns:180, nt:150, fs:180, ft:150, to:-8, nu:15.3, nf:15.3, fu:15.3, ff:15.3, hd:-14}, hold:2000, move:1000, say:'c1', cp:'far' },
+  { p:{x:40, y:124, ns:180, nt:115, fs:180, ft:115, to:-20, nu:48.3, nf:48.3, fu:48.3, ff:48.3, hd:-20}, hold:1600, move:1000, say:'c3' },
+  { p:{x:40, y:124, ns:180, nt:82, fs:180, ft:82, to:-33, nu:90, nf:90, fu:90, ff:90, hd:-33}, hold:800, move:2500 },
+  { p:{x:40, y:124, ns:180, nt:175, fs:180, ft:175, to:-25, nu:13.8, nf:13.8, fu:13.8, ff:13.8, hd:-35}, hold:2000, move:1000, say:'m1', mark:['hip', 'back'] },
+  { p:{x:40, y:124, ns:180, nt:150, fs:180, ft:150, to:-8, nu:15.3, nf:15.3, fu:15.3, ff:15.3, hd:-14}, hold:2000, move:2500, say:'m1fix' }]};
+// Push-up on handles: hands fixed on the handles, body one line from head to heels, about 2 s down.
+DEMO['Push-up on handles'] = { root:'hand',
+  props:'<rect class="prop" x="40" y="123" width="125" height="2" rx="1"/><rect class="prop" x="124" y="117" width="12" height="8" rx="2"/>',
+  keys:[
+  { p:{x:130, y:119, nf:101.2, nu:101.2, ff:101.2, fu:101.2, to:-27.7, nt:152.4, ns:152.4, ft:152.4, fs:152.4}, hold:2000, move:1000, say:'c1', cp:'top' },
+  { p:{x:130, y:119, nf:80, nu:160, ff:80, fu:160, to:-18.3, nt:161.6, ns:161.6, ft:161.6, fs:161.6}, hold:1600, move:1000, say:'c2' },
+  { p:{x:130, y:119, nf:90, nu:210, ff:90, fu:210, to:-8, nt:171.9, ns:171.9, ft:171.9, fs:171.9}, hold:1800, move:1200, say:'c3', cp:'bottom' },
+  { p:{x:130, y:119, nf:101.2, nu:101.2, ff:101.2, fu:101.2, to:-27.7, nt:152.4, ns:152.4, ft:152.4, fs:152.4}, hold:800, move:1000 },
+  { p:{x:130, y:119, nf:98, nu:98, ff:98, fu:98, to:-49.2, nt:164.7, ns:164.7, ft:164.7, fs:164.7}, hold:2000, move:1000, say:'m1', mark:['hip', 'back'] },
+  { p:{x:130, y:119, nf:101.2, nu:101.2, ff:101.2, fu:101.2, to:-27.7, nt:152.4, ns:152.4, ft:152.4, fs:152.4}, hold:2000, move:1000, say:'m1fix' }]};
+// Side plank: seen from the front. Bottom forearm on the mat under the bottom shoulder, legs stacked;
+// only the hips move (q.hx, q.hy = middle of the hips). Top hand rests on the top hip.
+DEMO['Side plank'] = {
+  props:'<rect class="prop" x="20" y="123" width="130" height="2" rx="1"/>',
+  build:q => {
+    const F = [30, 120], S = [125, 93], H = [q.hx, q.hy];
+    const a = Math.atan2(S[1] - H[1], S[0] - H[0]) * 180 / Math.PI, la = Math.atan2(H[1] - F[1], H[0] - F[0]) * 180 / Math.PI;
+    const up = (p, ang, w) => add(p, ang - 90, w);
+    const hb = up(H, a, -5), ht = up(H, a, 5), sb = up(S, a, -8), st = up(S, a, 8);
+    const el = [sb[0], 123], hn = [el[0] + 7, 123], te = up(add(st, a + 180, 15), a, 11);
+    const pt = p => p[0].toFixed(1) + ',' + p[1].toFixed(1);
+    return { near:[[up(F, la, -3), hb], [up(F, la, 3), ht], [sb, el, hn], [st, te, ht]], far:[],
+      extra:`<polygon class="torso" points="${[hb, ht, st, sb].map(pt).join(' ')}"/>`,
+      head:add(S, a, 13), hr:8, hip:hb, back:add(H, a, 20), neck:S, el, hn };
+  },
+  keys:[
+  { p:{hx:85, hy:116}, hold:1800, move:1200, say:'c1', cp:'start' },
+  { p:{hx:87, hy:104}, hold:2000, move:0, say:'c2', cp:'hold' },
+  { p:{hx:87, hy:104}, hold:2000, move:1500, say:'c3' },
+  { p:{hx:86, hy:111}, hold:2000, move:1000, say:'m1', mark:['hip'] },
+  { p:{hx:87, hy:104}, hold:2000, move:1200, say:'m1fix' }]};
+// Weighted crunch: lying on the back, knees bent, feet flat and free; both hands hold the plate on the chest.
+// Only the shoulder blades come up; the hip point stays on the mat.
+DEMO['Weighted crunch'] = { root:'hip',
+  props:'<rect class="prop" x="40" y="123" width="125" height="2" rx="1"/>',
+  gear:f => {
+    const a = Math.atan2(f.neck[1] - f.hip[1], f.neck[0] - f.hip[0]) * 180 / Math.PI, p = add(f.neck, a + 180, 4), q = add(f.neck, a + 180, 22);
+    const o = v => add(v, a + 90, 6);
+    return `<line class="bar" style="stroke-width:6" x1="${o(p)[0].toFixed(1)}" y1="${o(p)[1].toFixed(1)}" x2="${o(q)[0].toFixed(1)}" y2="${o(q)[1].toFixed(1)}"/>`;
+  },
+  keys:[
+  { p:{x:110, y:117, to:180, nt:-38, ns:58, ft:-38, fs:58, nu:-96, nf:40, fu:-96, ff:40, hd:180}, hold:1800, move:1000, say:'c1', cp:'start' },
+  { p:{x:110, y:117, to:200, nt:-38, ns:58, ft:-38, fs:58, nu:-76, nf:60, fu:-76, ff:60, hd:218}, hold:1600, move:0, say:'c2', cp:'top' },
+  { p:{x:110, y:117, to:200, nt:-38, ns:58, ft:-38, fs:58, nu:-76, nf:60, fu:-76, ff:60, hd:218}, hold:1600, move:2000, say:'c3' },
+  { p:{x:110, y:117, to:180, nt:-38, ns:58, ft:-38, fs:58, nu:-96, nf:40, fu:-96, ff:40, hd:180}, hold:600, move:1200 },
+  { p:{x:110, y:117, to:252, nt:-38, ns:58, ft:-38, fs:58, nu:-24, nf:112, fu:-24, ff:112, hd:262}, hold:2000, move:1200, say:'m1', mark:['back'] },
+  { p:{x:110, y:117, to:200, nt:-38, ns:58, ft:-38, fs:58, nu:-76, nf:60, fu:-76, ff:60, hd:218}, hold:2000, move:2000, say:'m1fix' }]};
+// Lying band pulldown: lying on the back, head toward the sofa, knees bent, feet flat; the tube runs from the
+// sofa leg at floor level past the head to the hands. Elbows come down to the ribs, then the arms go back up.
+DEMO['Lying band pulldown'] = { root:'hip',
+  props:'<rect class="prop" x="0" y="96" width="34" height="16" rx="3"/><rect class="prop" x="0" y="74" width="10" height="24" rx="3"/>' +
+    '<rect class="prop" x="26" y="112" width="6" height="13"/><rect class="prop" x="2" y="112" width="6" height="13"/>' +
+    '<rect class="prop" x="40" y="123" width="125" height="2" rx="1"/>',
+  gear:f => [f.hf, f.hn].map(h => `<line class="band" style="stroke:#d0342c" x1="29" y1="122" x2="${h[0].toFixed(1)}" y2="${h[1].toFixed(1)}"/>` +
+    `<circle class="gear" cx="${h[0].toFixed(1)}" cy="${h[1].toFixed(1)}" r="2.5"/>`).join(''),
+  keys:[
+  { p:{x:135, y:117, to:180, nt:-38, ns:58, ft:-38, fs:58, nu:200, nf:200, fu:200, ff:200, hd:180}, hold:1800, move:1000, say:'c1', cp:'start' },
+  { p:{x:135, y:117, to:180, nt:-38, ns:58, ft:-38, fs:58, nu:357, nf:225, fu:357, ff:225, hd:180}, hold:1300, move:0, say:'c2', cp:'end' },
+  { p:{x:135, y:117, to:180, nt:-38, ns:58, ft:-38, fs:58, nu:357, nf:225, fu:357, ff:225, hd:180}, hold:1500, move:2000, say:'c3' },
+  { p:{x:135, y:117, to:180, nt:-38, ns:58, ft:-38, fs:58, nu:200, nf:200, fu:200, ff:200, hd:180}, hold:700, move:1200 },
+  { p:{x:135, y:117, to:192, nt:-38, ns:58, ft:-38, fs:58, nu:188, nf:186, fu:188, ff:186, hd:160}, hold:2000, move:1000, say:'m1', mark:['back'] },
+  { p:{x:135, y:117, to:180, nt:-38, ns:58, ft:-38, fs:58, nu:200, nf:200, fu:200, ff:200, hd:180}, hold:2000, move:800, say:'m1fix' }]};
+// Barbell back squat: side view, bar seen end-on (plate) on the upper back, hands on it; `ar` bends the trunk line (lower-back arch) for the mistake
+DEMO['Barbell back squat'] = { root:'foot',
+  props:'<rect class="prop" x="22" y="30" width="5" height="95" rx="2"/><rect class="prop" x="27" y="54" width="12" height="4" rx="1"/>',
+  gear:f => `<circle class="gear" cx="${(f.hn[0] - 1).toFixed(1)}" cy="${f.hn[1].toFixed(1)}" r="11" style="fill-opacity:.35"/><circle class="gear" cx="${(f.hn[0] - 1).toFixed(1)}" cy="${f.hn[1].toFixed(1)}" r="2.5"/>`,
+  front:(f, q) => {
+    if(Math.abs(q.ar) < .05) return '';
+    const h = f.hip, n = f.neck, d = [(n[0] - h[0]) / 40, (n[1] - h[1]) / 40], c = [h[0] + d[0] * 14 - d[1] * 18 * q.ar, h[1] + d[1] * 14 + d[0] * 18 * q.ar];
+    return `<line x1="${h[0].toFixed(1)}" y1="${h[1].toFixed(1)}" x2="${n[0].toFixed(1)}" y2="${n[1].toFixed(1)}" style="stroke:var(--input);stroke-width:6" opacity="${Math.min(1, q.ar * 1.5).toFixed(2)}"/>` +
+      `<path class="torso" d="M${h[0].toFixed(1)} ${h[1].toFixed(1)} Q${c[0].toFixed(1)} ${c[1].toFixed(1)} ${n[0].toFixed(1)} ${n[1].toFixed(1)}"/>`;
+  },
+  keys:[
+    { p:{x:90, y:124, nt:90, ns:90, ft:88, fs:92, to:-90, hd:-90, nu:78, nf:-119, fu:80, ff:-117, ar:0}, hold:1800, move:2000, say:'c1', cp:'start' },
+    { p:{x:90, y:124, nt:10, ns:120, ft:8, fs:122, to:-55, hd:-65, nu:113, nf:-84, fu:115, ff:-82, ar:0}, hold:2000, move:900, say:'c3', cp:'bottom' },
+    { p:{x:90, y:124, nt:55, ns:105, ft:53, fs:107, to:-65, hd:-72, nu:103, nf:-94, fu:105, ff:-92, ar:0}, hold:1600, move:700, say:'c2', cp:'halfway' },
+    { p:{x:90, y:124, nt:90, ns:90, ft:88, fs:92, to:-90, hd:-90, nu:78, nf:-119, fu:80, ff:-117, ar:0}, hold:600, move:1500 },
+    { p:{x:90, y:124, nt:40, ns:100, ft:38, fs:102, to:-62, hd:-100, nu:106, nf:-91, fu:108, ff:-89, ar:1}, hold:2200, move:1200, say:'m1', mark:['back'] },
+    { p:{x:90, y:124, nt:90, ns:90, ft:88, fs:92, to:-90, hd:-90, nu:78, nf:-119, fu:80, ff:-117, ar:0}, hold:2000, move:1000, say:'m1fix', cp:'start' },
+  ]};
+
+// Romanian deadlift: side view, bar seen end-on (plate) in the hands against the thighs; `ar` < 0 bends the trunk line round (mistake)
+DEMO['Romanian deadlift'] = { root:'foot',
+  gear:f => `<circle class="gear" cx="${(f.hn[0] + 2).toFixed(1)}" cy="${f.hn[1].toFixed(1)}" r="11" style="fill-opacity:.35"/><circle class="gear" cx="${(f.hn[0] + 2).toFixed(1)}" cy="${f.hn[1].toFixed(1)}" r="2.5"/>`,
+  front:(f, q) => {
+    if(Math.abs(q.ar) < .05) return '';
+    const h = f.hip, n = f.neck, d = [(n[0] - h[0]) / 40, (n[1] - h[1]) / 40], c = [h[0] + d[0] * 20 - d[1] * 18 * q.ar, h[1] + d[1] * 20 + d[0] * 18 * q.ar];
+    return `<line x1="${h[0].toFixed(1)}" y1="${h[1].toFixed(1)}" x2="${n[0].toFixed(1)}" y2="${n[1].toFixed(1)}" style="stroke:var(--input);stroke-width:6" opacity="${Math.min(1, Math.abs(q.ar) * 1.5).toFixed(2)}"/>` +
+      `<path class="torso" d="M${h[0].toFixed(1)} ${h[1].toFixed(1)} Q${c[0].toFixed(1)} ${c[1].toFixed(1)} ${n[0].toFixed(1)} ${n[1].toFixed(1)}"/>`;
+  },
+  keys:[
+    { p:{x:90, y:124, nt:83, ns:95, ft:81, fs:95, to:-87, hd:-87, nu:86, nf:88, fu:88, ff:90, ar:0}, hold:1200, move:1000, cp:'start' },
+    { p:{x:90, y:124, nt:70, ns:94, ft:68, fs:94, to:-58, hd:-58, nu:100, nf:104, fu:102, ff:106, ar:0}, hold:1500, move:1000, say:'c1' },
+    { p:{x:90, y:124, nt:58, ns:94, ft:56, fs:94, to:-34, hd:-30, nu:110, nf:118, fu:112, ff:120, ar:0}, hold:2000, move:1300, say:'c2', cp:'bottom' },
+    { p:{x:90, y:124, nt:83, ns:95, ft:81, fs:95, to:-87, hd:-87, nu:86, nf:88, fu:88, ff:90, ar:0}, hold:1800, move:1300, say:'c3', cp:'start' },
+    { p:{x:90, y:124, nt:60, ns:94, ft:58, fs:94, to:-10, hd:10, nu:115, nf:115, fu:117, ff:117, ar:-1}, hold:2200, move:1000, say:'m1', mark:['back'] },
+    { p:{x:90, y:124, nt:58, ns:94, ft:56, fs:94, to:-34, hd:-30, nu:110, nf:118, fu:112, ff:120, ar:0}, hold:2000, move:1300, say:'m1fix', cp:'bottom' },
+  ]};
+
+// Bulgarian split squat: side view, back foot laces-down on the sofa seat (far leg), front foot on the floor (near leg); feet drawn, `hl` lifts the front heel (mistake)
+DEMO['Bulgarian split squat'] = { root:'foot', sides:{ front:'N', back:'F' }, measure:['N'],
+  props:'<rect class="prop" x="14" y="76" width="10" height="49" rx="3"/><rect class="prop" x="22" y="102" width="36" height="23" rx="3"/>',
+  gear:(f, q) => {
+    const a = q.hl * Math.PI / 180, c = Math.cos(a), s = Math.sin(a), n = f.fn, b = f.ff;
+    return `<line class="gaze" x1="${(n[0] - 3 * c).toFixed(1)}" y1="${(n[1] - 3 * s).toFixed(1)}" x2="${(n[0] + 10 * c).toFixed(1)}" y2="${(n[1] + 10 * s).toFixed(1)}"/>` +
+      `<line class="gaze" style="opacity:.4" x1="${b[0].toFixed(1)}" y1="${b[1].toFixed(1)}" x2="${(b[0] - 10).toFixed(1)}" y2="${(b[1] + 1).toFixed(1)}"/>`;
+  },
+  keys:[
+    { p:{x:110, y:124, nt:76, ns:86, ft:126, fs:159, to:-85, hd:-85, nu:92, nf:92, fu:94, ff:94, hl:0}, hold:1800, move:2000, say:'c2', cp:'top' },
+    { p:{x:110, y:124, nt:7, ns:102, ft:107, fs:-139, to:-65, hd:-70, nu:95, nf:85, fu:97, ff:87, hl:0}, hold:2000, move:1000, say:'c1', cp:'bottom' },
+    { p:{x:110, y:124, nt:76, ns:86, ft:126, fs:159, to:-85, hd:-85, nu:92, nf:92, fu:94, ff:94, hl:0}, hold:1800, move:1200, say:'c3', cp:'top' },
+    { p:{x:100, y:121, nt:36, ns:128, ft:110, fs:-165, to:-62, hd:-70, nu:95, nf:85, fu:97, ff:87, hl:20}, hold:2200, move:1200, say:'m1', mark:['kn', 'fn'] },
+    { p:{x:110, y:124, nt:7, ns:102, ft:107, fs:-139, to:-65, hd:-70, nu:95, nf:85, fu:97, ff:87, hl:0}, hold:2000, move:1200, say:'m1fix', cp:'bottom' },
+  ]};
+
+// Seated band row: side view, sitting on a yoga block on the mat, knees bent, heels on the mat, tube round the soles (arches) to both hands
+DEMO['Seated band row'] = { root:'hip',
+  props:'<rect class="prop" x="36" y="122" width="118" height="3" rx="1"/><rect class="prop" x="46" y="112" width="26" height="11" rx="2"/>',
+  gear:f => `<line class="band" style="stroke:#d0342c;opacity:.45" x1="${f.hf[0].toFixed(1)}" y1="${f.hf[1].toFixed(1)}" x2="${(f.ff[0] + 2).toFixed(1)}" y2="${(f.ff[1] - 4).toFixed(1)}"/>` +
+    `<line class="gaze" style="opacity:.3" x1="${f.ff[0].toFixed(1)}" y1="${f.ff[1].toFixed(1)}" x2="${(f.ff[0] + 3).toFixed(1)}" y2="${(f.ff[1] - 9).toFixed(1)}"/>`,
+  front:f => `<line class="gaze" x1="${f.fn[0].toFixed(1)}" y1="${f.fn[1].toFixed(1)}" x2="${(f.fn[0] + 3).toFixed(1)}" y2="${(f.fn[1] - 9).toFixed(1)}"/>` +
+    `<line class="band" style="stroke:#d0342c" x1="${f.hn[0].toFixed(1)}" y1="${f.hn[1].toFixed(1)}" x2="${(f.fn[0] + 2).toFixed(1)}" y2="${(f.fn[1] - 4).toFixed(1)}"/>`,
+  keys:[
+    { p:{x:60, y:112, to:-90, hd:-90, nt:-10, ns:30, ft:-12, fs:32, nu:10, nf:12, fu:12, ff:14}, hold:1800, move:1000, say:'c1', cp:'start' },
+    { p:{x:60, y:112, to:-90, hd:-90, nt:-10, ns:30, ft:-12, fs:32, nu:118, nf:-6, fu:120, ff:-4}, hold:1500, move:200, say:'c2', cp:'end' },
+    { p:{x:60, y:112, to:-90, hd:-90, nt:-10, ns:30, ft:-12, fs:32, nu:121, nf:-4, fu:123, ff:-2}, hold:1500, move:2000, say:'c3', cp:'end' },
+    { p:{x:60, y:112, to:-90, hd:-90, nt:-10, ns:30, ft:-12, fs:32, nu:10, nf:12, fu:12, ff:14}, hold:700, move:1000 },
+    { p:{x:60, y:112, to:-116, hd:-120, nt:-10, ns:30, ft:-12, fs:32, nu:94, nf:-32, fu:96, ff:-30}, hold:2200, move:1000, say:'m1', mark:['back'] },
+    { p:{x:60, y:112, to:-90, hd:-90, nt:-10, ns:30, ft:-12, fs:32, nu:120, nf:-5, fu:122, ff:-3}, hold:2000, move:1200, say:'m1fix', cp:'end' },
+  ]};
+
+// Band pull-apart: front view turned a little to the side (three-quarter) so the arms reaching forward stay readable.
+// `a` = arm angle from straight forward (0) to out to the side (90); `sh` lifts the shoulders (shrug). The far side is faded.
+DEMO['Band pull-apart'] = {
+  build:q => {
+    const c = Math.cos(.75), s = Math.sin(.75), P = (x, y, z) => [100 + x * c + z * s, y + z * .12];
+    const sy = 31 + q.sh, r = q.a * Math.PI / 180, arm = d => {
+      const o = Math.sin(r), w = Math.cos(r);
+      return [P(d * 12, sy, 0), P(d * (12 + 21 * o), sy + 1, 21 * w), P(d * (12 + 41 * o), sy, 41 * w)];
+    }, L = arm(-1), R = arm(1);
+    return { near:[[P(-9, 124, 0), P(-6, 95, 0), P(0, 66, 0)], [P(0, 66, 0), P(0, 25, 0)], [L[0], P(0, 25, 0), R[0]], L],
+      far:[[P(0, 66, 0), P(6, 95, 0), P(9, 124, 0)], R], head:P(0, 13, 0), hr:8, sl:L[0], sr:R[0], hl:L[2], hf:R[2], chest:P(0, 34, 0) };
+  },
+  front:(f, q) => {   // the band runs hand to hand; as the arms open it comes back to the chest
+    const u = Math.sin(q.a * Math.PI / 180) ** 2, m = [(f.hl[0] + f.hf[0]) / 2 * (1 - u) + f.chest[0] * u, (f.hl[1] + f.hf[1]) / 2 * (1 - u) + f.chest[1] * u];
+    return `<polyline class="band" style="stroke:#2e8b57;stroke-width:2.5" points="${[f.hl, m, f.hf].map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ')}"/>`;
+  },
+  keys:[
+    { p:{a:0, sh:0}, hold:1600, move:1500, say:'c3', cp:'start' },
+    { p:{a:88, sh:0}, hold:1800, move:2000, say:'c2', cp:'end' },
+    { p:{a:0, sh:0}, hold:1500, move:1500, say:'c1', cp:'start' },
+    { p:{a:80, sh:-7}, hold:2200, move:1000, say:'m1', mark:['sl', 'sr'] },
+    { p:{a:88, sh:0}, hold:2000, move:1500, say:'m1fix', cp:'end' },
+  ]};
+DEMO['Barbell hip thrust'] = { root:'foot',
+  props:'<rect class="prop" x="14" y="97" width="78" height="28" rx="3"/>',
+  gear:(f) => { const b = [f.hip[0], f.hip[1] - 5]; return `<circle class="gear" cx="${b[0].toFixed(1)}" cy="${b[1].toFixed(1)}" r="12" style="opacity:.55"/>`; },
+  front:(f) => { const b = [f.hip[0], f.hip[1] - 5]; return `<circle class="roller" cx="${b[0].toFixed(1)}" cy="${b[1].toFixed(1)}" r="3.5"/>`; },
+  keys:[
+    { p:{x:152, y:124, nt:323.6, ns:55.8, ft:323.6, fs:55.8, to:-132.1, nu:76.6, nf:9.4, fu:64.7, ff:13.8, hd:-114.1}, hold:1800, move:1000, say:'c1', cp:'bottom' },
+    { p:{x:152, y:124, nt:360, ns:90, ft:360, fs:90, to:-180, nu:15.4, nf:-32.9, fu:-5.6, ff:-8.1, hd:-162}, hold:2000, move:300, say:'c2', cp:'top' },
+    { p:{x:152, y:124, nt:360, ns:90, ft:360, fs:90, to:-180, nu:15.4, nf:-32.9, fu:-5.6, ff:-8.1, hd:-162}, hold:1500, move:2000, say:'c3', cp:'top' },
+    { p:{x:152, y:124, nt:323.6, ns:55.8, ft:323.6, fs:55.8, to:-132.1, nu:76.6, nf:9.4, fu:64.7, ff:13.8, hd:-114.1}, hold:400, move:1000 },
+    { p:{x:152, y:124, nt:373.5, ns:90.3, ft:373.5, fs:90.3, to:-188, nu:4.8, nf:-38.3, fu:-13.1, ff:-15.5, hd:-216}, hold:2000, move:900, say:'m1', mark:['back'] },
+    { p:{x:152, y:124, nt:360, ns:90, ft:360, fs:90, to:-180, nu:15.4, nf:-32.9, fu:-5.6, ff:-8.1, hd:-162}, hold:1800, move:2000, say:'m1fix', cp:'top' }
+  ]};
+DEMO['45° back extension'] = { root:'foot',
+  props:'<line class="bar" x1="96.6" y1="71.2" x2="107.6" y2="124"/>' +
+    '<line class="bar" x1="55" y1="109" x2="96.6" y2="71.2"/>' +
+    '<line class="bar" x1="46" y1="124" x2="115.6" y2="124"/>' +
+    '<line class="bar" x1="54" y1="109" x2="48" y2="124"/>' +
+    '<circle class="roller" cx="48.5" cy="100" r="4"/>' +
+    '<line class="bar" style="stroke-width:7" x1="96.3" y1="62.3" x2="82.9" y2="77.1"/>',
+  keys:[
+    { p:{x:52, y:104, nt:126, ns:138, ft:126, fs:138, to:-43, nu:77, nf:-122, fu:71, ff:-126, hd:-31}, hold:1800, move:2000, say:'c1', cp:'top' },
+    { p:{x:52, y:104, nt:126, ns:138, ft:126, fs:138, to:12, nu:132, nf:-67, fu:126, ff:-71, hd:32}, hold:1800, move:1200, say:'c2', cp:'bottom' },
+    { p:{x:52, y:104, nt:126, ns:138, ft:126, fs:138, to:-43, nu:77, nf:-122, fu:71, ff:-126, hd:-31}, hold:1800, move:900, say:'c3', cp:'top' },
+    { p:{x:52, y:104, nt:126, ns:138, ft:126, fs:138, to:-72, nu:48, nf:-151, fu:42, ff:-155, hd:-82}, hold:2000, move:900, say:'m1', mark:['back'] },
+    { p:{x:52, y:104, nt:126, ns:138, ft:126, fs:138, to:-43, nu:77, nf:-122, fu:71, ff:-126, hd:-31}, hold:1800, move:2000, say:'m1fix', cp:'top' }
+  ]};
+DEMO['Leg press'] = { root:'hip',
+  props:'<line class="bar" style="stroke-width:7" x1="23.1" y1="79.1" x2="67.2" y2="97.9"/>' +
+    '<rect class="prop" x="48" y="104" width="26" height="6" rx="2"/>' +
+    '<line class="bar" x1="58" y1="109" x2="58" y2="124"/>' +
+    '<line class="bar" style="stroke-width:3" x1="66" y1="99" x2="70" y2="97"/>' +
+    '<line class="bar" x1="80.3" y1="108.1" x2="132.7" y2="55.8"/>' +
+    '<line class="bar" x1="80.3" y1="108.1" x2="80.3" y2="124"/>' +
+    '<line class="bar" x1="132.7" y1="55.8" x2="132.7" y2="124"/>',
+  gear:(f) => { const a = (f.fn[0] + 3.2 + 12 * 0.707).toFixed(1), b = (f.fn[1] - 3.2 + 12 * 0.707).toFixed(1), c = (f.fn[0] + 3.2 - 18 * 0.707).toFixed(1), d = (f.fn[1] - 3.2 - 18 * 0.707).toFixed(1);
+    return `<line class="bar" style="stroke-width:5" x1="${a}" y1="${b}" x2="${c}" y2="${d}"/>`; },
+  keys:[
+    { p:{x:62, y:100, nt:-49, ns:-30, ft:-49, fs:-30, to:-157, nu:18.8, nf:16.5, fu:18.5, ff:16.2, hd:-149}, hold:1500, move:2000, say:'c2', cp:'top' },
+    { p:{x:62, y:100, nt:-75, ns:-1.4, ft:-75, fs:-1.4, to:-157, nu:18.8, nf:16.5, fu:18.5, ff:16.2, hd:-149}, hold:1800, move:1000, say:'c1', cp:'bottom' },
+    { p:{x:62, y:100, nt:-49, ns:-30, ft:-49, fs:-30, to:-157, nu:18.8, nf:16.5, fu:18.5, ff:16.2, hd:-149}, hold:1500, move:2000, say:'c3', cp:'whole set' },
+    { p:{x:68, y:91, nt:-107.2, ns:2.8, ft:-107.2, fs:2.8, to:-171.2, nu:25.4, nf:10.6, fu:19.1, ff:16.7, hd:-163.2}, hold:2000, move:1000, say:'m1', mark:['hip'] },
+    { p:{x:62, y:100, nt:-75, ns:-1.4, ft:-75, fs:-1.4, to:-157, nu:18.8, nf:16.5, fu:18.5, ff:16.2, hd:-149}, hold:1800, move:1000, say:'m1fix', cp:'bottom' }
+  ]};
+DEMO['Calf press'] = { root:'hip',
+  props:'<line class="bar" style="stroke-width:7" x1="23.1" y1="79.1" x2="67.2" y2="97.9"/>' +
+    '<rect class="prop" x="48" y="104" width="26" height="6" rx="2"/>' +
+    '<line class="bar" x1="58" y1="109" x2="58" y2="124"/>' +
+    '<line class="bar" style="stroke-width:3" x1="66" y1="99" x2="70" y2="97"/>' +
+    '<line class="bar" x1="98.7" y1="57.6" x2="134.1" y2="22.3"/>' +
+    '<line class="bar" x1="98.7" y1="57.6" x2="98.7" y2="124"/>' +
+    '<line class="bar" x1="134.1" y1="22.3" x2="134.1" y2="124"/>',
+  gear:(f, q) => { const c = Math.cos(q.a * Math.PI / 180), s = Math.sin(q.a * Math.PI / 180), b = [f.fn[0] + 13 * c, f.fn[1] + 13 * s];
+    const n = [0.707, -0.707], p = [b[0] + 2.5 * n[0], b[1] + 2.5 * n[1]], e1 = [p[0] + 3 * 0.707, p[1] + 3 * 0.707], e2 = [p[0] - 26 * 0.707, p[1] - 26 * 0.707];
+    const L = (u, v, w) => `<line class="bar"${w ? ` style="stroke-width:${w}"` : ''} x1="${u[0].toFixed(1)}" y1="${u[1].toFixed(1)}" x2="${v[0].toFixed(1)}" y2="${v[1].toFixed(1)}"/>`;
+    return L(e1, e2, 5); },
+  front:(f, q) => { const c = Math.cos(q.a * Math.PI / 180), s = Math.sin(q.a * Math.PI / 180), b = [f.fn[0] + 13 * c, f.fn[1] + 13 * s], h = [f.fn[0] - 5 * c + 2 * s, f.fn[1] - 5 * s - 2 * c];
+    return `<polyline class="foot" style="fill:none;stroke:var(--ink);stroke-width:4;stroke-linecap:round;stroke-linejoin:round" points="${h[0].toFixed(1)},${h[1].toFixed(1)} ${f.fn[0].toFixed(1)},${f.fn[1].toFixed(1)} ${b[0].toFixed(1)},${b[1].toFixed(1)}"/>`; },
+  keys:[
+    { p:{x:62, y:100, nt:-47, ns:-27, ft:-47, fs:-27, to:-157, nu:18.8, nf:16.5, fu:18.5, ff:16.2, hd:-149, a:245}, hold:1800, move:1000, say:'c1' },
+    { p:{x:62, y:100, nt:-47, ns:-27, ft:-47, fs:-27, to:-157, nu:18.8, nf:16.5, fu:18.5, ff:16.2, hd:-149, a:223}, hold:1500, move:1000, say:'c3', cp:'bottom' },
+    { p:{x:62, y:100, nt:-47, ns:-27, ft:-47, fs:-27, to:-157, nu:18.8, nf:16.5, fu:18.5, ff:16.2, hd:-149, a:288}, hold:1500, move:2000, say:'c2', cp:'top' },
+    { p:{x:62, y:100, nt:-47, ns:-27, ft:-47, fs:-27, to:-157, nu:18.8, nf:16.5, fu:18.5, ff:16.2, hd:-149, a:223}, hold:1000, move:1000, cp:'bottom' },
+    { p:{x:67, y:94, nt:-39.7, ns:-33.2, ft:-39.7, fs:-33.2, to:-167, nu:19.2, nf:16.7, fu:18.8, ff:16.3, hd:-159, a:246.8}, hold:2000, move:1000, say:'m1', mark:['hip'] },
+    { p:{x:62, y:100, nt:-47, ns:-27, ft:-47, fs:-27, to:-157, nu:18.8, nf:16.5, fu:18.5, ff:16.2, hd:-149, a:288}, hold:1800, move:1500, say:'m1fix', cp:'top' }
+  ]};
+DEMO['Lying leg curl'] = { root:'hip',
+  props:'<rect class="prop" x="78" y="93" width="86" height="7" rx="3"/><line class="bar" x1="90" y1="100" x2="90" y2="124"/><line class="bar" x1="150" y1="100" x2="150" y2="124"/>' +
+    '<line class="bar" style="stroke-width:3" x1="158" y1="98" x2="164" y2="106"/><line class="bar" x1="74" y1="99" x2="74" y2="124"/>',
+  gear:(f, q) => { const a = q.ns * Math.PI / 180, c = Math.cos(a), s = Math.sin(a), p = [f.kn[0] + 25 * c - 5 * s, f.kn[1] + 25 * s + 5 * c];
+    return `<line class="bar" style="stroke-width:3" x1="74" y1="95" x2="${p[0].toFixed(1)}" y2="${p[1].toFixed(1)}"/><circle class="roller" cx="74" cy="95" r="3.5"/><circle class="roller" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="4.5"/>`; },
+  keys:[
+    { p:{x:104, y:90, nt:180, ns:190, ft:180, fs:193, to:0, nu:88.3, nf:-23.5, fu:88.3, ff:-23.5, hd:-8}, hold:1800, move:1000, say:'c1', cp:'start' },
+    { p:{x:104, y:90, nt:180, ns:300, ft:180, fs:303, to:0, nu:88.3, nf:-23.5, fu:88.3, ff:-23.5, hd:-8}, hold:1200, move:2000, say:'c2', cp:'top' },
+    { p:{x:104, y:90, nt:180, ns:190, ft:180, fs:193, to:0, nu:88.3, nf:-23.5, fu:88.3, ff:-23.5, hd:-8}, hold:600, move:1000, cp:'start' },
+    { p:{x:103, y:83, nt:166.4, ns:286.4, ft:166.4, fs:289.4, to:9, nu:85.2, nf:-21, fu:85.2, ff:-21, hd:1}, hold:2000, move:1000, say:'m1', mark:['hip'] },
+    { p:{x:104, y:90, nt:180, ns:300, ft:180, fs:303, to:0, nu:88.3, nf:-23.5, fu:88.3, ff:-23.5, hd:-8}, hold:1500, move:2000, say:'m1fix', cp:'top' }
+  ]};
+DEMO['Flat dumbbell press'] = { root:'hip',
+  props:'<rect class="prop" x="62" y="95" width="74" height="6" rx="2"/><rect class="prop" x="72" y="101" width="5" height="24"/><rect class="prop" x="122" y="101" width="5" height="24"/>',
+  gear:f => `<g opacity=".4"><line class="bar" x1="${(f.hf[0] - 6).toFixed(1)}" y1="${f.hf[1].toFixed(1)}" x2="${(f.hf[0] + 6).toFixed(1)}" y2="${f.hf[1].toFixed(1)}"/><rect class="gear" x="${(f.hf[0] - 9).toFixed(1)}" y="${(f.hf[1] - 5).toFixed(1)}" width="4" height="10" rx="1"/><rect class="gear" x="${(f.hf[0] + 5).toFixed(1)}" y="${(f.hf[1] - 5).toFixed(1)}" width="4" height="10" rx="1"/></g>`,
+  front:f => `<line class="bar" x1="${(f.hn[0] - 6).toFixed(1)}" y1="${f.hn[1].toFixed(1)}" x2="${(f.hn[0] + 6).toFixed(1)}" y2="${f.hn[1].toFixed(1)}"/><rect class="gear" x="${(f.hn[0] - 9).toFixed(1)}" y="${(f.hn[1] - 5).toFixed(1)}" width="4" height="10" rx="1"/><rect class="gear" x="${(f.hn[0] + 5).toFixed(1)}" y="${(f.hn[1] - 5).toFixed(1)}" width="4" height="10" rx="1"/>`,
+  keys:[
+  // top: arms straight up over the shoulders, feet flat, hips on the bench
+  { p:{x:120, y:91, to:180, hd:185, nt:2, ns:96, ft:-2, fs:92, nu:-88, nf:-90, fu:-88, ff:-90}, hold:1800, move:2000, say:'c3', cp:'top' },
+  // bottom: hands just above the lower chest, elbows tucked toward the hips
+  { p:{x:120, y:91, to:180, hd:185, nt:2, ns:96, ft:-2, fs:92, nu:30, nf:-91, fu:30, ff:-91}, hold:2000, move:1000, say:'c1', cp:'bottom' },
+  { p:{x:120, y:91, to:180, hd:185, nt:2, ns:96, ft:-2, fs:92, nu:-88, nf:-90, fu:-88, ff:-90}, hold:500, move:2000 },
+  { p:{x:120, y:91, to:180, hd:185, nt:2, ns:96, ft:-2, fs:92, nu:30, nf:-91, fu:30, ff:-91}, hold:2000, move:1000, say:'c2', cp:'bottom' },
+  // mistake: elbows flared out, weights down at the armpits
+  { p:{x:120, y:91, to:180, hd:185, nt:2, ns:96, ft:-2, fs:92, nu:95, nf:-88, fu:95, ff:-88}, hold:2200, move:1000, say:'m1', mark:['el', 'hn'] },
+  { p:{x:120, y:91, to:180, hd:185, nt:2, ns:96, ft:-2, fs:92, nu:30, nf:-91, fu:30, ff:-91}, hold:2200, move:1000, say:'m1fix', cp:'bottom' }]};
+DEMO['Incline dumbbell press'] = { root:'hip',
+  props:'<polygon class="prop" points="121.2,98.5 64.0,65.5 61.0,70.7 118.2,103.7"/><rect class="prop" x="108" y="96" width="24" height="6" rx="2"/><rect class="prop" x="117" y="102" width="5" height="23"/><polygon class="prop" points="86,86 91,86 83,125 78,125"/>',
+  gear:f => `<g opacity=".4"><line class="bar" x1="${(f.hf[0] - 6).toFixed(1)}" y1="${f.hf[1].toFixed(1)}" x2="${(f.hf[0] + 6).toFixed(1)}" y2="${f.hf[1].toFixed(1)}"/><rect class="gear" x="${(f.hf[0] - 9).toFixed(1)}" y="${(f.hf[1] - 5).toFixed(1)}" width="4" height="10" rx="1"/><rect class="gear" x="${(f.hf[0] + 5).toFixed(1)}" y="${(f.hf[1] - 5).toFixed(1)}" width="4" height="10" rx="1"/></g>`,
+  front:f => `<line class="bar" x1="${(f.hn[0] - 6).toFixed(1)}" y1="${f.hn[1].toFixed(1)}" x2="${(f.hn[0] + 6).toFixed(1)}" y2="${f.hn[1].toFixed(1)}"/><rect class="gear" x="${(f.hn[0] - 9).toFixed(1)}" y="${(f.hn[1] - 5).toFixed(1)}" width="4" height="10" rx="1"/><rect class="gear" x="${(f.hn[0] + 5).toFixed(1)}" y="${(f.hn[1] - 5).toFixed(1)}" width="4" height="10" rx="1"/>`,
+  keys:[
+  // setup: the bench set low; dumbbells straight up over the shoulders
+  { p:{x:118, y:91, to:210, hd:212, nt:5, ns:95, ft:1, fs:92, nu:-90, nf:-90, fu:-90, ff:-90}, hold:1800, move:2000, say:'c1', cp:'top' },
+  // bottom: beside the upper chest, elbows tucked, forearms upright
+  { p:{x:118, y:91, to:210, hd:212, nt:5, ns:95, ft:1, fs:92, nu:48.6, nf:-77.2, fu:48.6, ff:-77.2}, hold:2000, move:1000, say:'c2', cp:'bottom' },
+  { p:{x:118, y:91, to:210, hd:212, nt:5, ns:95, ft:1, fs:92, nu:-90, nf:-90, fu:-90, ff:-90}, hold:1800, move:2000, say:'c3', cp:'top' },
+  { p:{x:118, y:91, to:210, hd:212, nt:5, ns:95, ft:1, fs:92, nu:48.6, nf:-77.2, fu:48.6, ff:-77.2}, hold:600, move:1000, cp:'bottom' },
+  // mistake: elbows flared straight out, weights down by the shoulders
+  { p:{x:118, y:91, to:210, hd:212, nt:5, ns:95, ft:1, fs:92, nu:112, nf:-75, fu:112, ff:-75}, hold:2200, move:1000, say:'m1', mark:['el'] },
+  { p:{x:118, y:91, to:210, hd:212, nt:5, ns:95, ft:1, fs:92, nu:48.6, nf:-77.2, fu:48.6, ff:-77.2}, hold:2200, move:1000, say:'m1fix', cp:'bottom' }]};
+DEMO['Seated dumbbell shoulder press'] = { root:'hip',
+  props:'<polygon class="prop" points="96.8,98.6 85.3,33.6 79.4,34.7 90.8,99.7"/><rect class="prop" x="84" y="97" width="28" height="6" rx="2"/><rect class="prop" x="94" y="103" width="5" height="22"/>',
+  gear:f => `<g opacity=".4"><line class="bar" x1="${(f.hf[0] - 6).toFixed(1)}" y1="${f.hf[1].toFixed(1)}" x2="${(f.hf[0] + 6).toFixed(1)}" y2="${f.hf[1].toFixed(1)}"/><rect class="gear" x="${(f.hf[0] - 9).toFixed(1)}" y="${(f.hf[1] - 5).toFixed(1)}" width="4" height="10" rx="1"/><rect class="gear" x="${(f.hf[0] + 5).toFixed(1)}" y="${(f.hf[1] - 5).toFixed(1)}" width="4" height="10" rx="1"/></g>`,
+  front:f => `<line class="bar" x1="${(f.hn[0] - 6).toFixed(1)}" y1="${f.hn[1].toFixed(1)}" x2="${(f.hn[0] + 6).toFixed(1)}" y2="${f.hn[1].toFixed(1)}"/><rect class="gear" x="${(f.hn[0] - 9).toFixed(1)}" y="${(f.hn[1] - 5).toFixed(1)}" width="4" height="10" rx="1"/><rect class="gear" x="${(f.hn[0] + 5).toFixed(1)}" y="${(f.hn[1] - 5).toFixed(1)}" width="4" height="10" rx="1"/>`,
+  keys:[
+  // bottom: hands at chin height, forearms upright, elbows a little in front of the body
+  { p:{x:100, y:94, to:-100, hd:-96, nt:0, ns:90, ft:-3, fs:92, nu:39.4, nf:-87.1, fu:39.4, ff:-87.1}, hold:2000, move:1100, say:'c2', cp:'bottom' },
+  // top: arms almost straight over the shoulders, back on the pad
+  { p:{x:100, y:94, to:-100, hd:-96, nt:0, ns:90, ft:-3, fs:92, nu:-80, nf:-88, fu:-80, ff:-88}, hold:1800, move:2000, say:'c1', cp:'top' },
+  { p:{x:100, y:94, to:-100, hd:-96, nt:0, ns:90, ft:-3, fs:92, nu:39.4, nf:-87.1, fu:39.4, ff:-87.1}, hold:2000, move:1100, say:'c3', cp:'bottom' },
+  // mistake: hips slide forward, ribs up, the lower back leaves the pad to finish the rep
+  { p:{x:110, y:94, to:-112.5, hd:-102, nt:3.2, ns:109.4, ft:0, fs:111, nu:-80, nf:-88, fu:-80, ff:-88}, hold:2200, move:1000, say:'m1', mark:['back'] },
+  { p:{x:100, y:94, to:-100, hd:-96, nt:0, ns:90, ft:-3, fs:92, nu:-80, nf:-88, fu:-80, ff:-88}, hold:2200, move:2000, say:'m1fix', cp:'top' }]};
+DEMO['Machine chest press'] = { root:'hip',
+  props:'<rect class="prop" x="58" y="10" width="6" height="115" rx="2"/><rect class="prop" x="58" y="10" width="48" height="5" rx="2"/><rect class="prop" x="40" y="80" width="16" height="45" rx="2"/>',
+  gear:f => {
+    const h = f.hip, s = q => q.map(v => v.toFixed(1)).join(','), o = (a, b) => [h[0] + a, h[1] + b];
+    return `<polygon class="prop" points="${s(o(-3, 4))} ${s(o(-8, -40))} ${s(o(-14, -39))} ${s(o(-9, 5))}"/><rect class="prop" x="${(h[0] - 14).toFixed(1)}" y="${(h[1] + 3).toFixed(1)}" width="30" height="6" rx="2"/>` +
+      `<rect class="prop" x="${(h[0] - 2).toFixed(1)}" y="${(h[1] + 9).toFixed(1)}" width="5" height="${(116 - h[1]).toFixed(1)}"/><g opacity=".4"><line class="bar" x1="103" y1="12.5" x2="${f.hf[0].toFixed(1)}" y2="${f.hf[1].toFixed(1)}"/></g>`;
+  },
+  front:f => `<line class="bar" x1="103" y1="12.5" x2="${f.hn[0].toFixed(1)}" y2="${f.hn[1].toFixed(1)}"/><circle class="gear" cx="${f.hn[0].toFixed(1)}" cy="${f.hn[1].toFixed(1)}" r="3.5"/><circle class="gear" cx="103" cy="12.5" r="3"/>`,
+  keys:[
+  // start: hands back at mid-chest height, elbows tucked about 45°, back on the pad
+  { p:{x:92, y:94, to:-97, hd:-92, nt:0, ns:90, ft:-3, fs:92, nu:69.4, nf:-39, fu:69.4, ff:-39}, hold:2000, move:1100, say:'c1', cp:'start' },
+  // end: arms out, almost straight
+  { p:{x:92, y:94, to:-97, hd:-92, nt:0, ns:90, ft:-3, fs:92, nu:-2, nf:6, fu:-2, ff:6}, hold:1800, move:2000, say:'c3', cp:'end' },
+  { p:{x:92, y:94, to:-97, hd:-92, nt:0, ns:90, ft:-3, fs:92, nu:69.4, nf:-39, fu:69.4, ff:-39}, hold:2000, move:1100, say:'c2', cp:'start' },
+  { p:{x:92, y:94, to:-97, hd:-92, nt:0, ns:90, ft:-3, fs:92, nu:-2, nf:6, fu:-2, ff:6}, hold:600, move:1200, cp:'end' },
+  // mistake: seat too low, the handles end up at the neck
+  { p:{x:92, y:104, to:-97, hd:-92, nt:-19.4, ns:86.8, ft:-22, fs:89, nu:47.3, nf:-65.2, fu:47.3, ff:-65.2}, hold:2200, move:1100, say:'m1', mark:['hn'] },
+  { p:{x:92, y:94, to:-97, hd:-92, nt:0, ns:90, ft:-3, fs:92, nu:69.4, nf:-39, fu:69.4, ff:-39}, hold:2200, move:1100, say:'m1fix', cp:'start' }]};
+DEMO['Chest-supported dumbbell row'] = { root:'foot',
+  props:'<polygon class="prop" points="83.4,92.8 117.3,66.3 122.2,72.6 88.3,99.1"/><polygon class="prop" points="103,83 108,81 98,125 93,125"/><rect class="prop" x="70" y="121" width="60" height="4" rx="2"/>',
+  gear:f => `<g opacity=".4"><line class="bar" x1="${(f.hf[0] - 6).toFixed(1)}" y1="${f.hf[1].toFixed(1)}" x2="${(f.hf[0] + 6).toFixed(1)}" y2="${f.hf[1].toFixed(1)}"/><rect class="gear" x="${(f.hf[0] - 9).toFixed(1)}" y="${(f.hf[1] - 5).toFixed(1)}" width="4" height="10" rx="1"/><rect class="gear" x="${(f.hf[0] + 5).toFixed(1)}" y="${(f.hf[1] - 5).toFixed(1)}" width="4" height="10" rx="1"/></g>`,
+  front:f => `<line class="bar" x1="${(f.hn[0] - 6).toFixed(1)}" y1="${f.hn[1].toFixed(1)}" x2="${(f.hn[0] + 6).toFixed(1)}" y2="${f.hn[1].toFixed(1)}"/><rect class="gear" x="${(f.hn[0] - 9).toFixed(1)}" y="${(f.hn[1] - 5).toFixed(1)}" width="4" height="10" rx="1"/><rect class="gear" x="${(f.hn[0] + 5).toFixed(1)}" y="${(f.hn[1] - 5).toFixed(1)}" width="4" height="10" rx="1"/>`,
+  keys:[
+  // bottom: chest resting on the incline pad, arms hanging straight
+  { p:{x:50, y:124, to:-38, hd:-30, nt:150, ns:120, ft:144, fs:130, nu:90, nf:90, fu:90, ff:90}, hold:1800, move:1000, say:'c2', cp:'bottom' },
+  // top: elbows driven back past the body, close to the ribs
+  { p:{x:50, y:124, to:-38, hd:-30, nt:150, ns:120, ft:144, fs:130, nu:158, nf:72, fu:158, ff:72}, hold:1500, move:300, say:'c1', cp:'top' },
+  { p:{x:50, y:124, to:-38, hd:-30, nt:150, ns:120, ft:144, fs:130, nu:158, nf:72, fu:158, ff:72}, hold:1200, move:2000, say:'c3', cp:'top' },
+  { p:{x:50, y:124, to:-38, hd:-30, nt:150, ns:120, ft:144, fs:130, nu:90, nf:90, fu:90, ff:90}, hold:600, move:1000, cp:'bottom' },
+  // mistake: chest comes off the pad and the back arches to heave the weight up
+  { p:{x:50, y:124, to:-58, hd:-62, nt:150, ns:120, ft:144, fs:130, nu:158, nf:72, fu:158, ff:72}, hold:2200, move:1000, say:'m1', mark:['back'] },
+  { p:{x:50, y:124, to:-38, hd:-30, nt:150, ns:120, ft:144, fs:130, nu:158, nf:72, fu:158, ff:72}, hold:2200, move:2000, say:'m1fix', cp:'top' }]};
+DEMO['Rear-delt dumbbell fly'] = {
+  // seen from the front: face down on the incline bench, so the trunk looks short; arms open sideways
+  props:'<polygon class="prop" points="82,63 118,63 108,92 92,92"/><rect class="prop" x="97" y="92" width="6" height="33"/><rect class="prop" x="78" y="121" width="44" height="4" rx="2"/><g opacity=".7"><line class="floor" x1="148" y1="50" x2="196" y2="50"/><polygon class="prop" points="166,40 184,26 186,29 168,43"/><line class="prop" x1="174" y1="37" x2="170" y2="50" style="stroke:var(--muted);stroke-width:2;opacity:.45"/><polyline class="gaze" points="152,49 158,42 165,38 182,25"/><line class="gaze" x1="182" y1="25" x2="182" y2="40"/><circle class="gaze" cx="187" cy="21" r="3.5" style="fill:none"/></g>',
+  build:q => {
+    const neck = [100, 60], hip = [100, q.hy], sl = [90, 60], sr = [110, 60];
+    const el = [q.ex, q.ey], hn = [q.hx, q.hy2], ef = [200 - q.ex, q.ey], hf = [200 - q.hx, q.hy2];
+    return { near:[[sl, sr], [neck, hip], [sl, el, hn], [sr, ef, hf]],
+      far:[[hip, [88, 100], [82, 124]], [hip, [112, 100], [118, 124]]], head:[100, 49], hr:8, neck, hip, el, hn, ef, hf, back:[100, 68],
+      after:'<text class="say left" x="4" y="11">seen from the front</text>' };
+  },
+  front:f => `<circle class="gear" cx="${f.hn[0].toFixed(1)}" cy="${f.hn[1].toFixed(1)}" r="5"/><circle class="gear" cx="${f.hf[0].toFixed(1)}" cy="${f.hf[1].toFixed(1)}" r="5"/>`,
+  keys:[
+  // bottom: arms hang down, elbows slightly bent, chest on the pad
+  { p:{hy:76, ex:88, ey:82, hx:87, hy2:101}, hold:1800, move:1100, say:'c3', cp:'bottom' },
+  // top: arms straight out to the sides in a T, same small elbow bend
+  { p:{hy:76, ex:69, ey:62, hx:49, hy2:61}, hold:2000, move:2000, say:'c2', cp:'top' },
+  { p:{hy:76, ex:88, ey:82, hx:87, hy2:101}, hold:600, move:1100, cp:'bottom' },
+  { p:{hy:76, ex:69, ey:62, hx:49, hy2:61}, hold:1800, move:2000, say:'c1', cp:'top' },
+  // mistake: elbows bend and pull back, hands stay low by the ribs: a row
+  { p:{hy:76, ex:70, ey:69, hx:74, hy2:88}, hold:2200, move:1000, say:'m1', mark:['el', 'ef'] },
+  { p:{hy:76, ex:69, ey:62, hx:49, hy2:61}, hold:2200, move:2000, say:'m1fix', cp:'top' }]};
+// Wide-grip lat pulldown: seated, thighs under the pad, side view; the bar is seen end-on (a dot) on a cable from the top pulley
+DEMO['Wide-grip lat pulldown'] = { root:'hip',
+  props:'<rect class="prop" x="140" y="2" width="6" height="123" rx="2"/><rect class="prop" x="78" y="1" width="68" height="5" rx="2"/>' +
+    '<rect class="prop" x="66" y="97" width="40" height="6" rx="2"/><rect class="prop" x="83" y="103" width="5" height="22"/>' +
+    '<rect class="prop" x="106" y="85" width="20" height="7" rx="3"/><rect class="prop" x="126" y="87" width="14" height="3"/>',
+  gear:(f) => `<line class="gaze" x1="84" y1="6" x2="${f.hn[0].toFixed(1)}" y2="${f.hn[1].toFixed(1)}"/>`,
+  front:(f) => `<line class="bar" x1="${(f.hn[0] - 4).toFixed(1)}" y1="${f.hn[1].toFixed(1)}" x2="${(f.hn[0] + 4).toFixed(1)}" y2="${f.hn[1].toFixed(1)}"/>`,
+  keys:[
+    { p:{x:90, y:94, to:-95, nt:2, ns:92, ft:0, fs:90, nu:-84, nf:-84, fu:-86, ff:-86, hd:-95}, hold:1500, move:1000, cp:'start' },
+    { p:{x:90, y:94, to:-102, nt:2, ns:92, ft:0, fs:90, nu:-25, nf:-86, fu:-27, ff:-88, hd:-100}, hold:1300, move:700, say:'c1' },
+    { p:{x:90, y:94, to:-108, nt:2, ns:92, ft:0, fs:90, nu:80, nf:-58, fu:78, ff:-60, hd:-100}, hold:1700, move:300, say:'c2', cp:'bottom' },
+    { p:{x:90, y:94, to:-108, nt:2, ns:92, ft:0, fs:90, nu:84, nf:-56, fu:82, ff:-58, hd:-100}, hold:1500, move:2000, say:'c3', cp:'bottom' },
+    { p:{x:90, y:94, to:-95, nt:2, ns:92, ft:0, fs:90, nu:-84, nf:-84, fu:-86, ff:-86, hd:-95}, hold:500, move:900 },
+    { p:{x:90, y:94, to:-135, nt:2, ns:92, ft:0, fs:90, nu:52, nf:-84, fu:50, ff:-86, hd:-120}, hold:2000, move:900, say:'m1', mark:['back'] },
+    { p:{x:90, y:94, to:-108, nt:2, ns:92, ft:0, fs:90, nu:80, nf:-58, fu:78, ff:-60, hd:-100}, hold:2000, move:1000, say:'m1fix', cp:'bottom' },
+  ]};
+// Neutral-grip pulldown: same machine; the V handle is a small triangle on the cable
+DEMO['Neutral-grip pulldown'] = { root:'hip',
+  props:'<rect class="prop" x="140" y="2" width="6" height="123" rx="2"/><rect class="prop" x="78" y="1" width="68" height="5" rx="2"/>' +
+    '<rect class="prop" x="66" y="97" width="40" height="6" rx="2"/><rect class="prop" x="83" y="103" width="5" height="22"/>' +
+    '<rect class="prop" x="106" y="85" width="20" height="7" rx="3"/><rect class="prop" x="126" y="87" width="14" height="3"/>',
+  gear:(f) => `<line class="gaze" x1="84" y1="6" x2="${f.hn[0].toFixed(1)}" y2="${(f.hn[1] - 6).toFixed(1)}"/>`,
+  front:(f) => { const [x, y] = f.hn; return `<path class="gear" d="M${(x - 4).toFixed(1)} ${y.toFixed(1)} L${(x + 4).toFixed(1)} ${y.toFixed(1)} L${x.toFixed(1)} ${(y - 6).toFixed(1)} Z"/>`; },
+  keys:[
+    { p:{x:90, y:94, to:-105, nt:2, ns:92, ft:0, fs:90, nu:-95, nf:-95, fu:-97, ff:-97, hd:-100}, hold:1800, move:1000, say:'c1', cp:'top' },
+    { p:{x:90, y:94, to:-105, nt:2, ns:92, ft:0, fs:90, nu:63, nf:-75, fu:61, ff:-77, hd:-100}, hold:1800, move:300, say:'c2', cp:'bottom' },
+    { p:{x:90, y:94, to:-105, nt:2, ns:92, ft:0, fs:90, nu:66, nf:-73, fu:64, ff:-75, hd:-100}, hold:1500, move:2000, say:'c3', cp:'bottom' },
+    { p:{x:90, y:94, to:-105, nt:2, ns:92, ft:0, fs:90, nu:-95, nf:-95, fu:-97, ff:-97, hd:-100}, hold:500, move:900 },
+    { p:{x:90, y:94, to:-135, nt:2, ns:92, ft:0, fs:90, nu:35, nf:-100, fu:33, ff:-102, hd:-120}, hold:2000, move:900, say:'m1', mark:['back'] },
+    { p:{x:90, y:94, to:-105, nt:2, ns:92, ft:0, fs:90, nu:63, nf:-75, fu:61, ff:-77, hd:-100}, hold:2000, move:1000, say:'m1fix', cp:'bottom' },
+  ]};
+// Assisted pull-up (wide overhand): kneeling on the counterweight pad (it rises with the body), hands on the bar
+DEMO['Assisted pull-up (wide overhand)'] = { root:'hand', floor:true,
+  props:'<rect class="prop" x="140" y="10" width="6" height="115" rx="2"/><rect class="prop" x="104" y="12" width="40" height="4" rx="2"/>' +
+    '<line class="bar" x1="94" y1="20" x2="106" y2="20"/>',
+  gear:(f) => `<line class="bar" style="stroke:#9a9a9a" x1="${(f.kn[0] + 4).toFixed(1)}" y1="${(f.kn[1] + 5).toFixed(1)}" x2="143" y2="${(f.kn[1] + 14).toFixed(1)}"/>` +
+    `<rect class="prop" x="${(f.fn[0] - 3).toFixed(1)}" y="${(f.kn[1] + 3).toFixed(1)}" width="${(f.kn[0] - f.fn[0] + 9).toFixed(1)}" height="5" rx="2"/>`,
+  keys:[
+    { p:{x:100, y:20, k:.8, nf:-84, nu:-84, ff:-86, fu:-86, to:-93, hd:-118, nt:88, ns:180, ft:89, fs:180}, hold:1800, move:1100, say:'c1', cp:'start' },
+    { p:{x:100, y:20, k:.8, nf:-60, nu:75, ff:-62, fu:73, to:-100, hd:-95, nt:82, ns:180, ft:83, fs:180}, hold:1800, move:2000, say:'c2', cp:'top' },
+    { p:{x:100, y:20, k:.8, nf:-84, nu:-84, ff:-86, fu:-86, to:-93, hd:-118, nt:88, ns:180, ft:89, fs:180}, hold:1800, move:900, say:'c3', cp:'start' },
+    { p:{x:100, y:20, k:.8, nf:-84, nu:-84, ff:-86, fu:-86, to:-75, hd:-85, nt:112, ns:180, ft:113, fs:180}, hold:2000, move:900, say:'m1', mark:['back', 'kn'] },
+    { p:{x:100, y:20, k:.8, nf:-84, nu:-84, ff:-86, fu:-86, to:-93, hd:-118, nt:88, ns:180, ft:89, fs:180}, hold:1800, move:1100, say:'m1fix', cp:'start' },
+  ]};
+// Seated cable row (neutral grip): low bench, feet on the footplate, cable from the low pulley in front
+DEMO['Seated cable row (neutral grip)'] = { root:'hip',
+  props:'<rect class="prop" x="20" y="105" width="100" height="6" rx="2"/><rect class="prop" x="40" y="111" width="5" height="14"/><rect class="prop" x="100" y="111" width="5" height="14"/>' +
+    '<rect class="prop" x="117" y="88" width="5" height="26" rx="2"/><rect class="prop" x="172" y="10" width="7" height="115" rx="2"/><circle class="prop" cx="170" cy="100" r="4"/>',
+  gear:(f) => `<line class="gaze" x1="170" y1="100" x2="${f.hn[0].toFixed(1)}" y2="${f.hn[1].toFixed(1)}"/>`,
+  front:(f) => { const [x, y] = f.hn; return `<path class="gear" d="M${x.toFixed(1)} ${(y - 4).toFixed(1)} L${x.toFixed(1)} ${(y + 4).toFixed(1)} L${(x + 6).toFixed(1)} ${y.toFixed(1)} Z"/>`; },
+  keys:[
+    { p:{x:60, y:102, to:-85, nt:-20, ns:25, ft:-22, fs:27, nu:15, nf:15, fu:13, ff:13}, hold:1800, move:1000, say:'c2', cp:'start' },
+    { p:{x:60, y:102, to:-92, nt:-20, ns:25, ft:-22, fs:27, nu:123, nf:8, fu:121, ff:6}, hold:1800, move:300, say:'c1', cp:'end' },
+    { p:{x:60, y:102, to:-92, nt:-20, ns:25, ft:-22, fs:27, nu:126, nf:6, fu:124, ff:4}, hold:1500, move:2000, say:'c3', cp:'end' },
+    { p:{x:60, y:102, to:-85, nt:-20, ns:25, ft:-22, fs:27, nu:15, nf:15, fu:13, ff:13}, hold:500, move:900 },
+    { p:{x:60, y:102, to:-122, nt:-20, ns:25, ft:-22, fs:27, nu:95, nf:-15, fu:93, ff:-17}, hold:2000, move:900, say:'m1', mark:['back'] },
+    { p:{x:60, y:102, to:-92, nt:-20, ns:25, ft:-22, fs:27, nu:123, nf:8, fu:121, ff:6}, hold:2000, move:1000, say:'m1fix', cp:'end' },
+  ]};
+// Chest-supported row machine: seat, sloped chest pad, neutral handles on a cable from the stack in front
+DEMO['Chest-supported row machine'] = { root:'hip',
+  props:'<rect class="prop" x="38" y="95" width="40" height="6" rx="2"/><rect class="prop" x="55" y="101" width="5" height="24"/>' +
+    '<rect class="prop" x="68" y="56" width="7" height="34" rx="3" transform="rotate(15 71.5 73)"/><rect class="prop" x="70" y="88" width="5" height="37"/>' +
+    '<rect class="prop" x="160" y="20" width="7" height="105" rx="2"/><circle class="prop" cx="158" cy="78" r="4"/>',
+  gear:(f) => `<line class="gaze" x1="158" y1="78" x2="${f.hn[0].toFixed(1)}" y2="${f.hn[1].toFixed(1)}"/>`,
+  front:(f) => { const [x, y] = f.hn; return `<line class="bar" x1="${x.toFixed(1)}" y1="${(y - 5).toFixed(1)}" x2="${x.toFixed(1)}" y2="${(y + 5).toFixed(1)}"/>`; },
+  keys:[
+    { p:{x:60, y:92, to:-75, nt:8, ns:72, ft:6, fs:74, nu:20, nf:20, fu:18, ff:18, hd:-70}, hold:1800, move:1000, say:'c2', cp:'start' },
+    { p:{x:60, y:92, to:-75, nt:8, ns:72, ft:6, fs:74, nu:135, nf:30, fu:133, ff:28, hd:-70}, hold:1800, move:300, say:'c1', cp:'end' },
+    { p:{x:60, y:92, to:-75, nt:8, ns:72, ft:6, fs:74, nu:138, nf:28, fu:136, ff:26, hd:-70}, hold:1500, move:2000, say:'c3', cp:'end' },
+    { p:{x:60, y:92, to:-75, nt:8, ns:72, ft:6, fs:74, nu:20, nf:20, fu:18, ff:18, hd:-70}, hold:500, move:900 },
+    { p:{x:60, y:92, to:-100, nt:8, ns:72, ft:6, fs:74, nu:120, nf:10, fu:118, ff:8, hd:-100}, hold:2000, move:900, say:'m1', mark:['neck', 'back'] },
+    { p:{x:60, y:92, to:-75, nt:8, ns:72, ft:6, fs:74, nu:135, nf:30, fu:133, ff:28, hd:-70}, hold:2000, move:1000, say:'m1fix', cp:'end' },
+  ]};
+// Triceps pushdown: standing facing the cable, small fold at the hips; short bar on a cable from the top pulley
+DEMO['Triceps pushdown'] = { root:'foot',
+  props:'<rect class="prop" x="150" y="4" width="7" height="121" rx="2"/><rect class="prop" x="110" y="4" width="44" height="5" rx="2"/><circle class="prop" cx="112" cy="10" r="4"/>',
+  gear:(f) => `<line class="gaze" x1="112" y1="10" x2="${f.hn[0].toFixed(1)}" y2="${f.hn[1].toFixed(1)}"/>`,
+  front:(f) => `<line class="bar" x1="${(f.hn[0] - 4).toFixed(1)}" y1="${f.hn[1].toFixed(1)}" x2="${(f.hn[0] + 4).toFixed(1)}" y2="${f.hn[1].toFixed(1)}"/>`,
+  keys:[
+    { p:{x:86, y:124, ns:100, nt:75, fs:98, ft:77, to:-78, nu:92, nf:-3, fu:90, ff:-5, hd:-70}, hold:1800, move:1000, say:'c1', cp:'start' },
+    { p:{x:86, y:124, ns:100, nt:75, fs:98, ft:77, to:-78, nu:92, nf:87, fu:90, ff:85, hd:-70}, hold:1800, move:2000, say:'c2', cp:'bottom' },
+    { p:{x:86, y:124, ns:100, nt:75, fs:98, ft:77, to:-78, nu:92, nf:-3, fu:90, ff:-5, hd:-70}, hold:600, move:900, cp:'start' },
+    { p:{x:86, y:124, ns:104, nt:70, fs:102, ft:72, to:-55, nu:55, nf:95, fu:53, ff:93, hd:-50}, hold:2000, move:900, say:'m1', mark:['el'] },
+    { p:{x:86, y:124, ns:100, nt:75, fs:98, ft:77, to:-78, nu:92, nf:87, fu:90, ff:85, hd:-70}, hold:2000, move:1000, say:'m1fix', cp:'bottom' },
+  ]};
+// Hammer curl: side view, facing right; the dumbbell is drawn across the forearm (thumb side up = hammer grip)
+DEMO['Hammer curl'] = { root:'foot',
+  gear:(f, q) => { const d = add([0, 0], q.ff + 90, 1), a = [f.hf[0] - d[0] * 7, f.hf[1] - d[1] * 7], b = [f.hf[0] + d[0] * 7, f.hf[1] + d[1] * 7];
+    return `<line class="bar" x1="${a[0].toFixed(1)}" y1="${a[1].toFixed(1)}" x2="${b[0].toFixed(1)}" y2="${b[1].toFixed(1)}"/>`; },
+  front:(f, q) => { const d = add([0, 0], q.nf + 90, 1), a = [f.hn[0] - d[0] * 7, f.hn[1] - d[1] * 7], b = [f.hn[0] + d[0] * 7, f.hn[1] + d[1] * 7];
+    return `<line class="bar" x1="${a[0].toFixed(1)}" y1="${a[1].toFixed(1)}" x2="${b[0].toFixed(1)}" y2="${b[1].toFixed(1)}"/>` +
+      [a, b].map(p => `<rect class="gear" x="${(p[0] - 3.5).toFixed(1)}" y="${(p[1] - 3.5).toFixed(1)}" width="7" height="7" rx="1.5"/>`).join(''); },
+  keys:[
+    { p:{x:100, y:124, nt:86, ns:94, ft:88, fs:93, to:-90, hd:-88, nu:88, nf:86, fu:87, ff:85}, hold:1800, move:1000, say:'c3', cp:'start' },
+    { p:{x:100, y:124, nt:86, ns:94, ft:88, fs:93, to:-90, hd:-88, nu:84, nf:-48, fu:83, ff:-50}, hold:1800, move:2000, say:'c1', cp:'top' },
+    { p:{x:100, y:124, nt:86, ns:94, ft:88, fs:93, to:-90, hd:-88, nu:88, nf:86, fu:87, ff:85}, hold:1600, move:900, say:'c2', cp:'start' },
+    { p:{x:100, y:124, nt:68, ns:97, ft:70, fs:96, to:-114, hd:-104, nu:92, nf:-40, fu:91, ff:-42}, hold:2200, move:1000, say:'m1', mark:['back'] },
+    { p:{x:100, y:124, nt:86, ns:94, ft:88, fs:93, to:-90, hd:-88, nu:84, nf:-48, fu:83, ff:-50}, hold:2000, move:2000, say:'m1fix', cp:'top' }]};
+
+// Dumbbell lateral raise: front view (the figure faces you), seen a little from above. q.yaw turns the view
+// (0 = front, 55 = from the figure's right side, to show the lean back of the mistake); a = arms out from the sides,
+// b = elbow bend (hands stay below the elbows), t = trunk leaning back, s = shoulders shrugged up.
+DEMO['Dumbbell lateral raise'] = {
+  build:q => {
+    const r = Math.PI / 180, cy = Math.cos(q.yaw * r), sy = Math.sin(q.yaw * r), cE = Math.cos(10 * r), sE = Math.sin(10 * r);
+    const P = ([x, y, z]) => { const X = x * cy + z * sy, Z = -x * sy + z * cy; return [100 + X, 124 - (y * cE - Z * sE)]; };
+    const D = ([x, y, z]) => -x * sy + z * cy, H = 60, ct = Math.cos(q.t * r), st = Math.sin(q.t * r);
+    const up = ([x, y, z]) => [x, H + y * ct + z * st, -y * st + z * ct];   // a point on the upper body, from the hip centre
+    const arm = s => { const sh = [12 * s, 36 + q.s, 0], el = [sh[0] + 22 * s * Math.sin(q.a * r), sh[1] - 22 * Math.cos(q.a * r), 3],
+        hn = [el[0] + 20 * s * Math.sin((q.a - q.b) * r), el[1] - 20 * Math.cos((q.a - q.b) * r), 5];
+      return [sh, el, hn].map(up); };
+    const R = arm(-1), L = arm(1), neck = up([0, 38, 0]), head = up([0, 49, 0]);
+    const leg = s => [[8 * s, H, 0], [9 * s, 30, 3], [10 * s, 0, 0], [11 * s, 0, 8]];
+    const near = [], far = [];
+    [[leg(-1)], [leg(1)], [R], [L]].forEach(([l]) => (D(l[1]) < -4 ? far : near).push(l.map(P)));
+    near.push([[-8, H, 0], [8, H, 0]].map(P), [[0, H, 0], neck].map(P), [up([-12, 36 + q.s, 0]), up([12, 36 + q.s, 0])].map(P));
+    const db = h => [P([h[0], h[1], h[2] - 6]), P([h[0], h[1], h[2] + 6])];
+    return { near, far, head:P(head), hr:8, hip:P([0, H, 0]), neck:P(neck), back:P(up([0, 14, 0])), kn:P(leg(-1)[1]), fn:P(leg(-1)[2]),
+      kf:P(leg(1)[1]), ff:P(leg(1)[2]), el:P(R[1]), hn:P(R[2]), ef:P(L[1]), hf:P(L[2]), shN:P(R[0]), shF:P(L[0]), dbN:db(R[2]), dbF:db(L[2]) };
+  },
+  front:f => [f.dbN, f.dbF].map(([a, b]) => `<line class="bar" x1="${a[0].toFixed(1)}" y1="${a[1].toFixed(1)}" x2="${b[0].toFixed(1)}" y2="${b[1].toFixed(1)}"/>` +
+    [a, b].map(p => `<rect class="gear" x="${(p[0] - 3.5).toFixed(1)}" y="${(p[1] - 3.5).toFixed(1)}" width="7" height="7" rx="1.5"/>`).join('')).join(''),
+  keys:[
+    { p:{yaw:0, a:10, b:4, t:0, s:0}, hold:1400, move:600, cp:'start' },
+    { p:{yaw:0, a:50, b:14, t:0, s:0}, hold:1500, move:500, say:'c1' },
+    { p:{yaw:0, a:88, b:16, t:0, s:0}, hold:1900, move:2000, say:'c2', cp:'top' },
+    { p:{yaw:0, a:10, b:4, t:0, s:0}, hold:1600, move:1200, say:'c3', cp:'start' },
+    { p:{yaw:40, a:90, b:12, t:26, s:2}, hold:2200, move:1000, say:'m1', mark:['back'] },
+    { p:{yaw:40, a:88, b:16, t:0, s:0}, hold:2000, move:1400, say:'m1fix', cp:'top' }]};
+
+// Reverse pec deck: seen from behind and above (the figure sits facing away from you, chest on the pad).
+// h = arms out from straight ahead (0) to straight out to the sides (90), level at shoulder height;
+// b = elbow bend (hands turn in a little); s = shoulders shrugged up toward the ears.
+DEMO['Reverse pec deck'] = {
+  build:q => {
+    const r = Math.PI / 180, cE = Math.cos(20 * r), sE = Math.sin(20 * r);
+    const P = ([x, y, z]) => [100 + x, 124 - (y * cE - z * sE)];
+    const arm = s => { const sh = [12 * s, 84 + q.s, -2], el = [sh[0] + 22 * s * Math.sin(q.h * r), sh[1] - 1, sh[2] - 22 * Math.cos(q.h * r)],
+      hn = [el[0] + 20 * s * Math.sin((q.h - q.b) * r), el[1], el[2] - 20 * Math.cos((q.h - q.b) * r)]; return [sh, el, hn]; };
+    const R = arm(1), L = arm(-1), neck = [0, 86, -2], hip = [0, 48, 0];
+    const lever = h => [[0, 112, -38], [h[0] * .5, 112, (h[2] - 38) / 2], [h[0], h[1] + 7, h[2]]];
+    return { near:[R.map(P), L.map(P), [hip, neck].map(P), [R[0], L[0]].map(P), [[-8, 48, 0], [8, 48, 0]].map(P)],
+      far:[], head:P([0, 97, -3]), hr:8, hip:P(hip), neck:P(neck), back:P([0, 66, -1]),
+      el:P(R[1]), hn:P(R[2]), ef:P(L[1]), hf:P(L[2]), shN:P(R[0]), shF:P(L[0]),
+      levers:[lever(R[2]).map(P), lever(L[2]).map(P)], grips:[R[2], L[2]].map(h => [P([h[0], h[1] - 6, h[2]]), P([h[0], h[1] + 7, h[2]])]) };
+  },
+  gear:f => { const r = (x0, y0, z0, x1, y1, z1) => { const r = Math.PI / 180, cE = Math.cos(20 * r), sE = Math.sin(20 * r), P = (x, y, z) => (100 + x).toFixed(1) + ',' + (124 - (y * cE - z * sE)).toFixed(1);
+        return `<polygon class="prop" points="${[P(x0, y0, z0), P(x1, y0, z0), P(x1, y1, z1), P(x0, y1, z1)].join(' ')}"/>`; };
+    return r(-22, 0, 3, 22, 0, -46) + r(-3, 0, -8, 3, 45, -8) + r(-3, 0, -38, 3, 112, -38) + r(-16, 45, 8, 16, 45, -24) + r(-14, 50, -12, 14, 92, -12) +
+      f.levers.map(l => `<polyline class="band" style="stroke:var(--muted);stroke-width:3" points="${l.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ')}"/>`).join(''); },
+  front:f => f.grips.map(([a, b]) => `<line class="bar" x1="${a[0].toFixed(1)}" y1="${a[1].toFixed(1)}" x2="${b[0].toFixed(1)}" y2="${b[1].toFixed(1)}"/>`).join(''),
+  keys:[
+    { p:{h:14, b:18, s:0}, hold:1800, move:500, say:'c3', cp:'start' },
+    { p:{h:48, b:18, s:0}, hold:1300, move:500, say:'c1' },
+    { p:{h:90, b:18, s:0}, hold:1900, move:2000, say:'c2', cp:'end' },
+    { p:{h:14, b:18, s:0}, hold:900, move:1000 },
+    { p:{h:70, b:60, s:9}, hold:2200, move:1000, say:'m1', mark:['shN', 'el'] },
+    { p:{h:90, b:18, s:0}, hold:2000, move:2000, say:'m1fix', cp:'end' }]};
 function demoAt(d, t){
   const total = d.keys.reduce((n, k) => n + k.hold + k.move, 0);
   t %= total;
@@ -577,16 +1167,29 @@ function demoAt(d, t){
   return { q:d.keys[0].p, k:d.keys[0], nx:d.keys[0], e:0 };
 }
 const demoSvg = name => `<svg class="demo" viewBox="0 0 200 130" data-name="${esc(name)}" role="img" aria-label="${esc(name)}, animated">
-  ${DEMO[name].floor === false ? '' : '<line class="floor" x1="0" y1="125" x2="200" y2="125"/>'}${DEMO[name].props || ''}<g class="anim"></g></svg>`;
+  ${DEMO[name].floor === false ? '' : '<line class="floor" x1="0" y1="125" x2="200" y2="125"/>'}${DEMO[name].props || ''}<g class="anim"></g></svg><div class="cap"></div>`;
+// the words for a step: a line of HOW (docs/exercises.md) named by its code
+function sayText(name, code){
+  const h = HOW[name] || {}, m = /^(c|m|cap)(\d)(fix)?$/.exec(code || '');
+  if(!m) return code || '';
+  if(m[1] === 'c') return '✓ ' + ((h.cues || [])[m[2] - 1] || '');
+  if(m[1] === 'cap') return '✓ ' + ((h.captions || [])[m[2] - 1] || '');
+  const [bad, fix] = ((h.mistakes || [])[m[2] - 1] || '').split(' → ');
+  const up = x => x ? x.replace(/^([✓✗] )(\p{Ll})/u, (_, a, b) => a + b.toUpperCase()) : '';
+  return up(m[3] ? fix : bad);
+}
 function drawDemo(svg, name, t){
   const d = DEMO[name], { q, say } = demoAt(d, t), f = d.build ? d.build(q) : side(q, d.root);
   const pl = ps => `<polyline points="${ps.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ')}"/>`;
-  const hot = d.hot && d.hot(f);
-  svg.querySelector('.anim').innerHTML = `<g class="far">${f.far.map(pl).join('')}</g>${f.extra || ''}` +
+  const hot = d.hot && d.hot(f), st = demoAt(d, t), k = st.e < .5 ? st.k : st.nx;
+  const mark = (k.mark || []).map(n => f[n]).filter(Boolean)
+    .map(p => `<circle class="bad" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${(7 + Math.sin(t / 160)).toFixed(1)}"/><text class="badx" x="${p[0].toFixed(1)}" y="${(p[1] - 10).toFixed(1)}">✗</text>`).join('');
+  svg.querySelector('.anim').innerHTML = (d.gear ? d.gear(f, q) : '') + `<g class="far">${f.far.map(pl).join('')}</g>${f.extra || ''}` +
     `<circle class="head" cx="${f.head[0].toFixed(1)}" cy="${f.head[1].toFixed(1)}" r="${f.hr}"/>` +
-    `<g class="near">${f.near.map(pl).join('')}</g>${f.after || ''}` +
-    (hot ? `<circle class="hot" cx="${hot[0].toFixed(1)}" cy="${hot[1].toFixed(1)}" r="${(4.5 + 1.5 * Math.sin(t / 180)).toFixed(1)}"/>` : '') +
-    (say || d.caption ? `<text class="say" x="100" y="10">${esc(say || d.caption)}</text>` : '');
+    `<g class="near">${f.near.map(pl).join('')}</g>${f.after || ''}${d.front ? d.front(f, q) : ''}` +
+    (hot ? `<circle class="hot" cx="${hot[0].toFixed(1)}" cy="${hot[1].toFixed(1)}" r="${(4.5 + 1.5 * Math.sin(t / 180)).toFixed(1)}"/>` : '') + mark;
+  const cap = svg.nextElementSibling, words = sayText(name, k.say || (st.e < .5 ? say : '') || d.caption);
+  if(cap && cap.classList.contains('cap') && cap.dataset.say !== words){ cap.dataset.say = words; cap.textContent = words; cap.className = 'cap' + (words.startsWith('✗') ? ' bad' : words ? ' good' : ''); }
 }
 // tap a move or a cue line: its animation (if built) plus the checked cues and mistakes (docs/exercises.md)
 function howBox(name){
