@@ -126,6 +126,10 @@ details.sess summary span{font-weight:400;color:var(--muted);font-size:13px}
 .pick select{flex:1;min-width:0}
 .pick::after{content:'▾';color:var(--accent);font-size:15px}
 .unitnote{font-size:12px;color:var(--muted);padding:0 14px 4px}
+.bands{display:flex;flex-wrap:wrap;gap:6px;padding:4px 14px 6px}
+.chip{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 11px;font-size:13px}
+.chip .sw{width:12px;height:12px;border-radius:50%;border:1px solid var(--muted)}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
 .rep table{width:100%;border-collapse:collapse;font-size:14px}
 .rep th{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600}
 .rep th,.rep td{padding:6px 4px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
@@ -162,7 +166,7 @@ details.sess summary span{font-weight:400;color:var(--muted);font-size:13px}
 <input type="file" id="importFile" accept="application/json,.json" hidden>
 
 <script>
-// ---------- The plan (fitness.md §2d, updated 2026-10-11) ----------
+// ---------- The plan (fitness.md §2d, updated 2026-10-18: home workout) ----------
 const PLAN = {
   mon: { tab:'A', title:'Workout A', focus:'Squat · chest · wide pull', ex:[
     {name:'Barbell back squat', sets:4, min:6, max:10, rest:120,
@@ -242,8 +246,36 @@ const PLAN = {
       cue:'Front half of the feet on the platform. Drop low, push high, hold 1 s.',
       alts:['Standing calf raise','Seated calf raise']},
   ]},
+  // Home workout (fitness.md §2d "Home", 2026-10-18): replaces a missed gym day, home kit only.
+  home: { tab:'H', title:'Home workout', focus:'Bands · floor · back care', ex:[
+    {name:'Glute bridge', sets:4, min:10, max:15, rest:60,
+      cue:'Loop band above the knees, push them out. Feet on the yoga blocks for more range. Ribs down, squeeze 1 s — don’t arch the lower back.',
+      alts:['Single-leg glute bridge']},
+    {name:'Ab wheel rollout', sets:3, min:8, max:12, rest:60,
+      cue:'Kneel on the mat. Distance, not reps. Stop the moment the lower back sags. Ribs down.',
+      alts:['Dead bug']},
+    {name:'Band row (neutral grip)', sets:4, min:10, max:15, rest:75,
+      cue:'Door anchor at chest height. Same number of steps back every time. Elbows back and close to the ribs, squeeze 1 s.',
+      alts:['Single-arm band row']},
+    {name:'Push-up on handles', sets:3, min:8, max:15, rest:75,
+      cue:'Straight wrists, body in one line, chest below the hands. Elbows about 45° from the body.',
+      alts:['Feet-elevated push-up']},
+    {name:'Bulgarian split squat', sets:3, min:10, max:15, side:true, sideWord:'leg', rest:60,
+      cue:'Back foot on the sofa. All reps one leg, then the other. Front heel stays down.',
+      alts:['Reverse lunge']},
+    {name:'Band pulldown (kneeling)', sets:3, min:12, max:15, rest:60,
+      cue:'Door anchor at the top. Kneel facing the door, pull the elbows down to the ribs, squeeze 1 s.',
+      alts:['Band straight-arm pulldown']},
+    {name:'Lying back raise', sets:3, min:12, max:12, rest:60,
+      cue:'Face down on the mat. Squeeze the glutes, lift the chest a little, hold 2 s. Look at the floor; don’t crank up.',
+      alts:['Lying arm-leg raise']},
+    {name:'Band pull-apart', sets:3, min:15, max:20, rest:45,
+      cue:'Arms straight at shoulder height, pull the band to the chest, squeeze the shoulder blades.',
+      alts:['Band face pull']},
+  ]},
 };
-const DAYS = ['mon','wed','fri'];
+const DAYS = ['mon','wed','fri'];       // the gym rotation A → B → C
+const ALL = [...DAYS, 'home'];          // every tab; the home workout stands in for a missed gym day
 
 // Desk reset before every session (fitness.md §2b "Warm-up", 2026-10-16). Ticks are saved with the workout as `reset`.
 const RESET = [
@@ -253,15 +285,49 @@ const RESET = [
   { name:'Deep squat hold', dose:'45 s', cue:'Hold a rack, heels down, chest up. +15 s when easy.' },
   { name:'Dead hang', dose:'30 s', cue:'Shoulders slightly active, breathe. +15 s when easy.' },
 ];
+// At home: same five slots, without the bench, rack and bar.
+const RESET_HOME = [
+  { name:'Couch stretch', dose:'45 s / side', cue:'Back foot up on the sofa, squeeze that glute, ribs down.' },
+  RESET[1], RESET[2],
+  { name:'Deep squat hold', dose:'45 s', cue:'Hold the door frame, heels down, chest up. +15 s when easy.' },
+  { name:'Foam roll upper back', dose:'60 s', cue:'Roller across the shoulder blades, hands behind the head. Not on the lower back.' },
+];
+const resetFor = day => day === 'home' ? RESET_HOME : RESET;
 const resetDone = s => (s.reset || []).filter(Boolean).length;
+
+// Cool-down after the home workout (fitness.md §2d "Home"). Ticks are saved with the workout as `cool`.
+const COOL = [
+  { name:'Knees-to-chest stretch', dose:'2 × 30 s', cue:'On your back, pull both knees in, lower back relaxed on the mat.' },
+  { name:'Lying hamstring stretch', dose:'2 × 30 s / leg', cue:'On your back, a tube round the foot, leg straight up until a gentle stretch. No bouncing.' },
+];
 
 // Muscle group per exercise slot (swaps count for the same group). Used by the weekly report.
 const MG = {
   mon:['Quads','Core','Chest','Back','Hamstrings & glutes','Back','Shoulders','Arms'],
   wed:['Quads','Core','Back','Shoulders','Quads','Chest','Shoulders','Arms'],
   fri:['Hamstrings & glutes','Core','Hamstrings & glutes','Chest','Back','Hamstrings & glutes','Core','Calves'],
+  home:['Hamstrings & glutes','Core','Back','Chest','Quads','Back','Core','Shoulders'],
 };
-DAYS.forEach(d => PLAN[d].ex.forEach((e, i) => e.mg = MG[d][i]));
+ALL.forEach(d => PLAN[d].ex.forEach((e, i) => e.mg = MG[d][i]));
+
+// Bands (Home kit, 2026-10-18): tap the colours used, the page adds up their kg.
+// Tubes stack on one handle; power bands use the top of their label; loop bands have no kg.
+const BANDS = {
+  tube:  { word:'Tubes', stack:true, list:[['Yellow','#e8c62e',4.6],['Green','#3a9d4f',9.1],['Red','#d0342c',13.6],
+           ['Blue','#2f6fd0',18.2],['Black','#222',22.8]] },
+  power: { word:'Power band', stack:true, list:[['Blue','#2f6fd0',11.3],['Green','#3a9d4f',15.9],['Purple','#7a4bc2',22.7],
+           ['Yellow','#e8c62e',36.3],['Red','#d0342c',56.7],['Black','#222',60]] },
+  loop:  { word:'Loop band', stack:false, list:[['Medium','#e58fb0'],['Heavy','#222']] },
+};
+const BAND_OF = { 'Glute bridge':'loop', 'Single-leg glute bridge':'loop', 'Band row (neutral grip)':'tube',
+  'Single-arm band row':'tube', 'Band pulldown (kneeling)':'tube', 'Band straight-arm pulldown':'tube',
+  'Band face pull':'tube', 'Band pull-apart':'power' };
+const bandOf = name => BAND_OF[name] || null;
+const bandKg = (name, colours) => {
+  const b = BANDS[bandOf(name)];
+  const kg = colours.reduce((n, c) => n + ((b.list.find(x => x[0] === c) || [])[2] || 0), 0);
+  return kg ? String(Math.round(kg * 10) / 10) : '';
+};
 const GROUPS = ['Quads','Hamstrings & glutes','Chest','Back','Shoulders','Arms','Core','Calves'];
 
 // How weight is entered (the user's rule, 2026-10-15):
@@ -273,12 +339,13 @@ const PER_HAND = new Set(['Weighted dead bug','Flat dumbbell press','Dumbbell pr
 const loadOf = name => /assisted/i.test(name) ? 'assist' : PER_HAND.has(name) ? 'hand' : 'total';
 const LOAD_HEAD = { total:'kg total', hand:'kg / hand', assist:'assist kg' };
 // Body-weight exercises (2026-10-16): 'only' → no weight box at all; 'plus' → body weight, extra kg optional.
-const BW_ONLY = new Set(['Ab wheel rollout','Barbell rollout','Swiss ball rollout','Hollow hold','Band pull-apart',
-  'Nordic curl','Close-grip push-up']);
-const BW_PLUS = new Set(['Bulgarian split squat','Walking lunge','Step-up','Plank','Side plank','Single-leg hip thrust',
-  '45° back extension','Weighted push-up']);
+const BW_ONLY = new Set(['Ab wheel rollout','Barbell rollout','Swiss ball rollout','Hollow hold','Dead bug',
+  'Nordic curl','Close-grip push-up','Push-up on handles','Feet-elevated push-up','Lying back raise','Lying arm-leg raise']);
+const BW_PLUS = new Set(['Bulgarian split squat','Walking lunge','Step-up','Reverse lunge','Plank','Side plank',
+  'Single-leg hip thrust','45° back extension','Weighted push-up']);
 const bwOf = name => BW_ONLY.has(name) ? 'only' : BW_PLUS.has(name) ? 'plus' : null;
-const headOf = name => bwOf(name) === 'only' ? 'body weight' : bwOf(name) === 'plus' ? '+' + LOAD_HEAD[loadOf(name)] : LOAD_HEAD[loadOf(name)];
+const headOf = name => bandOf(name) ? (bandOf(name) === 'loop' ? 'band' : 'band kg') : bwOf(name) === 'only' ? 'body weight'
+  : bwOf(name) === 'plus' ? '+' + LOAD_HEAD[loadOf(name)] : LOAD_HEAD[loadOf(name)];
 
 // ---------- Storage (all of it stays on this device) ----------
 const store = {
@@ -293,16 +360,22 @@ let bodyweight = store.get('fb3.bw', '');   // typed in on the phone, never in t
 let reportId = null;                        // which workout the Report tab shows (null = latest)
 
 // Opens on the workout in progress, otherwise the next one in the rotation A → B → C → A.
+// A home workout stands in for the gym workout that was due, so the rotation moves on past it.
 // (Internally A/B/C are still 'mon'/'wed'/'fri', so saved workouts and file names stay the same.)
 function defaultDay(){
-  const open = DAYS.filter(d => drafts[d]?.startedAt).sort((a, b) => drafts[b].startedAt - drafts[a].startedAt)[0];
+  const open = ALL.filter(d => drafts[d]?.startedAt).sort((a, b) => drafts[b].startedAt - drafts[a].startedAt)[0];
   if(open) return open;
-  const last = [...history].reverse().find(s => DAYS.includes(s.day));
-  return last ? DAYS[(DAYS.indexOf(last.day) + 1) % DAYS.length] : DAYS[0];
+  let next = 0;
+  history.forEach(s => { next = DAYS.includes(s.day) ? DAYS.indexOf(s.day) + 1 : s.day === 'home' ? next + 1 : next; });
+  return DAYS[next % DAYS.length];
 }
 function blank(day){
-  return { day, startedAt:null, notes:'', reset:RESET.map(() => false),
-    slots: PLAN[day].ex.map(ex => ({ name:lastUsed(ex), sets:Array.from({length:ex.sets}, newSet) })) };
+  return { day, startedAt:null, notes:'', reset:RESET.map(() => false), ...(day === 'home' ? { cool:COOL.map(() => false) } : {}),
+    slots: PLAN[day].ex.map(ex => {
+      const name = lastUsed(ex), last = lastFor(name);
+      const band = bandOf(name) && last ? (last.sets[last.sets.length - 1].band || '').split('+').filter(Boolean) : [];
+      return { name, ...(bandOf(name) ? { band } : {}), sets:Array.from({length:ex.sets}, newSet) };
+    }) };
 }
 // a slot starts on the variant done most recently (e.g. assisted pull-up instead of pulldown)
 function lastUsed(ex){
@@ -331,7 +404,7 @@ function prevFor(name, before){
   return null;
 }
 function exFor(name){
-  for(const d of DAYS){ const e = PLAN[d].ex.find(e => e.name === name || e.alts.includes(name)); if(e) return e; }
+  for(const d of ALL){ const e = PLAN[d].ex.find(e => e.name === name || e.alts.includes(name)); if(e) return e; }
   return null;
 }
 // kg actually moved; for assisted machines body weight − assist (null if body weight unknown)
@@ -344,6 +417,8 @@ function lifted(s, name, bw){
 function score(s, name, bw){
   // body-weight exercises: body (or 80 kg if unknown) + any extra, so 10 reps with a dumbbell beats 10 without
   if(bwOf(name)) return ((parseFloat(bw || bodyweight) || 80) + (parseFloat(s.kg) || 0)) * (1 + (+s.reps || 0) / 30);
+  // loop bands have no kg: the heavy band ranks above the medium one at the same reps
+  if(bandOf(name) === 'loop') return (+s.reps || 0) * (s.band === 'Heavy' ? 1.25 : s.band === 'Medium' ? 1.1 : 1);
   let kg = lifted(s, name, bw);
   if(kg == null) kg = 100 - (parseFloat(s.kg) || 0);   // no body weight yet: less assist still ranks higher
   const r = +s.reps || 0;
@@ -353,6 +428,8 @@ const best = (sets, name, bw) => sets.reduce((b, s) => !b || score(s, name, bw) 
 // what to change once every set hit the top of the range
 function nextStep(ex, name, sets){
   const bwk = bwOf(name);
+  if(bandOf(name) === 'loop') return 'use the heavy band, then go single-leg';
+  if(bandOf(name)) return 'add a band or a stronger one (or step further back)';
   if(bwk === 'only') return 'make it harder (further range, slower, or a harder variant)';
   if(bwk === 'plus' && !sets.some(s => parseFloat(s.kg) > 0)) return loadOf(name) === 'hand' ? 'hold light dumbbells' : 'hold a light weight';
   if(ex.time) return 'add a little weight';
@@ -370,6 +447,7 @@ const round = (kg, step) => Math.round(kg / step) * step;
 const dateTxt = t => new Date(t).toLocaleDateString(undefined, { weekday:'short', day:'numeric', month:'short' });
 const setTxt = (s, ex, name, bw) => {
   const amt = ex && ex.time ? `${s.reps}s` : s.reps;
+  if(s.band) return `${s.band.split('+').join(' + ')}${s.kg ? ` (${s.kg} kg)` : ''} × ${amt}`;
   if(s.kg === '' || s.kg == null) return `${amt}${ex && ex.time ? '' : ' reps'}`;
   const load = loadOf(name || (ex && ex.name) || '');
   if(bwOf(name || (ex && ex.name) || '')) return `BW + ${s.kg} kg${load === 'hand' ? '/hand' : ''} × ${amt}`;
@@ -381,7 +459,7 @@ const setTxt = (s, ex, name, bw) => {
 const $main = document.getElementById('main');
 function render(){
   document.getElementById('tabs').innerHTML =
-    DAYS.map(d => `<button data-tab="${d}" aria-current="${view===d}">${PLAN[d].tab}${drafts[d]?.startedAt ? '<span class="dot"></span>' : ''}</button>`).join('') +
+    ALL.map(d => `<button data-tab="${d}" aria-current="${view===d}">${PLAN[d].tab}${drafts[d]?.startedAt ? '<span class="dot"></span>' : ''}</button>`).join('') +
     `<button data-tab="log" aria-current="${view==='log'}">Log</button>` +
     `<button data-tab="report" aria-current="${view==='report'}">Report</button>`;
   view === 'log' ? renderLog() : view === 'report' ? renderReport() : renderDay(view);
@@ -389,19 +467,19 @@ function render(){
 }
 
 function renderDay(day){
-  const p = PLAN[day], d = draft(day, false);
+  const p = PLAN[day], d = draft(day, false), reset = resetFor(day);
   let h = `<p class="focus">${p.title} — ${p.focus}</p>
-  <div class="box reset"><h3>Desk reset (~5 min) <span class="small">${resetDone(d)}/${RESET.length}</span></h3>
-    ${RESET.map((r, k) => `<div class="rrow ${(d.reset || [])[k] ? 'done' : ''}">
+  <div class="box reset"><h3>Desk reset (~5 min) <span class="small">${resetDone(d)}/${reset.length}</span></h3>
+    ${reset.map((r, k) => `<div class="rrow ${(d.reset || [])[k] ? 'done' : ''}">
       <div><b>${esc(r.name)}</b> · ${esc(r.dose)}<div class="small">${esc(r.cue)}</div></div>
       <button class="tick" data-reset="${k}" aria-label="${esc(r.name)} done">✓</button></div>`).join('')}
-    <div class="small">Stretch hip flexors, never hamstrings. Warm-up sets only for exercise 1.</div></div>`;
+    <div class="small">Hip flexors are the stretch that matters most. ${day === 'home' ? 'Start every set with the same band and distance as last time.' : 'Warm-up sets only for exercise 1.'}</div></div>`;
 
   p.ex.forEach((ex, i) => {
     const slot = d.slots[i], last = lastFor(slot.name);
     const doneCount = slot.sets.filter(s => s.done).length;
     const options = [ex.name, ...ex.alts].map(n => `<option ${n===slot.name?'selected':''}>${esc(n)}</option>`).join('');
-    const load = loadOf(slot.name), bwk = bwOf(slot.name);
+    const load = loadOf(slot.name), bwk = bwOf(slot.name), band = bandOf(slot.name), picked = slot.band || [];
     let hint = '';
     if(last && last.sets.length >= ex.sets && last.sets.every(s => +s.reps >= ex.max))
       hint = `Hit the top of the range on every set last time → ${nextStep(ex, slot.name, last.sets)}, restart at the bottom.`;
@@ -412,7 +490,13 @@ function renderDay(day){
       unit = !bodyweight ? 'Enter the assist. Add your body weight in Log to see what you lift.'
            : `Enter the assist. You lift ${bodyweight} − assist${lifts.length && lifts.every(l => l != null) ? `: ${lifts.join(' · ')} kg` : ''}.`;
     }
-    if(i === 0){
+    if(band){
+      const kg = bandKg(slot.name, picked);
+      unit = band === 'loop' ? 'Tap the band you use.'
+           : `Tap the ${band === 'tube' ? 'tubes on the handle (stack them for more)' : 'band (or two together)'}.`
+             + (kg ? ` Now: ${picked.join(' + ')} = ${kg} kg.` : '');
+    }
+    if(i === 0 && !band && !bwk){
       const top = last ? Math.max(...last.sets.map(s => +s.kg || 0)) : 0;
       hint = (top ? `Warm-up sets: ${round(top*.5, 2.5)} kg × 5, then ${round(top*.8, 2.5)} kg × 3. ` : 'Warm-up sets: ~50% × 5, then ~80% × 3. ') + hint;
     }
@@ -426,6 +510,8 @@ function renderDay(day){
       ${hint ? `<div class="hint">${esc(hint)}</div>` : ''}
       ${last ? `<div class="last">Last (${dateTxt(last.at)}): ${last.sets.map(s => esc(setTxt(s, ex, slot.name))).join(' · ')}</div>` : ''}
       ${unit ? `<div class="unitnote">${esc(unit)}</div>` : ''}
+      ${band ? `<div class="bands">${BANDS[band].list.map(([c, col]) =>
+        `<button class="chip" data-band="${i}.${esc(c)}" aria-pressed="${picked.includes(c)}"><span class="sw" style="background:${col}"></span>${esc(c)}</button>`).join('')}</div>` : ''}
       <div class="sets">
         <div class="row head"><span></span><span>${headOf(slot.name)}</span><span>${ex.time ? 'sec' : 'reps'}</span><span></span></div>
         ${slot.sets.map((s, j) => {
@@ -433,7 +519,8 @@ function renderDay(day){
           const lastKg = ref && ref.kg !== '' && ref.kg != null ? ref.kg : '';
           return `<div class="row ${s.done ? 'done' : ''}">
             <span class="i">${j+1}</span>
-            ${bwk === 'only' ? '<span class="bwcell">BW</span>'
+            ${band ? `<span class="bwcell">${esc(s.done ? (band === 'loop' ? s.band || '–' : s.kg || '–') : (band === 'loop' ? picked[0] || '–' : bandKg(slot.name, picked) || '–'))}</span>`
+              : bwk === 'only' ? '<span class="bwcell">BW</span>'
               : `<input inputmode="decimal" data-i="${i}" data-j="${j}" data-f="kg" data-last="${esc(lastKg)}" value="${esc(s.kg)}" placeholder="${lastKg !== '' ? esc(lastKg) : bwk ? 'BW' : '–'}" aria-label="Set ${j+1} ${headOf(slot.name)}">`}
             <input inputmode="numeric" data-i="${i}" data-j="${j}" data-f="reps" value="${esc(s.reps)}" placeholder="${ref ? esc(ref.reps) : ex.max}" aria-label="Set ${j+1} ${ex.time ? 'seconds' : 'reps'}">
             <button class="tick" data-tick="${i}.${j}" aria-label="Set ${j+1} done">✓</button>
@@ -444,6 +531,13 @@ function renderDay(day){
     </article>`;
   });
 
+  if(day === 'home'){
+    const cool = d.cool || [];
+    h += `<div class="box reset"><h3>Cool-down: back care <span class="small">${cool.filter(Boolean).length}/${COOL.length}</span></h3>
+      ${COOL.map((r, k) => `<div class="rrow ${cool[k] ? 'done' : ''}">
+        <div><b>${esc(r.name)}</b> · ${esc(r.dose)}<div class="small">${esc(r.cue)}</div></div>
+        <button class="tick" data-cool="${k}" aria-label="${esc(r.name)} done">✓</button></div>`).join('')}</div>`;
+  }
   h += `<div class="box"><h3>Notes</h3>
       <textarea id="notes" placeholder="How did it feel? Anything to change?">${esc(d.notes)}</textarea></div>
     <div class="actions"><button class="btn ghost" data-act="discard">Clear day</button>
@@ -521,10 +615,10 @@ function renderReport(){
     ${s.notes ? `<p class="small">Notes: ${esc(s.notes)}</p>` : ''}</div>`;
 
   // 2. Next time: exercises whose latest session hit the top of the range on every set
-  const next = [];
-  DAYS.forEach(d => PLAN[d].ex.forEach(ex => {
+  const next = [], listed = new Set();   // ab wheel and split squat are in B and at home: list them once
+  ALL.forEach(d => PLAN[d].ex.forEach(ex => {
     const last = [ex.name, ...ex.alts].map(n => ({ n, l:lastFor(n) })).filter(o => o.l).sort((a, b) => b.l.at - a.l.at)[0];
-    if(last && last.l.sets.length >= ex.sets && last.l.sets.every(t => +t.reps >= ex.max))
+    if(last && !listed.has(last.n) && listed.add(last.n) && last.l.sets.length >= ex.sets && last.l.sets.every(t => +t.reps >= ex.max))
       next.push(`<li><b>${esc(last.n)}</b> (${PLAN[d].title}) — ${nextStep(ex, last.n, last.l.sets)}</li>`);
   }));
   h += `<div class="box rep"><h3>Next time</h3>${next.length ? `<ul>${next.join('')}</ul>`
@@ -569,6 +663,8 @@ document.addEventListener('click', e => {
       // one tap if the numbers match last time: take the greyed-in values (body-weight exercises have none)
       if(s.kg === '' && kgIn && kgIn.dataset.last) s.kg = kgIn.dataset.last;
       if(s.reps === '') s.reps = repIn.placeholder;
+      // bands: the colours tapped for this exercise, and their kg
+      if(bandOf(d.slots[i].name)){ const c = d.slots[i].band || []; s.band = c.join('+'); s.kg = bandKg(d.slots[i].name, c); }
       const ex = PLAN[view].ex[i];
       const lastSet = d.slots[i].sets.every(x => x.done);
       startRest(ex.rest, lastSet ? `Next: ${PLAN[view].ex[i+1]?.name || 'finish'}` : `${d.slots[i].name} · set ${j+2}`);
@@ -578,6 +674,18 @@ document.addEventListener('click', e => {
   if(t.dataset.reset){
     const d = draft(view, true), k = +t.dataset.reset;
     d.reset = RESET.map((_, n) => !!(d.reset || [])[n]); d.reset[k] = !d.reset[k];
+    save(); render(); return;
+  }
+  if(t.dataset.cool){
+    const d = draft(view, true), k = +t.dataset.cool;
+    d.cool = COOL.map((_, n) => !!(d.cool || [])[n]); d.cool[k] = !d.cool[k];
+    save(); render(); return;
+  }
+  if(t.dataset.band){
+    const [i, c] = t.dataset.band.split('.'), slot = draft(view, true).slots[+i], b = BANDS[bandOf(slot.name)];
+    const now = slot.band || [];
+    slot.band = now.includes(c) ? now.filter(x => x !== c) : b.stack ? [...now, c] : [c];
+    slot.band.sort((x, y) => b.list.findIndex(z => z[0] === x) - b.list.findIndex(z => z[0] === y));
     save(); render(); return;
   }
   if(t.dataset.addset){ draft(view, true).slots[+t.dataset.addset].sets.push(newSet()); save(); render(); return; }
