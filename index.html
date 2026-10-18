@@ -1159,6 +1159,282 @@ DEMO3['Lying hamstring stretch'] = (() => {
       { p:hold, hold:2200, move:2000, say:'m1fix', cp:'hold', mus:{ stretch:['hamstrings'], work:['abs'] } },
       { p:kneeIn, hold:900, move:1300, cp:'start' }] };
 })();
+// ---- Batch 2: home workout (built with tests/demo-dev.sh; checked by tests/demo-checks.js) ----
+// Glute bridge (docs/exercises.md): lying on the back on a mat, head toward -x, feet on two yoga blocks,
+// a fabric loop band just above the knees; side view a little from the feet.
+// up(phi, extra) lifts the hips: the trunk turns phi degrees about the shoulders (they stay on the mat);
+// `arch` bends the lower back more than the chest (the mistake).
+DEMO3['Glute bridge'] = (() => {
+  const BLK = 11.5, AY = BLK + 8, AX = 57;   // block top (mat 1.5 + block 10), ankle height on it, ankle x
+  const feet = (kN, kF) => ({ an:[AX, AY, 11], af:[AX, AY, -11], fdN:[1, 0, 0], fdF:[1, 0, 0], kN, kF });
+  const out = feet([.1, 1, .12], [.1, 1, -.12]), caved = feet([.1, 1, -.17], [.1, 1, .17]);
+  const arms = { hn:[-4, 4, 27], hf:[-4, 4, -27], eN:[.2, -.6, 1], eF:[.2, -.6, -1] };
+  const flat = { px:0, py:16, pz:0, la:180, ca:180, ha:180, ...arms };
+  const shoulders = human({ ...flat, ...out }, {}, 0).J, S0 = v3.lerp(shoulders.shN, shoulders.shF, .5);
+  const up = (phi, arch = 0, legs = out) => {
+    const q = { ...flat, ...legs, la:180 + phi + arch, ca:180 + phi - arch * .35, ha:180 + phi * .2 };
+    const J = human(q, {}, 0).J, S = v3.lerp(J.shN, J.shF, .5);
+    q.px += S0[0] - S[0]; q.py += S0[1] - S[1];
+    return q;
+  };
+  const start = { ...flat, ...out }, top = up(26), high = up(36, 16), topIn = up(26, 0, caved);
+  return {
+    cam:{ target:[4, 26, 0], yaw:42, sway:6, el:26, dist:380, zoom:2.3 },
+    kneeN:[0, 1, .3], kneeF:[0, 1, -.3],
+    props:(q, J) => {
+      const ring = s => { const o = s === 'N' ? 1 : -1, h = J['hip' + s], k = J['knee' + s], t = v3.norm(v3.sub(k, h));
+        const c = v3.lerp(h, k, .8), a = v3.norm(v3.perp([0, 1, 0], t)), l = v3.norm(v3.perp(v3.mul(J.lat, o), t));
+        return ang => v3.add(c, v3.add(v3.mul(a, 7 * Math.cos(rad(ang))), v3.mul(l, 7 * Math.sin(rad(ang))))); };
+      const N = ring('N'), F = ring('F'), arc = (f, a0, a1) => Array.from({ length:7 }, (_, i) => f(a0 + (a1 - a0) * i / 6));
+      const col = '#c2304a';
+      return [{ type:'box', mat:true, lo:[-100, 0, -34], hi:[95, 1.5, 34] },
+        { type:'box', lo:[AX - 5, 1.5, 3.5], hi:[AX + 18, BLK, 18.5], cols:['#b8e0b0', '#7fbf73', '#4f8c45'] },
+        { type:'box', lo:[AX - 5, 1.5, -18.5], hi:[AX + 18, BLK, -3.5], cols:['#b8e0b0', '#7fbf73', '#4f8c45'] },
+        { type:'band', pts:[N(180), ...arc(F, 180, 0), N(0)], col, w:3.2 },
+        { type:'band', pts:arc(N, 0, 180), col, w:3.2, bias:-40 }];
+    },
+    keys:[
+      { p:start, hold:1800, move:900, cp:'start', say:'c1', mus:{ work:['hip rotators', 'abs'] } },
+      { p:top, hold:2200, move:400, cp:'top', say:'c3', mus:{ work:['glutes', 'hamstrings'], stretch:['hip flexors'] } },
+      { p:top, hold:2200, move:2000, cp:'top', say:'c2', mus:{ work:['glutes', 'abs'] } },
+      { p:start, hold:500, move:1000, cp:'start' },
+      { p:high, hold:2200, move:1200, say:'m1', mus:{ bad:['lower back'] }, mark:['waist'] },
+      { p:top, hold:2200, move:1000, cp:'top', say:'m1fix', mus:{ work:['glutes', 'abs'] } },
+      { p:topIn, hold:2000, move:1000, say:'m2', mark:['kneeN', 'kneeF'], cam:{ yaw:82, el:24, target:[20, 34, 0], zoom:2.6 } },
+      { p:top, hold:2000, move:2000, cp:'top', say:'m2fix', cam:{ yaw:82, el:24, target:[20, 34, 0], zoom:2.6 }, mus:{ work:['hip rotators', 'glutes'] } }] };
+})();
+
+// Lying back raise (docs/exercises.md): face down on a mat, head toward +x, a rolled towel across the body under the belly;
+// side view from low down so the small lift shows. The pelvis, legs and arms stay; only the chest and head rise.
+DEMO3['Lying back raise'] = (() => {
+  const RX = 15, RR = 4;   // towel roll: x (under the belly, in front of the hips) and radius
+  const legs = { an:[-89.2, 5.5, 10], af:[-89.2, 5.5, -10], fdN:[-.88, -.48, 0], fdF:[-.88, -.48, 0], kN:[0, -1, .1], kF:[0, -1, -.1] };
+  const arms = { hn:[-8, 4, 25], hf:[-8, 4, -25], eN:[0, .5, 1], eF:[0, .5, -1] };
+  const body = { px:0, py:15.5, pz:0, ...legs, ...arms };
+  const start = { ...body, la:-1.5, ca:-1, ha:-10 };
+  const lift = { ...body, la:1, ca:7, ha:5 };
+  const high = { ...body, la:14, ca:32, ha:68 };
+  const superman = { ...body, la:4, ca:11, ha:9, an:[-87.5, 32, 10], af:[-87.5, 32, -10], hn:[-12, 14, 25], hf:[-12, 14, -25] };
+  return {
+    cam:{ target:[4, 16, 0], yaw:160, sway:5, el:8, dist:380, zoom:2.6 },
+    kneeN:[0, -1, .1], kneeF:[0, -1, -.1], elbowN:[0, .5, 1], elbowF:[0, .5, -1],
+    props:[{ type:'box', mat:true, lo:[-110, 0, -34], hi:[95, 1.5, 34] },
+           { type:'cyl', a:[RX, 1.5 + RR, -24], b:[RX, 1.5 + RR, 24], r:RR, m:'pad', bias:-10 }],
+    keys:[
+      { p:start, hold:1800, move:1200, cp:'start', say:'c1', mus:{ work:['glutes', 'hamstrings'] } },
+      { p:lift, hold:2200, move:400, say:'c2', cp:'hold', mus:{ work:['lower back', 'mid back'] } },
+      { p:lift, hold:2200, move:2000, say:'c3', cp:'hold', mus:{ work:['lower back', 'glutes'] } },
+      { p:start, hold:800, move:1200, cp:'start' },
+      { p:high, hold:2200, move:1200, say:'m1', mus:{ bad:['lower back'] } },
+      { p:lift, hold:2000, move:1200, say:'m1fix', cp:'hold', mus:{ work:['mid back', 'glutes'] } },
+      { p:superman, hold:2000, move:1200, say:'m2', mark:['ankleN', 'ankleF'] },
+      { p:lift, hold:2000, move:2000, say:'m2fix', cp:'hold', mus:{ work:['hamstrings', 'glutes'] } }] };
+})();
+// Ab wheel rollout (docs/exercises.md): kneeling on the mat, facing +x; the wheel rolls with the hands (props from J.gripN/gripF).
+// Poses solved in the scratch folder (s2.js/s3.js): arms straight to the handle 9 up; knees fixed on the mat.
+DEMO3['Ab wheel rollout'] = (() => {
+  const start = {"px":-4.66,"py":51.36,"pz":0,"la":29.6,"ca":26.6,"ha":18.6,"an":[-44.5,6.5,10],"af":[-44.5,6.5,-10],"fdN":[-1,-0.25,0],"fdF":[-1,-0.25,0],"kN":[1,0,0],"kF":[1,0,0],"hn":[39.1,9,11],"hf":[39.1,9,-11],"eN":[0,0,1],"eF":[0,0,-1]};
+  const far = {"px":38.62,"py":29.3,"pz":0,"la":12,"ca":9,"ha":4,"an":[-44.5,6.5,10],"af":[-44.5,6.5,-10],"fdN":[-1,-0.25,0],"fdF":[-1,-0.25,0],"kN":[1,0,0],"kF":[1,0,0],"hn":[153.4,9,11],"hf":[153.4,9,-11],"eN":[0,0,1],"eF":[0,0,-1]};
+  const back = {"px":22.3,"py":45.62,"pz":0,"la":22,"ca":19,"ha":12,"an":[-44.5,6.5,10],"af":[-44.5,6.5,-10],"fdN":[-1,-0.25,0],"fdF":[-1,-0.25,0],"kN":[1,0,0],"kF":[1,0,0],"hn":[112.7,9,11],"hf":[112.7,9,-11],"eN":[0,0,1],"eF":[0,0,-1]};
+  const sag = {"px":41.35,"py":23.71,"pz":0,"la":-10,"ca":44,"ha":30,"an":[-44.5,6.5,10],"af":[-44.5,6.5,-10],"fdN":[-1,-0.25,0],"fdF":[-1,-0.25,0],"kN":[1,0,0],"kF":[1,0,0],"hn":[147.2,9,11],"hf":[147.2,9,-11],"eN":[0,0,1],"eF":[0,0,-1]};
+  const less = {"px":35.15,"py":34.46,"pz":0,"la":14,"ca":11,"ha":5,"an":[-44.5,6.5,10],"af":[-44.5,6.5,-10],"fdN":[-1,-0.25,0],"fdF":[-1,-0.25,0],"kN":[1,0,0],"kF":[1,0,0],"hn":[145.5,9,11],"hf":[145.5,9,-11],"eN":[0,0,1],"eF":[0,0,-1]};
+  const outS = {"px":24.94,"py":43.98,"pz":0,"la":14,"ca":26,"ha":16,"an":[-44.5,6.5,10],"af":[-44.5,6.5,-10],"fdN":[-1,-0.25,0],"fdF":[-1,-0.25,0],"kN":[1,0,0],"kF":[1,0,0],"hn":[116.9,9,11],"hf":[116.9,9,-11],"eN":[0,0,1],"eF":[0,0,-1]};   // half way out to the sag (keeps the knees on the mat while blending)
+  return {
+    cam:{ target:[55, 34, 0], yaw:14, sway:6, el:8, dist:400, zoom:2.55 },
+    floor:[-100, 200, -75, 75], guides:['tuck'],
+    props:(q, J) => { const c = v3.lerp(J.gripN, J.gripF, .5), x = c[0], y = c[1];
+      return [{ type:'box', mat:true, lo:[-70, 0, -35], hi:[60, 1.2, 35] },
+        { type:'cyl', a:[x, y, -4.5], b:[x, y, 4.5], r:y, m:'rubber' },
+        { type:'cyl', a:[x, y, -5.5], b:[x, y, 5.5], r:3.2, m:'steel', bias:-1 },
+        { type:'cyl', a:[x, y, -17], b:[x, y, 17], r:1.5, m:'steel', bias:-2 }]; },
+    keys:[
+      { p:start, hold:2200, move:1250, say:'c2', cp:'start', show:['tuck'], mus:{ work:['abs', 'obliques'] } },
+      { p:back, hold:0, move:1250, say:'c1' },   // half way out (about 2.5 s out in all)
+      { p:far, hold:2000, move:900, say:'c1', cp:'far', mus:{ work:['abs', 'lats', 'front delts'] } },
+      { p:back, hold:1800, move:1300, say:'c3', mus:{ work:['lats', 'triceps', 'chest'] } },
+      { p:outS, hold:0, move:1300 },   // the next rep goes out too far
+      { p:sag, hold:2200, move:1300, say:'m1', mus:{ bad:['lower back'] }, mark:['waist'] },
+      { p:less, hold:2200, move:900, say:'m1fix', cp:'far', show:['tuck'], mus:{ work:['abs', 'obliques'] } },
+      { p:back, hold:0, move:900, say:'m1fix' }] };
+})();
+// Push-up on handles (docs/exercises.md): on the toes and hands, facing +x; handles 64 apart (neutral grip, along x).
+// The body pivots on the toes (pu2.js): top = arms straight, bottom = shoulders 29 up (chest at handle height).
+DEMO3['Push-up on handles'] = (() => {
+  const top = {"px":-43.35,"py":56.74,"pz":0,"la":22.98,"ca":22.98,"ha":12,"an":[-125.65,21.85,10],"af":[-125.65,21.85,-10],"hn":[-3,12,32],"hf":[-3,12,-32],"fdN":[0.22,-0.97,0],"fdF":[0.22,-0.97,0],"kN":[0,-1,0],"kF":[0,-1,0],"eN":[-0.75,0.35,0.55],"eF":[-0.75,0.35,-0.55]};
+  const bottom = {"px":-29.93,"py":25.45,"pz":0,"la":3.73,"ca":3.73,"ha":-6,"an":[-119.14,19.62,10],"af":[-119.14,19.62,-10],"hn":[-3,12,32],"hf":[-3,12,-32],"fdN":[-0.11,-0.99,0],"fdF":[-0.11,-0.99,0],"kN":[0,-1,0],"kF":[0,-1,0],"eN":[-0.6,0.6,0.5],"eF":[-0.6,0.6,-0.5]};
+  const sag = {"px":-37.56,"py":46.4,"pz":0,"la":16.28,"ca":56.28,"ha":26,"an":[-123.38,21.34,10],"af":[-123.38,21.34,-10],"hn":[-3,12,32],"hf":[-3,12,-32],"fdN":[0.11,-0.99,0],"fdF":[0.11,-0.99,0],"kN":[0,-1,0],"kF":[0,-1,0],"eN":[-0.75,0.35,0.55],"eF":[-0.75,0.35,-0.55]};
+  const handle = z => [{ type:'box', lo:[-14, 0, z - 4.5], hi:[8, 2.5, z + 4.5] }, { type:'box', lo:[-13, 2.5, z - 2], hi:[-10, 12, z + 2] },
+    { type:'box', lo:[4, 2.5, z - 2], hi:[7, 12, z + 2] }, { type:'cyl', a:[-12, 12, z], b:[6, 12, z], r:2, m:'pad' }];
+  return {
+    cam:{ target:[-55, 34, 0], yaw:42, sway:6, el:24, dist:420, zoom:2.6 },
+    floor:[-175, 75, -75, 75],
+    props:[{ type:'box', mat:true, lo:[-160, 0, -45], hi:[45, 1.2, 45] }, ...handle(32), ...handle(-32)],
+    keys:[
+      { p:top, hold:2200, move:2000, say:'c1', cp:'top', mus:{ work:['abs'] } },
+      { p:bottom, hold:2000, move:1000, say:'c3', cp:'bottom', mus:{ stretch:['chest'], work:['front delts'] } },
+      { p:top, hold:600, move:2000, cp:'top' },
+      { p:bottom, hold:2200, move:1800, say:'c2', cp:'bottom', mus:{ work:['triceps'] }, cam:{ target:[-35, 22, 0], yaw:68, el:40, zoom:2.3 } },   // pushes up with the hips sagging (last reps)
+      { p:sag, hold:2200, move:1200, say:'m1', mus:{ bad:['lower back'] }, mark:['waist'], cam:{ yaw:14, el:10 } },
+      { p:top, hold:2200, move:1200, say:'m1fix', cp:'top', mus:{ work:['abs', 'chest'] } }] };
+})();
+// Seated band row (docs/exercises.md): sitting on a yoga block on the mat, facing +x, knees a little bent,
+// a tube round the soles of both feet to a handle in each hand (neutral grip); seen from behind the near side
+DEMO3['Seated band row'] = (() => {
+  const BLOCK = 13, PY = 25;   // block top; pelvis centre sitting on it
+  const legs = { an:[84, 10.5, 10], af:[84, 10.5, -10], fdN:[.45, .89, .04], fdF:[.45, .89, -.04], kN:[0, 1, .05], kF:[0, 1, -.05] };
+  // hands placed from the drawn shoulders: f forward (cf), u up the trunk (cax), o outward (cl)
+  const pose = (p, f, u, o, eN) => {
+    const q = { ...legs, px:0, py:PY, pz:0, ha:90, hy:0, se:0, ...p, hn:[0, 0, 0], hf:[0, 0, 0], eN, eF:[eN[0], eN[1], -eN[2]] };
+    const J = human(q, {}, 0).J, at = (S, s) => v3.add(S, v3.add(v3.mul(J.cf, f), v3.add(v3.mul(J.cax, u), v3.mul(J.cl, s * o))));
+    q.hn = at(J.shN, 1); q.hf = at(J.shF, -1);
+    return q;
+  };
+  const tall = { la:90, ca:90, ha:90 };
+  const start = pose(tall, 67, -10, -3, [0, -1, .25]);
+  const end = pose(tall, 17.5, -26.5, 1.5, [-1, -.25, .12]);
+  const lean = pose({ la:107, ca:106, ha:98 }, 17.5, -26.5, 1.5, [-1, -.25, .12]);
+  const tube = '#2f9e57';   // green tube
+  return {
+    cam:{ target:[30, 45, 0], yaw:-28, sway:6, el:20, dist:400, zoom:2.1 },
+    floor:[-75, 125, -75, 75],
+    props:(q, J) => {
+      const arch = s => { const a = v3.lerp(J['heel' + s], J['toe' + s], .45); return v3.add(a, v3.mul(J['fd' + s], 0)); };
+      const sole = s => v3.add(arch(s), [1.5, 0, 0]);
+      const handle = s => { const g = J['grip' + s]; return { type:'cyl', a:v3.add(g, [0, -5.5, 0]), b:v3.add(g, [0, 5.5, 0]), r:1.9, m:'rubber', bias:-3 }; };
+      return [{ type:'box', mat:true, lo:[-40, 0, -32], hi:[120, 1.2, 32] },
+        { type:'box', lo:[-14, 1.2, -12], hi:[10, BLOCK, 12], cols:['#b8e0b0', '#7fbf73', '#4f8c45'] },
+        { type:'band', pts:[J.gripN, sole('N'), sole('F'), J.gripF], col:tube, w:1.3 },
+        handle('N'), handle('F')];
+    },
+    keys:[
+      { p:start, hold:2200, move:1000, say:'c1', cp:'start', mus:{ work:['grip'] } },
+      { p:end, hold:1800, move:300, say:'c2', cp:'end', mus:{ work:['lats', 'biceps'] } },
+      { p:end, hold:2000, move:2000, say:'c3', cp:'end', mus:{ work:['mid back', 'rear delts'] } },
+      { p:start, hold:1200, move:1000, cp:'start' },
+      { p:lean, hold:2000, move:1200, say:'m1', mus:{ bad:['lower back'] }, mark:['waist'] },
+      { p:end, hold:2200, move:2000, say:'m1fix', cp:'end', mus:{ work:['mid back', 'lats'] } }] };
+})();
+
+// Band pull-apart (docs/exercises.md): standing tall, a light power band held in both hands, palms down;
+// the band runs grip to grip and gets longer as the arms open. Seen from in front, above, a little to the near side.
+DEMO3['Band pull-apart'] = (() => {
+  const stand = { px:0, py:97, pz:0, la:90, ca:90, ha:90, hy:0, an:[0, 8, 11], af:[0, 8, -11], fdN:[1, 0, .1], fdF:[1, 0, -.1], kN:[1, 0, 0], kF:[1, 0, 0] };
+  // hands from the drawn shoulders: f forward, u up, o outward (cl)
+  const pose = (se, f, u, o, eN) => {
+    const q = { ...stand, se, band:0, ar:0, hn:[0, 0, 0], hf:[0, 0, 0], eN, eF:[eN[0], eN[1], -eN[2]] };
+    const J = human(q, {}, 0).J, at = (S, s) => v3.add(S, v3.add(v3.mul(J.cf, f), v3.add(v3.mul(J.cax, u), v3.mul(J.cl, s * o))));
+    q.hn = at(J.shN, 1); q.hf = at(J.shF, -1);
+    return q;
+  };
+  const start = { ...pose(1.5, 68, 0, 2, [0, -.3, 1]) };            // shoulders a little up (relaxed)
+  const down = { ...pose(-1.5, 68, 0, 2, [0, -.3, 1]) };            // shoulders down first
+  const open = { ...pose(-1.5, 10, -3, 67.2, [-.6, -.8, 0]), band:1 };   // arms in a T, band on the chest
+  const shrug = { ...pose(9, 10, -3, 67.2, [-.6, -.8, 0]), band:1, ar:1 };
+  const downAr = { ...down, ar:-1 }, openAr = { ...open, ar:-1 };
+  const band = '#3d9a52';
+  return {
+    cam:{ target:[10, 104, 0], yaw:62, sway:5, el:18, dist:420, zoom:1.85 },
+    floor:[-75, 100, -100, 100],
+    props:(q, J) => {
+      // the band: straight grip to grip; once it reaches the chest it bends round it
+      const chest = s => v3.add(J.waist, v3.add(v3.mul(J.cax, 28), v3.add(v3.mul(J.cf, 14.5), v3.mul(J.cl, s * 8))));
+      const pts = q.band > .5 ? [J.gripN, chest(1), chest(-1), J.gripF] : [J.gripN, J.gripF];
+      const out = [{ type:'band', pts, col:band, w:2.4, bias:-6 }];
+      // arrows above the shoulders: green down (shoulders down), red up (the shrug)
+      if(Math.abs(q.ar) > .5) ['N', 'F'].forEach(s => {
+        const at = (u, o) => v3.add(J['sh' + s], v3.add(v3.mul(J.cax, u), v3.mul(J.cl, (s === 'N' ? 1 : -1) * 2 + o)));
+        out.push(q.ar < 0 ? { type:'band', pts:[at(22, 0), at(8, 0), at(13, 3.5), at(8, 0), at(13, -3.5)], col:'#2fa86a', w:1.6, bias:-60 }
+          : { type:'band', pts:[at(10, 0), at(24, 0), at(19, 3.5), at(24, 0), at(19, -3.5)], col:'#e8342a', w:1.6, bias:-60 }); });
+      return out;
+    },
+    keys:[
+      { p:start, hold:2000, move:900, say:'c1', cp:'start' },
+      { p:downAr, hold:2000, move:1500, say:'c3', cp:'start', mus:{ work:['upper back'] } },
+      { p:open, hold:2200, move:300, say:'c2', cp:'end', mus:{ work:['rear delts', 'mid back'], stretch:['chest'] } },
+      { p:open, hold:1200, move:2000, cp:'end', mus:{ work:['upper back', 'rear delts'] } },
+      { p:down, hold:900, move:1500, cp:'start' },
+      { p:shrug, hold:2000, move:1200, say:'m1', mark:['shN', 'shF'] },
+      { p:openAr, hold:2200, move:2000, say:'m1fix', cp:'end', mus:{ work:['rear delts', 'mid back'] } }] };
+})();
+// Bulgarian split squat (docs/exercises.md), home version: back to the sofa (seat 42 high), back foot laces down on the
+// seat edge; back leg = near side (N), front leg = far side (F); facing +x. Hands on the hips (no weights at home).
+DEMO3['Bulgarian split squat'] = (() => {
+  const BACK = { an:[-52, 46, 10], fdN:[-1, 0, 0] };
+  const front = (x, y, fd) => ({ af:[x, y, -10], fdF:fd || [1, 0, 0] });
+  // hands on the hips, from the drawn trunk
+  const hands = q => { const J = human({ ...q, hn:[0, 0, 0], hf:[0, 0, 0] }, {}, 0).J;
+    const h = s => v3.add(J.pelvis, v3.add(v3.mul(J.lum, 9), v3.add(v3.mul(J.lat, 21 * s), v3.mul(J.front, -1))));
+    return { ...q, hn:h(1), hf:h(-1) }; };
+  const P = (o) => hands({ pz:0, gd:0, hl:0, ha:76, ...BACK, ...front(25.5, 8), ...o });
+  const top = P({ px:14, py:96.3, la:85, ca:82 });
+  const bottom = P({ px:-9.5, py:57.5, la:67, ca:63, ha:80 });
+  const stepIn = P({ px:10, py:96, la:85, ca:82, ...front(18, 20, [.9, -.3, 0]) });
+  const bad = P({ px:-6, py:63, la:70, ca:66, ha:82, ...front(9, 18, [.8, -.6, 0]), hl:1 });
+  return {
+    cam:{ target:[-6, 84, 0], yaw:36, sway:6, el:10, dist:420, zoom:1.9 },
+    sides:{ back:'N', front:'F' }, measure:['F'],
+    kneeN:[.3, -1, 0], kneeF:[1, .1, 0], elbowN:[-.5, 0, 1], elbowF:[-.5, 0, -1], guides:['tuck'],
+    props:(q, J) => [{ type:'box', lo:[-100, 0, -45], hi:[-43, 42, 45] }, { type:'box', lo:[-100, 42, -45], hi:[-80, 80, 45] }]
+      // knee step: a green line on the floor along the front foot, up to the knee (the way the knee must point)
+      .concat(q.gd < .5 ? [] : (() => { const h = J.heelF, f = J.fdF, k = J.kneeF, dir = v3.norm([f[0], 0, f[2]]), a = [h[0], .6, h[2]];
+        const e = v3.add(a, v3.mul(dir, Math.max(30, v3.dot(v3.sub(k, a), dir))));
+        return [{ type:'band', pts:[a, e, [e[0], k[1] - 5, e[2]]], col:'#2fa86a', w:1.1, bias:-20 }]; })())
+      // heel off the floor: a red mark in the gap under the front heel
+      .concat(q.hl < .5 ? [] : [{ type:'band', pts:[[J.heelF[0], .5, J.heelF[2]], [J.heelF[0], J.heelF[1] - 2.5, J.heelF[2]]], col:'#e8342a', w:1.4, bias:-30 }]),
+    keys:[
+      { p:top, hold:2000, move:2000, say:'c2', cp:'top', show:['tuck'], mus:{ stretch:['hip flexors:N'] } },
+      { p:bottom, hold:1900, move:1000, say:'c1', cp:'bottom', mus:{ work:['quads', 'glutes', 'hamstrings'] } },
+      // front-ish view for the knee: the green line runs along the front foot up to the knee
+      { p:{ ...bottom, gd:1 }, hold:2200, move:1000, say:'c3', cp:'bottom', cam:{ yaw:72, el:14 }, mus:{ work:['adductors'] } },
+      { p:top, hold:400, move:400, cp:'top' },
+      { p:stepIn, hold:0, move:1400 },
+      { p:bad, hold:2000, move:900, say:'m1', mark:['heelF', 'kneeF'] },
+      { p:stepIn, hold:0, move:400 },
+      { p:top, hold:1200, move:1800, say:'m1fix', cp:'top' },
+      { p:bottom, hold:2000, move:1000, say:'m1fix', cp:'bottom', mus:{ work:['glutes', 'quads'], stretch:['hip flexors:N'] } }] };
+})();
+
+// Lying band pulldown (docs/exercises.md): lying on the back on a mat, head toward the sofa (−x), knees bent, feet flat.
+// The sofa is a raised seat on 4 short legs; he lies in line with its near front leg and the tube loops round that leg at floor level, one strand to each hand. Legs are drawn first (bias) so the seat covers their tops.
+DEMO3['Lying band pulldown'] = (() => {
+  const Y = 16, A = 9.5, ANCHOR = [-154.5, 3, 0];
+  const legs = { an:[60, A, 11], af:[60, A, -11], fdN:[1, 0, 0], fdF:[1, 0, 0], kN:[0, 1, 0], kF:[0, 1, 0] };
+  const body = { px:0, py:Y, pz:0, la:180, ca:180, ha:180, se:0, ...legs };
+  // arms from the drawn shoulders. Overhead: straight-ish arm at shoulder flexion `fl`, elbow `el`.
+  // End: upper arm by the ribs (flexion `fl`, abduction `ab`), forearm folded up toward the head to elbow angle `el`.
+  const sh = q => { const J = human({ ...q, hn:[-100, 30, 20], hf:[-100, 30, -20] }, {}, 0).J; return J; };
+  const dirAt = (J, s, fl, ab) => { const o = s === 'N' ? 1 : -1, down = v3.mul(J.cax, -1), side = v3.mul(J.cl, o);
+    return v3.norm(v3.add(v3.mul(v3.add(v3.mul(down, Math.cos(rad(fl))), v3.mul(J.cf, Math.sin(rad(fl)))), Math.cos(rad(ab))), v3.mul(side, Math.sin(rad(ab))))); };
+  const arms = (q, fl, ab, el, bendUp) => { const J = sh(q), out = { ...q };
+    ['N', 'F'].forEach(s => { const S = J['sh' + s], u = dirAt(J, s, fl, ab), E = v3.add(S, v3.mul(u, BODY.upper));
+      // forearm: turn the "back along the upper arm" direction by (180 − el) toward bendUp
+      const b = v3.norm(v3.perp(bendUp(s, J), u)), back = v3.mul(u, -1), f = v3.add(v3.mul(back, Math.cos(rad(el))), v3.mul(b, Math.sin(rad(el))));
+      const G = v3.add(E, v3.mul(v3.norm(f), BODY.fore + BODY.grip));
+      out[s === 'N' ? 'hn' : 'hf'] = G; out['e' + s] = v3.sub(E, v3.lerp(S, G, .5)); });
+    return out; };
+  const start = arms(body, 158, 8, 170, (s, J) => J.cf);
+  const end = arms({ ...body, se:-1 }, -3, 20, 45, (s, J) => J.cf);
+  // mistake: arms too far back (past the line of the body), the waist lifts off the mat and the chest tips back: arched
+  const arch = arms({ ...body, py:Y + 3, la:164, ca:190, ha:186 }, 192, 8, 170, (s, J) => J.cf);
+  const tube = '#2f9e57';
+  return {
+    cam:{ target:[-48, 24, 0], yaw:18, sway:6, el:24, dist:420, zoom:2.15 },
+    floor:[-200, 100, -75, 75], elbowN:[0, .3, 1], elbowF:[0, .3, -1],
+    props:(q, J) => [
+      { type:'box', mat:true, lo:[-125, 0, -35], hi:[80, 1.5, 35] },
+      { type:'box', lo:[-218, 12, -180], hi:[-151, 42, 3.5] }, { type:'box', lo:[-218, 42, -180], hi:[-200, 80, 3.5] },
+      ...[[-158, -3.5], [-158, -180], [-218, -3.5], [-218, -180]].map(([x, z]) =>
+        ({ type:'box', lo:[x, 0, z], hi:[x + 7, 12, z + 7], cols:['#8b6b4e', '#6e523a', '#563f2c'], bias:500 })),
+      { type:'band', pts:[J.gripN, v3.add(ANCHOR, [5, 0, 5]), v3.add(ANCHOR, [-5, 0, 5]), v3.add(ANCHOR, [-5, 0, -5]), v3.add(ANCHOR, [5, 0, -5]), J.gripF], col:tube, w:1.3 }],
+    keys:[
+      { p:start, hold:2000, move:900, say:'c1', cp:'start', mus:{ work:['abs'], stretch:['lats'] } },
+      { p:end, hold:1900, move:300, say:'c2', cp:'end', mus:{ work:['lats', 'biceps'] } },
+      { p:end, hold:1900, move:2000, say:'c3', cp:'end', mus:{ work:['mid back', 'rear delts'] } },
+      { p:start, hold:500, move:1200, cp:'start' },
+      { p:arch, hold:2000, move:1200, say:'m1', mus:{ bad:['lower back'] }, mark:['waist'] },
+      { p:start, hold:2000, move:900, say:'m1fix', cp:'start', mus:{ work:['abs'], stretch:['lats'] } },
+      { p:end, hold:1200, move:2000, cp:'end', mus:{ work:['lats'] } }] };
+})();
 // ---------- Formatting ----------
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const range = ex => ex.min === ex.max ? ex.min : `${ex.min}–${ex.max}`;
