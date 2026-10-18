@@ -102,6 +102,14 @@ nav button .dot{position:absolute;top:6px;right:8px;width:7px;height:7px;border-
   padding:9px 8px;text-align:center;font-size:17px;font-variant-numeric:tabular-nums}
 .rrow{display:grid;grid-template-columns:1fr 56px;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--line);font-size:14px}
 .demowrap{grid-column:1 / -1}
+.mv{border:0;background:none;padding:0;text-align:left;font-size:14px;color:var(--ink)}
+.mv .small{display:block}
+.mv .play{color:var(--accent);font-size:13px}
+.demo3{max-width:420px;margin:2px auto;background:var(--input);border-radius:14px;overflow:hidden}
+.demo3d{display:block;width:100%}
+.demo3 .cap{font-size:14px;font-weight:600;padding:8px 12px 10px;min-height:2.6em}
+.demo3 .cap.good{color:var(--done)}
+.demo3 .cap.bad{color:var(--bad)}
 .demo{display:block;width:100%;max-width:340px;margin:2px auto;background:var(--input);border-radius:12px}
 .demo .floor{stroke:var(--line);stroke-width:2}
 .demo .prop{fill:var(--muted);opacity:.45}
@@ -551,16 +559,16 @@ function demoAt(d, t){
   t %= total;
   for(let i = 0; i < d.keys.length; i++){
     const k = d.keys[i], nx = d.keys[(i + 1) % d.keys.length];
-    if(t < k.hold) return { q:k.p, say:k.say };
+    if(t < k.hold) return { q:k.p, say:k.say, k, nx, e:0 };
     t -= k.hold;
     if(t < k.move){
       const u = t / k.move, e = u < .5 ? 2 * u * u : 1 - (2 - 2 * u) ** 2 / 2, q = {};
       for(const n in k.p) q[n] = k.p[n] + (nx.p[n] - k.p[n]) * e;
-      return { q };
+      return { q, k, nx, e };
     }
     t -= k.move;
   }
-  return { q:d.keys[0].p };
+  return { q:d.keys[0].p, k:d.keys[0], nx:d.keys[0], e:0 };
 }
 const demoSvg = name => `<svg class="demo" viewBox="0 0 200 130" data-name="${esc(name)}" role="img" aria-label="${esc(name)}, animated">
   ${DEMO[name].floor === false ? '' : '<line class="floor" x1="0" y1="125" x2="200" y2="125"/>'}${DEMO[name].props || ''}<g class="anim"></g></svg>`;
@@ -577,15 +585,185 @@ function drawDemo(svg, name, t){
 // one animation loop while a demo is on screen
 let demoOpen = null, demoRaf = 0;
 function runDemos(){
-  if(demoRaf) return;
-  const frame = now => {
-    const svgs = document.querySelectorAll('svg.demo');
-    if(!svgs.length){ demoRaf = 0; return; }
+  const drawAll = now => {
+    const svgs = document.querySelectorAll('svg.demo'), cvs = document.querySelectorAll('canvas.demo3d');
     svgs.forEach(s => drawDemo(s, s.dataset.name, now));
-    demoRaf = requestAnimationFrame(frame);
+    cvs.forEach(c => draw3d(c, c.dataset.name, now));
+    return svgs.length + cvs.length;
   };
+  drawAll(performance.now());   // first frame straight away, no blank box
+  if(demoRaf) return;
+  const frame = now => { demoRaf = drawAll(now) ? requestAnimationFrame(frame) : 0; };
   demoRaf = requestAnimationFrame(frame);
 }
+
+// ---------- 3D demos: a shaded mannequin drawn by the page (canvas; no files, no libraries) ----------
+// World in cm: x forward, y up, z toward the camera side; the floor is y = 0. Tips from research
+// (fitness.md §2b, "Desk reset tips") are shown as ✓/✗ captions, glowing body parts, guides and arrows.
+const v3 = {
+  add:(a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]], sub:(a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]],
+  mul:(a, s) => [a[0] * s, a[1] * s, a[2] * s], dot:(a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2],
+  cross:(a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]],
+  len:a => Math.hypot(a[0], a[1], a[2]), norm:a => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; },
+};
+const sag = deg => [Math.cos(deg * Math.PI / 180), Math.sin(deg * Math.PI / 180), 0];   // in the side plane; 90 = up
+// two-bone IK: middle joint (knee/elbow) for root → target, bending toward `hint`
+function ik(root, target, l1, l2, hint){
+  const d = v3.sub(target, root), dl = Math.min(v3.len(d), l1 + l2 - .01), u = v3.norm(d);
+  const v = v3.norm(v3.sub(hint, v3.mul(u, v3.dot(hint, u))));
+  const c = Math.max(-1, Math.min(1, (l1 * l1 + dl * dl - l2 * l2) / (2 * l1 * dl)));
+  return v3.add(root, v3.add(v3.mul(u, l1 * c), v3.mul(v, l1 * Math.sqrt(1 - c * c))));
+}
+const reach = (j, target, l) => v3.add(j, v3.mul(v3.norm(v3.sub(target, j)), l));
+const BODY = { thigh:44, shin:43, foot:19, lumbar:22, chest:28, neck:8, head:11, upper:29, fore:27, hip:10, sh:18 };
+// q: pelvis px,py · spine angles la (lumbar), ca (chest), ha (head) · ankles an*/af* · toe angles tn/tf ·
+// hands hn*/hf*; static per demo: knee and elbow hints. Near side = +z.
+function mannequin(q, d, breathe){
+  const B = BODY, P = [q.px, q.py, 0], items = [];
+  const cap = (a, b, r1, r2, tag) => items.push({ k:'c', a, b, r1, r2, tag });
+  const sph = (c, r, tag) => items.push({ k:'s', c, r, tag });
+  const hipN = v3.add(P, [0, 0, B.hip]), hipF = v3.add(P, [0, 0, -B.hip]);
+  const back = sag(q.la + 90), waist = v3.add(P, v3.mul(sag(q.la), B.lumbar)), neck = v3.add(waist, v3.mul(sag(q.ca), B.chest));
+  const head = v3.add(neck, v3.mul(sag(q.ha), B.neck + B.head));
+  const shN = v3.add(v3.add(neck, v3.mul(sag(q.ca), -5)), [0, 0, B.sh]), shF = v3.add(v3.add(neck, v3.mul(sag(q.ca), -5)), [0, 0, -B.sh]);
+  const legs = [[hipN, [q.anx, q.any, q.anz], q.tn, d.kneeN, 'N'], [hipF, [q.afx, q.afy, q.afz], q.tf, d.kneeF, 'F']];
+  legs.forEach(([h, an, ta, hint, s]) => {
+    const kn = ik(h, an, B.thigh, B.shin, hint), a = reach(kn, an, B.shin), toe = v3.add(a, v3.mul(sag(ta), B.foot));
+    cap(h, kn, 8, 5.6, 'thigh' + s); cap(kn, a, 5.4, 3.8, 'shin' + s); cap(a, toe, 3.6, 2.6, 'foot' + s); sph(kn, 5.6, 'knee' + s);
+    if(s === 'N') items.hipflex = [v3.add(h, v3.mul(back, -5)), v3.add(h, v3.mul(v3.sub(kn, h), .45))];
+    items['knee' + s] = kn; items['ankle' + s] = a;
+  });
+  [[shN, [q.hnx, q.hny, q.hnz], d.elbowN, 'N'], [shF, [q.hfx, q.hfy, q.hfz], d.elbowF, 'F']].forEach(([s, t, hint, n]) => {
+    const el = ik(s, t, B.upper, B.fore, hint), hand = reach(el, t, B.fore);
+    cap(s, el, 4.8, 4, 'arm' + n); cap(el, hand, 3.9, 3, 'fore' + n); sph(el, 4, 'elbow' + n); sph(hand, 4.2, 'hand' + n);
+  });
+  const br = 1 + .035 * breathe;
+  cap(hipF, hipN, 11, 11, 'pelvis');
+  [B.hip * .65, -B.hip * .65].forEach(z => sph(v3.add(v3.add(P, v3.mul(back, 7)), [0, -3, z]), 9.5, 'glute'));
+  cap(P, waist, 11.5, 12 * br, 'lowback');
+  cap(waist, v3.add(waist, v3.mul(sag(q.ca), B.chest * .62)), 13 * br, 14 * br, 'chest');
+  cap(shF, shN, 7.5, 7.5, 'shoulders');
+  cap(neck, v3.add(neck, v3.mul(sag(q.ha), B.neck + 2)), 4.6, 4.6, 'neck');
+  sph(head, B.head, 'head');
+  sph(v3.add(head, v3.mul(sag(q.ha - 90), B.head * .85)), 2.4, 'nose');
+  items.P = P; items.waist = waist; items.head = head;
+  return items;
+}
+function camera(c, w, h, t){
+  const yaw = (c.yaw + (c.sway || 0) * Math.sin(t / 4200)) * Math.PI / 180, el = c.el * Math.PI / 180;
+  const pos = v3.add(c.target, [Math.sin(yaw) * Math.cos(el) * c.dist, Math.sin(el) * c.dist, Math.cos(yaw) * Math.cos(el) * c.dist]);
+  const f = v3.norm(v3.sub(c.target, pos)), r = v3.norm(v3.cross(f, [0, 1, 0])), u = v3.cross(r, f), F = h * c.zoom;
+  return { pos, depth:p => v3.dot(v3.sub(p, pos), f),
+    proj:p => { const v = v3.sub(p, pos), z = v3.dot(v, f), s = F / z; return { x:w / 2 + v3.dot(v, r) * s, y:h * .55 - v3.dot(v, u) * s, s }; } };
+}
+const LIGHT = [-.55, -.83];
+function capPath(ctx, A, B, R1, R2){
+  let dx = B.x - A.x, dy = B.y - A.y; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;
+  ctx.moveTo(A.x - dy * R1, A.y + dx * R1); ctx.lineTo(B.x - dy * R2, B.y + dx * R2);
+  ctx.lineTo(B.x + dy * R2, B.y - dx * R2); ctx.lineTo(A.x + dy * R1, A.y - dx * R1); ctx.closePath();
+  ctx.moveTo(A.x + R1, A.y); ctx.arc(A.x, A.y, R1, 0, 7); ctx.moveTo(B.x + R2, B.y); ctx.arc(B.x, B.y, R2, 0, 7);
+}
+function shade(ctx, A, B, R, pal){   // cylinder shading: lit edge toward the light, dark rim away from it
+  let nx = -(B.y - A.y), ny = B.x - A.x; const l = Math.hypot(nx, ny) || 1; nx /= l; ny /= l;
+  if(nx * LIGHT[0] + ny * LIGHT[1] < 0){ nx = -nx; ny = -ny; }
+  const mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2, g = ctx.createLinearGradient(mx + nx * R, my + ny * R, mx - nx * R, my - ny * R);
+  g.addColorStop(0, pal[0]); g.addColorStop(.4, pal[1]); g.addColorStop(1, pal[2]); return g;
+}
+function box(ctx, cam, lo, hi, cols){   // a solid box (sofa, bench), faces shaded, back faces skipped
+  const C = (i, j, k) => [[lo, hi][i][0], [lo, hi][j][1], [lo, hi][k][2]];
+  const faces = [[[0,0,0],[0,1,0],[0,1,1],[0,0,1],[-1,0,0],2], [[1,0,0],[1,0,1],[1,1,1],[1,1,0],[1,0,0],1],
+    [[0,1,0],[1,1,0],[1,1,1],[0,1,1],[0,1,0],0], [[0,0,1],[0,1,1],[1,1,1],[1,0,1],[0,0,1],1], [[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0,0,-1],2]];
+  faces.forEach(([a, b, c, e, n, s]) => {
+    const pts = [a, b, c, e].map(p => C(...p)), mid = v3.mul(pts.reduce((m, p) => v3.add(m, p), [0, 0, 0]), .25);
+    if(v3.dot(n, v3.sub(cam.pos, mid)) <= 0) return;
+    ctx.beginPath(); pts.map(cam.proj).forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); ctx.closePath();
+    ctx.fillStyle = cols[s]; ctx.fill();
+  });
+}
+let shadowCv = null;
+function draw3d(cv, name, t){
+  const d = DEMO3[name], dpr = Math.min(2, window.devicePixelRatio || 1), w = cv.clientWidth * dpr, h = Math.round(w * .62);
+  if(cv.width !== w || cv.height !== h){ cv.width = w; cv.height = h; }
+  const ctx = cv.getContext('2d'), cam = camera(d.cam, w, h, t), css = getComputedStyle(document.documentElement);
+  const line = css.getPropertyValue('--line').trim(), dark = matchMedia('(prefers-color-scheme: dark)').matches && document.documentElement.dataset.theme !== 'light';
+  const st = demoAt(d, t), q = st.q, cur = st.k, nx = st.nx, e = st.e;
+  const wt = key => key === cur ? 1 - e : key === nx ? e : 0;   // how strongly a key's markers show right now
+  const has = (field, v) => ((cur[field] || []).includes(v) ? wt(cur) : 0) + (nx !== cur && (nx[field] || []).includes(v) ? wt(nx) : 0);
+  ctx.clearRect(0, 0, w, h);
+  // floor: grid fading out, then soft shadows
+  ctx.lineWidth = dpr; ctx.strokeStyle = line;
+  for(let x = -150; x <= 125; x += 25){ const a = cam.proj([x, 0, -75]), b = cam.proj([x, 0, 75]); ctx.globalAlpha = .55; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
+  for(let z = -75; z <= 75; z += 25){ const a = cam.proj([-150, 0, z]), b = cam.proj([125, 0, z]); ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
+  ctx.globalAlpha = 1;
+  const items = mannequin(q, d, Math.sin(t / 900));
+  shadowCv = shadowCv || document.createElement('canvas'); shadowCv.width = w; shadowCv.height = h;
+  const sc = shadowCv.getContext('2d'); sc.clearRect(0, 0, w, h); sc.fillStyle = '#000';
+  const flat = p => [p[0] + p[1] * .25, .2, p[2] - p[1] * .1];
+  (d.props || []).forEach(b => { sc.beginPath(); [[b.lo[0], b.lo[2]], [b.hi[0], b.lo[2]], [b.hi[0], b.hi[2]], [b.lo[0], b.hi[2]]]
+    .map(([x, z]) => cam.proj(flat([x + (b.hi[1] - b.lo[1]) * .1, b.hi[1], z]))).forEach((p, i) => i ? sc.lineTo(p.x, p.y) : sc.moveTo(p.x, p.y)); sc.fill(); });
+  items.forEach(it => { sc.beginPath();
+    if(it.k === 'c'){ const A = cam.proj(flat(it.a)), B = cam.proj(flat(it.b)); capPath(sc, A, B, it.r1 * A.s, it.r2 * B.s); }
+    else { const C = cam.proj(flat(it.c)); sc.arc(C.x, C.y, it.r * C.s, 0, 7); }
+    sc.fill(); });
+  ctx.save(); ctx.globalAlpha = dark ? .5 : .22; ctx.filter = `blur(${6 * dpr}px)`; ctx.drawImage(shadowCv, 0, 0); ctx.restore();
+  (d.props || []).forEach(b => box(ctx, cam, b.lo, b.hi, dark ? ['#5d6878', '#465161', '#38414e'] : ['#c9ced6', '#aab1bc', '#8d95a1']));
+  // body, far parts first; each part shaded like a cylinder, then any marker on it
+  const pal = ['#fbf6ee', '#dccfbd', '#8f7f6b'], glowCol = { good:'61,190,120', warn:'255,145,40', bad:'235,70,60' };
+  items.forEach(it => it.z = cam.depth(it.k === 'c' ? v3.mul(v3.add(it.a, it.b), .5) : it.c));
+  items.sort((a, b) => b.z - a.z).forEach(it => {
+    ctx.beginPath();
+    if(it.k === 'c'){ const A = cam.proj(it.a), B = cam.proj(it.b); capPath(ctx, A, B, it.r1 * A.s, it.r2 * B.s); ctx.fillStyle = shade(ctx, A, B, Math.max(it.r1 * A.s, it.r2 * B.s), pal); }
+    else { const C = cam.proj(it.c), R = it.r * C.s, g = ctx.createRadialGradient(C.x + LIGHT[0] * R * .4, C.y + LIGHT[1] * R * .4, R * .1, C.x, C.y, R * 1.05);
+      g.addColorStop(0, pal[0]); g.addColorStop(.55, pal[1]); g.addColorStop(1, pal[2]); ctx.arc(C.x, C.y, R, 0, 7); ctx.fillStyle = g; }
+    ctx.fill();
+    for(const [kind, col] of [['glow', 'warn'], ['good', 'good'], ['bad', 'bad']]){
+      const a = has(kind, it.tag) || (it.tag !== 'nose' && has('tint', kind) * .55);
+      if(a > .01){ ctx.fillStyle = `rgba(${glowCol[col]},${(.55 * a * (.75 + .25 * Math.sin(t / 160))).toFixed(3)})`; ctx.fill(); }
+    }
+  });
+  // stretch marker: the front of the back hip glows where the stretch is felt
+  const hf = has('glow', 'hipflex');
+  if(hf > .01){ const A = cam.proj(items.hipflex[0]), B = cam.proj(items.hipflex[1]);
+    ctx.beginPath(); capPath(ctx, A, B, 6 * A.s, 4.5 * B.s); ctx.fillStyle = `rgba(255,145,40,${(.75 * hf * (.7 + .3 * Math.sin(t / 160))).toFixed(3)})`; ctx.fill(); }
+  // guides: vertical line along the front shin; curved arrow for the pelvis tuck
+  const accent = `rgba(61,190,120,`;
+  const sh = has('show', 'shin');
+  if(sh > .01){ const k = items.kneeF, a = items.ankleF, A = cam.proj([a[0], 0, a[2]]), K = cam.proj([a[0], k[1] + 14, a[2]]);
+    ctx.save(); ctx.setLineDash([6 * dpr, 5 * dpr]); ctx.lineWidth = 2.5 * dpr; ctx.strokeStyle = accent + sh + ')';
+    ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(K.x, K.y); ctx.stroke(); ctx.restore(); }
+  const tk = has('show', 'tuck');
+  if(tk > .01){ const pts = []; for(let a = 150; a <= 245; a += 5) pts.push(cam.proj(v3.add(items.P, v3.add(v3.mul(sag(a + q.la - 90), 24), [0, 0, 16]))));
+    ctx.lineWidth = 3.5 * dpr; ctx.strokeStyle = ctx.fillStyle = accent + tk + ')'; ctx.lineCap = 'round';
+    ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); ctx.stroke();
+    const p = pts[pts.length - 1], o = pts[pts.length - 3], an = Math.atan2(p.y - o.y, p.x - o.x), L = 11 * dpr;
+    ctx.beginPath(); ctx.moveTo(p.x + Math.cos(an) * 4, p.y + Math.sin(an) * 4);
+    ctx.lineTo(p.x - Math.cos(an - .5) * L, p.y - Math.sin(an - .5) * L); ctx.lineTo(p.x - Math.cos(an + .5) * L, p.y - Math.sin(an + .5) * L); ctx.fill(); }
+  // caption under the picture: the tip for this moment
+  const capEl = cv.nextElementSibling, say = (e < .5 ? cur : nx).say || '';
+  if(capEl && capEl.dataset.say !== say){ capEl.dataset.say = say; capEl.textContent = say; capEl.className = 'cap' + (say.startsWith('✗') ? ' bad' : say ? ' good' : ''); }
+}
+const DEMO3 = {
+  'Couch stretch': {
+    cam:{ target:[-14, 52, 0], yaw:24, sway:8, el:17, dist:360, zoom:2.0 },
+    props:[{ lo:[-100, 0, -45], hi:[-43, 42, 45] }, { lo:[-100, 42, -45], hi:[-80, 80, 45] }],
+    kneeN:[.3, -1, 0], kneeF:[.4, 1, 0], elbowN:[-.6, 0, 1], elbowF:[-.6, 0, -1],
+    keys:[
+      { p:{ px:-23, py:47, la:62, ca:50, ha:38, anx:-46, any:47, anz:10, tn:178, afx:28, afy:8, afz:-11, tf:-4,
+            hnx:21, hny:56, hnz:2, hfx:21, hfy:56, hfz:-14 }, hold:1900, move:1000,
+        say:'✓ Back knee down by the sofa, foot on the seat · front shin straight up', show:['shin'] },
+      { p:{ px:-21, py:47, la:76, ca:56, ha:42, anx:-46, any:47, anz:10, tn:178, afx:28, afy:8, afz:-11, tf:-4,
+            hnx:21, hny:56, hnz:2, hfx:21, hfy:56, hfz:-14 }, hold:1900, move:1200,
+        say:'✓ First tuck the pelvis: squeeze the glutes, ribs down', show:['tuck'], good:['glute'] },
+      { p:{ px:-14, py:48, la:93, ca:93, ha:93, anx:-46, any:47, anz:10, tn:178, afx:28, afy:8, afz:-11, tf:-4,
+            hnx:-24, hny:47, hnz:17, hfx:-24, hfy:47, hfz:-19 }, hold:2800, move:1000,
+        say:'✓ Rise tall, feel it in the front of the hip · breathe, 45 s', glow:['hipflex'] },
+      { p:{ px:-9, py:48, la:122, ca:108, ha:100, anx:-46, any:47, anz:10, tn:178, afx:28, afy:8, afz:-11, tf:-4,
+            hnx:-20, hny:47, hnz:17, hfx:-20, hfy:47, hfz:-19 }, hold:1800, move:1000,
+        say:'✗ Don’t lean back and arch the lower back', tint:['bad'], bad:['lowback'] },
+      { p:{ px:-14, py:48, la:93, ca:93, ha:93, anx:-46, any:47, anz:10, tn:178, afx:28, afy:8, afz:-11, tf:-4,
+            hnx:-24, hny:47, hnz:17, hfx:-24, hfy:47, hfz:-19 }, hold:1300, move:1200,
+        say:'✓ Tall, ribs down, pelvis tucked', tint:['good'] }]},
+};
 
 // ---------- Formatting ----------
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -643,10 +821,10 @@ function renderDay(day){
       <span class="small">${reset.length}/${reset.length} · tap to open</span></span></button>`;
   else h += `<div class="box reset"><h3>Desk reset (~5 min) <span class="small">${resetDone(d)}/${reset.length}</span></h3>
     ${reset.map((r, k) => `<div class="rrow ${(d.reset || [])[k] ? 'done' : ''}">
-      <div><b>${esc(r.name)}</b> · ${esc(r.dose)}<div class="small">${esc(r.cue)}</div>
-        ${DEMO[r.name] ? `<button class="link" data-demo="${esc(r.name)}">${demoOpen === r.name ? '✕ hide' : '▶ how'}</button>` : ''}</div>
+      <button class="mv" data-demo="${esc(r.name)}" aria-expanded="${demoOpen === r.name}" title="Tap to see how">
+        <b>${esc(r.name)}</b> · ${esc(r.dose)} <span class="play">${demoOpen === r.name ? '▾' : '▸'}</span><span class="small">${esc(r.cue)}</span></button>
       <button class="tick" data-reset="${k}" aria-label="${esc(r.name)} done">✓</button>
-      ${demoOpen === r.name ? `<div class="demowrap">${demoSvg(r.name)}</div>` : ''}</div>`).join('')}
+      ${demoOpen === r.name ? `<div class="demowrap">${DEMO3[r.name] ? `<div class="demo3"><canvas class="demo3d" data-name="${esc(r.name)}" role="img" aria-label="${esc(r.name)}, 3D animation"></canvas><div class="cap"></div></div>` : demoSvg(r.name)}</div>` : ''}</div>`).join('')}
     <div class="small">Hip flexors are the stretch that matters most. ${day === 'home' ? 'Start every set with the same band and distance as last time.' : 'Warm-up sets only for exercise 1.'}</div></div>`;
 
   p.ex.forEach((ex, i) => {
