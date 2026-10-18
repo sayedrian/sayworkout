@@ -907,7 +907,9 @@ function tickClock(){
   keepAwake();
   const pill = document.getElementById('wake');
   pill.classList.toggle('on', !!wakeLock);
-  pill.title = wakeLock ? 'The screen stays on during the workout' : 'This browser can’t keep the screen on';
+  pill.title = wakeLock ? 'The screen stays on during the workout'
+    : !touchedRecently() ? 'No touch for 3 min — the phone may lock. Touch the screen to keep it on.'
+    : 'This browser can’t keep the screen on';
   pill.hidden = !d || !d.startedAt || !!PAGES[view];
   if(pill.hidden){ el.textContent = ''; return; }
   const s = Math.floor((Date.now() - d.startedAt) / 1000);
@@ -917,9 +919,16 @@ setInterval(() => { tickRest(); tickClock(); }, 250);
 
 // No button (user, 2026-10-18): the screen stays on while any workout is running and is let go
 // when none is. The phone's own lock still works; coming back to the app turns it on again.
+// For safety it is also let go after 3 min without a touch, counted from the last touch or the
+// end of the rest timer, whichever is later — so the phone locks itself if left on a bench.
 let wakeLock = null, wakeAsking = false, wakeRefused = false;
+const IDLE_MS = 3 * 60000;
+let lastTouch = Date.now(), restUntil = 0;
+['pointerdown', 'click', 'keydown', 'input'].forEach(e => document.addEventListener(e, () => { lastTouch = Date.now(); }, true));
+const touchedRecently = () => Date.now() - Math.max(lastTouch, restUntil) < IDLE_MS;
 async function keepAwake(){
-  const want = ALL.some(d => drafts[d]?.startedAt) && document.visibilityState === 'visible';
+  if(restEnd) restUntil = restEnd;
+  const want = ALL.some(d => drafts[d]?.startedAt) && document.visibilityState === 'visible' && touchedRecently();
   if(want && !wakeLock && !wakeAsking && !wakeRefused){
     wakeAsking = true;
     try{
