@@ -312,9 +312,9 @@ const PLAN = {
     {name:'Bulgarian split squat', sets:3, min:10, max:15, side:true, sideWord:'leg', rest:60,
       cue:'Back foot on the sofa. All reps one leg, then the other. Front heel stays down.',
       alts:['Reverse lunge']},
-    {name:'Overhead band pulldown', sets:3, min:12, max:15, rest:60,
-      cue:'Kneel tall, tube overhead in both hands. Pull it apart and down to the upper chest, elbows to the ribs, squeeze 1 s.',
-      alts:[]},
+    {name:'Lying band pulldown', sets:3, min:12, max:15, rest:60,
+      cue:'On your back, head to the sofa, tube round a sofa leg. Elbows down to the ribs, squeeze 1 s. Back flat on the mat.',
+      alts:['Lying band pullover']},
     {name:'Lying back raise', sets:3, min:12, max:12, rest:60,
       cue:'Face down on the mat. Squeeze the glutes, lift the chest a little, hold 2 s. Look at the floor; don’t crank up.',
       alts:['Lying arm-leg raise']},
@@ -370,7 +370,7 @@ const BANDS = {
   loop:  { word:'Loop band', stack:false, list:[['Heavy','#222'],['Medium','#e58fb0']] },
 };
 const BAND_OF = { 'Glute bridge':'loop', 'Single-leg glute bridge':'loop', 'Seated band row':'tube',
-  'Bent-over band row':'tube', 'Overhead band pulldown':'tube', 'Band pull-apart':'power' };
+  'Bent-over band row':'tube', 'Lying band pulldown':'tube', 'Lying band pullover':'tube', 'Band pull-apart':'power' };
 const bandOf = name => BAND_OF[name] || null;
 const bandKg = (name, colours) => {
   const b = BANDS[bandOf(name)];
