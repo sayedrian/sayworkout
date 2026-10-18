@@ -743,6 +743,8 @@ function expandProp(p){
   if(p.type === 'bar'){ const ax = v3.norm(v3.sub(p.b, p.a)), out = [{ type:'cyl', a:p.a, b:p.b, r:1.6, m:'steel' }];
     (p.plates || []).forEach(([s, r, wdt]) => { const c = v3.lerp(p.a, p.b, s); out.push({ type:'cyl', a:v3.sub(c, v3.mul(ax, wdt / 2)), b:v3.add(c, v3.mul(ax, wdt / 2)), r, m:'iron' }); });
     return out; }
+  if(p.type === 'band' && p.pts.length > 2)   // each piece in its own depth (a band round the body hides behind it)
+    return p.pts.slice(1).map((b, i) => ({ ...p, pts:[p.pts[i], b] }));
   return [p];
 }
 function drawProp(ctx, cam, p, dark, dpr){
@@ -761,7 +763,8 @@ function sayText(name, code){
   if(m[1] === 'c') return '✓ ' + (h.cues || [])[m[2] - 1];
   if(m[1] === 'cap') return '✓ ' + (h.captions || [])[m[2] - 1];
   const [bad, fix] = ((h.mistakes || [])[m[2] - 1] || '').split(' → ');
-  return m[3] ? fix : bad;
+  const up = x => x ? x.replace(/^([✓✗] )(\p{Ll})/u, (_, a, b) => a + b.toUpperCase()) : x;   // "✓ step the foot…" → "✓ Step the foot…"
+  return up(m[3] ? fix : bad);
 }
 // one moment of a demo: pose, the step and the next one, and how far between them (e = 0 … 1)
 function demoAt(d, t){
@@ -785,11 +788,16 @@ let shadowCv = null;
 function draw3d(cv, name, t){
   const d = DEMO3[name], dpr = Math.min(2, window.devicePixelRatio || 1), w = Math.max(300, cv.clientWidth || 360) * dpr, h = Math.round(w * .62);
   if(cv.width !== w || cv.height !== h){ cv.width = w; cv.height = h; }
-  const ctx = cv.getContext('2d'), cam = camera(d.cam, w, h, t), css = getComputedStyle(document.documentElement);
-  const line = css.getPropertyValue('--line').trim() || '#ccc', dark = matchMedia('(prefers-color-scheme: dark)').matches && document.documentElement.dataset.theme !== 'light';
   const st = demoAt(d, t), q = st.q, cur = st.k, nx = st.nx, e = st.e;
+  // a step may change the camera (cam:{yaw, el, …}); it glides there during the move
+  const camOf = k => ({ ...d.cam, ...(k.cam || {}) }), c0 = camOf(cur), c1 = camOf(nx), mix = (a, b) => Array.isArray(a) ? a.map((v, i) => v + (b[i] - v) * e) : a + (b - a) * e;
+  const camNow = Object.fromEntries(Object.keys(c0).map(k => [k, typeof c0[k] === 'number' || Array.isArray(c0[k]) ? mix(c0[k], c1[k] ?? c0[k]) : c0[k]]));
+  const ctx = cv.getContext('2d'), cam = camera(camNow, w, h, t), css = getComputedStyle(document.documentElement);
+  const line = css.getPropertyValue('--line').trim() || '#ccc', dark = matchMedia('(prefers-color-scheme: dark)').matches && document.documentElement.dataset.theme !== 'light';
   const wt = key => key === cur ? 1 - e : key === nx ? e : 0;   // how strongly a key's markers show right now
-  const has = (role, v) => ((cur.mus?.[role] || []).includes(v) ? wt(cur) : 0) + (nx !== cur && (nx.mus?.[role] || []).includes(v) ? wt(nx) : 0);
+  const pick = (k, role, v) => (k.mus?.[role] || []).find(x => x.split(':')[0] === v);   // 'hip flexors:N' = that side only
+  const has = (role, v) => (pick(cur, role, v) ? wt(cur) : 0) + (nx !== cur && pick(nx, role, v) ? wt(nx) : 0);
+  const sideOf = (role, v) => ((e < .5 ? pick(cur, role, v) : pick(nx, role, v)) || pick(cur, role, v) || pick(nx, role, v) || '').split(':')[1];
   const shows = v => ((cur.show || []).includes(v) ? wt(cur) : 0) + (nx !== cur && (nx.show || []).includes(v) ? wt(nx) : 0);
   ctx.clearRect(0, 0, w, h);
   // floor: grid fading out
@@ -847,7 +855,7 @@ function draw3d(cv, name, t){
   const labels = [];
   ['bad', 'stretch', 'work'].forEach(role => MUSCLES.forEach(word => {
     const a = has(role, word); if(a < .02 || !items.mus[word]) return;
-    const sides = items.mus[word], side = Object.keys(sides).sort((x, y) => cam.depth(sides[x][0].a) - cam.depth(sides[y][0].a))[0];
+    const sides = items.mus[word], forced = sideOf(role, word), side = forced && sides[forced] ? forced : Object.keys(sides).sort((x, y) => cam.depth(sides[x][0].a) - cam.depth(sides[y][0].a))[0];
     const col = ROLE[role];
     sides[side].forEach(m => {
       const vis = v3.dot(m.n, v3.sub(cam.pos, m.a)) > 0 ? 1 : .6, al = a * vis * (.82 + .18 * Math.sin(t / 220));
