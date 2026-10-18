@@ -129,6 +129,7 @@ details.sess summary span{font-weight:400;color:var(--muted);font-size:13px}
 .bands{display:flex;flex-wrap:wrap;gap:6px;padding:4px 14px 6px}
 .chip{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 11px;font-size:13px}
 .chip .sw{width:12px;height:12px;border-radius:50%;border:1px solid var(--muted)}
+.chip .kg{opacity:.7;font-size:12px}
 .chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
 .rep table{width:100%;border-collapse:collapse;font-size:14px}
 .rep th{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;font-weight:600}
@@ -254,24 +255,24 @@ const PLAN = {
     {name:'Ab wheel rollout', sets:3, min:8, max:12, rest:60,
       cue:'Kneel on the mat. Distance, not reps. Stop the moment the lower back sags. Ribs down.',
       alts:['Dead bug']},
-    {name:'Band row (neutral grip)', sets:4, min:10, max:15, rest:75,
-      cue:'Door anchor at chest height. Same number of steps back every time. Elbows back and close to the ribs, squeeze 1 s.',
-      alts:['Single-arm band row']},
+    {name:'Seated band row', sets:4, min:10, max:15, rest:75,
+      cue:'Sit on the mat, legs straight, tube round the soles of the feet. Neutral grip, elbows back and close to the ribs, squeeze 1 s.',
+      alts:['Bent-over band row']},
     {name:'Push-up on handles', sets:3, min:8, max:15, rest:75,
       cue:'Straight wrists, body in one line, chest below the hands. Elbows about 45° from the body.',
       alts:['Feet-elevated push-up']},
     {name:'Bulgarian split squat', sets:3, min:10, max:15, side:true, sideWord:'leg', rest:60,
       cue:'Back foot on the sofa. All reps one leg, then the other. Front heel stays down.',
       alts:['Reverse lunge']},
-    {name:'Band pulldown (kneeling)', sets:3, min:12, max:15, rest:60,
-      cue:'Door anchor at the top. Kneel facing the door, pull the elbows down to the ribs, squeeze 1 s.',
-      alts:['Band straight-arm pulldown']},
+    {name:'Overhead band pulldown', sets:3, min:12, max:15, rest:60,
+      cue:'Kneel tall, tube overhead in both hands. Pull it apart and down to the upper chest, elbows to the ribs, squeeze 1 s.',
+      alts:[]},
     {name:'Lying back raise', sets:3, min:12, max:12, rest:60,
       cue:'Face down on the mat. Squeeze the glutes, lift the chest a little, hold 2 s. Look at the floor; don’t crank up.',
       alts:['Lying arm-leg raise']},
     {name:'Band pull-apart', sets:3, min:15, max:20, rest:45,
       cue:'Arms straight at shoulder height, pull the band to the chest, squeeze the shoulder blades.',
-      alts:['Band face pull']},
+      alts:['Lying Y-raise']},
   ]},
 };
 const DAYS = ['mon','wed','fri'];       // the gym rotation A → B → C
@@ -289,7 +290,7 @@ const RESET = [
 const RESET_HOME = [
   { name:'Couch stretch', dose:'45 s / side', cue:'Back foot up on the sofa, squeeze that glute, ribs down.' },
   RESET[1], RESET[2],
-  { name:'Deep squat hold', dose:'45 s', cue:'Hold the door frame, heels down, chest up. +15 s when easy.' },
+  { name:'Deep squat hold', dose:'45 s', cue:'Arms forward (or hold the sofa), heels down, chest up. +15 s when easy.' },
   { name:'Foam roll upper back', dose:'60 s', cue:'Roller across the shoulder blades, hands behind the head. Not on the lower back.' },
 ];
 const resetFor = day => day === 'home' ? RESET_HOME : RESET;
@@ -312,16 +313,16 @@ ALL.forEach(d => PLAN[d].ex.forEach((e, i) => e.mg = MG[d][i]));
 
 // Bands (Home kit, 2026-10-18): tap the colours used, the page adds up their kg.
 // Tubes stack on one handle; power bands use the top of their label; loop bands have no kg.
+// Strongest first (user, 2026-10-18), so the next step up is the chip to the left.
 const BANDS = {
-  tube:  { word:'Tubes', stack:true, list:[['Yellow','#e8c62e',4.6],['Green','#3a9d4f',9.1],['Red','#d0342c',13.6],
-           ['Blue','#2f6fd0',18.2],['Black','#222',22.8]] },
-  power: { word:'Power band', stack:true, list:[['Blue','#2f6fd0',11.3],['Green','#3a9d4f',15.9],['Purple','#7a4bc2',22.7],
-           ['Yellow','#e8c62e',36.3],['Red','#d0342c',56.7],['Black','#222',60]] },
-  loop:  { word:'Loop band', stack:false, list:[['Medium','#e58fb0'],['Heavy','#222']] },
+  tube:  { word:'Tubes', stack:true, list:[['Black','#222',22.8],['Blue','#2f6fd0',18.2],['Red','#d0342c',13.6],
+           ['Green','#3a9d4f',9.1],['Yellow','#e8c62e',4.6]] },
+  power: { word:'Power band', stack:true, list:[['Black','#222',60],['Red','#d0342c',56.7],['Yellow','#e8c62e',36.3],
+           ['Purple','#7a4bc2',22.7],['Green','#3a9d4f',15.9],['Blue','#2f6fd0',11.3]] },
+  loop:  { word:'Loop band', stack:false, list:[['Heavy','#222'],['Medium','#e58fb0']] },
 };
-const BAND_OF = { 'Glute bridge':'loop', 'Single-leg glute bridge':'loop', 'Band row (neutral grip)':'tube',
-  'Single-arm band row':'tube', 'Band pulldown (kneeling)':'tube', 'Band straight-arm pulldown':'tube',
-  'Band face pull':'tube', 'Band pull-apart':'power' };
+const BAND_OF = { 'Glute bridge':'loop', 'Single-leg glute bridge':'loop', 'Seated band row':'tube',
+  'Bent-over band row':'tube', 'Overhead band pulldown':'tube', 'Band pull-apart':'power' };
 const bandOf = name => BAND_OF[name] || null;
 const bandKg = (name, colours) => {
   const b = BANDS[bandOf(name)];
@@ -340,7 +341,7 @@ const loadOf = name => /assisted/i.test(name) ? 'assist' : PER_HAND.has(name) ? 
 const LOAD_HEAD = { total:'kg total', hand:'kg / hand', assist:'assist kg' };
 // Body-weight exercises (2026-10-16): 'only' → no weight box at all; 'plus' → body weight, extra kg optional.
 const BW_ONLY = new Set(['Ab wheel rollout','Barbell rollout','Swiss ball rollout','Hollow hold','Dead bug',
-  'Nordic curl','Close-grip push-up','Push-up on handles','Feet-elevated push-up','Lying back raise','Lying arm-leg raise']);
+  'Nordic curl','Close-grip push-up','Push-up on handles','Feet-elevated push-up','Lying back raise','Lying arm-leg raise','Lying Y-raise']);
 const BW_PLUS = new Set(['Bulgarian split squat','Walking lunge','Step-up','Reverse lunge','Plank','Side plank',
   'Single-leg hip thrust','45° back extension','Weighted push-up']);
 const bwOf = name => BW_ONLY.has(name) ? 'only' : BW_PLUS.has(name) ? 'plus' : null;
@@ -510,8 +511,8 @@ function renderDay(day){
       ${hint ? `<div class="hint">${esc(hint)}</div>` : ''}
       ${last ? `<div class="last">Last (${dateTxt(last.at)}): ${last.sets.map(s => esc(setTxt(s, ex, slot.name))).join(' · ')}</div>` : ''}
       ${unit ? `<div class="unitnote">${esc(unit)}</div>` : ''}
-      ${band ? `<div class="bands">${BANDS[band].list.map(([c, col]) =>
-        `<button class="chip" data-band="${i}.${esc(c)}" aria-pressed="${picked.includes(c)}"><span class="sw" style="background:${col}"></span>${esc(c)}</button>`).join('')}</div>` : ''}
+      ${band ? `<div class="bands">${BANDS[band].list.map(([c, col, kg]) =>
+        `<button class="chip" data-band="${i}.${esc(c)}" aria-pressed="${picked.includes(c)}"><span class="sw" style="background:${col}"></span>${esc(c)}${kg ? ` <span class="kg">${kg}</span>` : ''}</button>`).join('')}</div>` : ''}
       <div class="sets">
         <div class="row head"><span></span><span>${headOf(slot.name)}</span><span>${ex.time ? 'sec' : 'reps'}</span><span></span></div>
         ${slot.sets.map((s, j) => {
