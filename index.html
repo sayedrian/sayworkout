@@ -47,8 +47,23 @@ button{cursor:pointer}
 header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);
   padding-top:env(safe-area-inset-top)}
 .top{display:flex;align-items:center;gap:8px;padding:10px 0 6px}
-.top h1{font-size:17px;margin:0;flex:1}
-.clock{font-variant-numeric:tabular-nums;color:var(--muted);font-size:14px}
+.top h1{font-size:17px;margin:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.clock,.prog{font-variant-numeric:tabular-nums;color:var(--muted);font-size:14px}
+.icon{border:0;background:none;font-size:22px;line-height:1;padding:2px 6px;color:var(--ink)}
+.sdot{width:9px;height:9px;border-radius:50%;background:var(--done)}
+.sdot.wait{background:var(--hint)}
+header .wrap{position:relative}
+.menu{position:absolute;right:16px;top:46px;z-index:6;background:var(--card);
+  border:1px solid var(--line);border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.18);overflow:hidden;min-width:170px}
+.menu[hidden]{display:none}
+.menu button{display:block;width:100%;text-align:left;border:0;background:none;padding:13px 16px;font-size:16px}
+.menu button+button{border-top:1px solid var(--line)}
+.menu button[aria-current="true"]{font-weight:700}
+button.fold{display:flex;width:100%;align-items:center;gap:10px;text-align:left;background:var(--card);
+  border:1px solid var(--done);border-radius:14px;padding:10px 14px;margin:10px 0}
+button.fold .num{background:var(--done);color:var(--card)}
+button.fold .what{flex:1;min-width:0}
+button.fold .small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pill{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 11px;font-size:13px}
 .pill.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 nav{display:flex;gap:6px;padding:4px 0 10px}
@@ -151,9 +166,18 @@ details.sess summary span{font-weight:400;color:var(--muted);font-size:13px}
 <header>
   <div class="wrap">
     <div class="top">
-      <h1>Full Body 3</h1>
+      <button class="icon" id="back" aria-label="Back to the workout" hidden>←</button>
+      <h1 id="title">Full Body 3</h1>
+      <span class="prog" id="prog"></span>
       <span class="clock" id="clock"></span>
+      <span class="sdot" id="sdot" hidden></span>
       <button class="pill" id="wake" title="Keep the screen on during the workout">Screen on</button>
+      <button class="icon" id="more" aria-label="Menu" aria-expanded="false">⋯</button>
+    </div>
+    <div class="menu" id="menu" hidden>
+      <button data-tab="history">History</button>
+      <button data-tab="report">Report</button>
+      <button data-tab="settings">Settings</button>
     </div>
     <nav id="tabs"></nav>
   </div>
@@ -458,19 +482,35 @@ const setTxt = (s, ex, name, bw) => {
 
 // ---------- Render ----------
 const $main = document.getElementById('main');
+// Workouts are the tabs; History, Report and Settings sit behind the ⋯ menu, with ← back to the workout.
+const PAGES = { history:'History', report:'Report', settings:'Settings' };
+let lastDay = view;          // where ← goes back to
+const opened = new Set();    // folded cards the user tapped open again (until the tab changes)
 function render(){
+  const page = PAGES[view];
+  if(!page) lastDay = view;
+  document.getElementById('tabs').hidden = !!page;
+  document.getElementById('back').hidden = !page;
+  document.getElementById('title').textContent = page || PLAN[view].title;
   document.getElementById('tabs').innerHTML =
-    ALL.map(d => `<button data-tab="${d}" aria-current="${view===d}">${PLAN[d].tab}${drafts[d]?.startedAt ? '<span class="dot"></span>' : ''}</button>`).join('') +
-    `<button data-tab="log" aria-current="${view==='log'}">Log</button>` +
-    `<button data-tab="report" aria-current="${view==='report'}">Report</button>`;
-  view === 'log' ? renderLog() : view === 'report' ? renderReport() : renderDay(view);
+    ALL.map(d => `<button data-tab="${d}" aria-current="${view===d}">${PLAN[d].tab}${drafts[d]?.startedAt ? '<span class="dot"></span>' : ''}</button>`).join('');
+  document.querySelectorAll('#menu [data-tab]').forEach(b => b.setAttribute('aria-current', b.dataset.tab === view));
+  view === 'history' ? renderHistory() : view === 'settings' ? renderSettings() : view === 'report' ? renderReport() : renderDay(view);
   tickClock();
+}
+function showMenu(on){
+  document.getElementById('menu').hidden = !on;
+  document.getElementById('more').setAttribute('aria-expanded', on);
 }
 
 function renderDay(day){
   const p = PLAN[day], d = draft(day, false), reset = resetFor(day);
-  let h = `<p class="focus">${p.title} — ${p.focus}</p>
-  <div class="box reset"><h3>Desk reset (~5 min) <span class="small">${resetDone(d)}/${reset.length}</span></h3>
+  let h = `<p class="focus">${p.focus}</p>`;
+  // a finished desk reset folds to one line; tap to open it again
+  if(resetDone(d) === reset.length && !opened.has('reset'))
+    h += `<button class="fold" data-unfold="reset"><span class="num">✓</span><span class="what"><b>Desk reset</b>
+      <span class="small">${reset.length}/${reset.length} · tap to open</span></span></button>`;
+  else h += `<div class="box reset"><h3>Desk reset (~5 min) <span class="small">${resetDone(d)}/${reset.length}</span></h3>
     ${reset.map((r, k) => `<div class="rrow ${(d.reset || [])[k] ? 'done' : ''}">
       <div><b>${esc(r.name)}</b> · ${esc(r.dose)}<div class="small">${esc(r.cue)}</div></div>
       <button class="tick" data-reset="${k}" aria-label="${esc(r.name)} done">✓</button></div>`).join('')}
@@ -488,7 +528,7 @@ function renderDay(day){
              : bwk === 'only' ? '' : load === 'hand' ? 'Dumbbells: enter the weight of one dumbbell.' : '';
     if(load === 'assist'){
       const lifts = slot.sets.filter(s => s.kg !== '').map(s => lifted(s, slot.name));
-      unit = !bodyweight ? 'Enter the assist. Add your body weight in Log to see what you lift.'
+      unit = !bodyweight ? 'Enter the assist. Add your body weight in ⋯ → Settings to see what you lift.'
            : `Enter the assist. You lift ${bodyweight} − assist${lifts.length && lifts.every(l => l != null) ? `: ${lifts.join(' · ')} kg` : ''}.`;
     }
     if(band){
@@ -500,6 +540,12 @@ function renderDay(day){
     if(i === 0 && !band && !bwk){
       const top = last ? Math.max(...last.sets.map(s => +s.kg || 0)) : 0;
       hint = (top ? `Warm-up sets: ${round(top*.5, 2.5)} kg × 5, then ${round(top*.8, 2.5)} kg × 3. ` : 'Warm-up sets: ~50% × 5, then ~80% × 3. ') + hint;
+    }
+    // a finished exercise folds to one line with what was done; tap to open it again
+    if(doneCount >= slot.sets.length && !opened.has(i)){
+      h += `<button class="fold ex" data-unfold="${i}"><span class="num">✓</span><span class="what"><b>${esc(slot.name)}</b>
+        <span class="small">${slot.sets.map(s => esc(setTxt(s, ex, slot.name))).join(' · ')}</span></span></button>`;
+      return;
     }
     h += `<article class="ex ${doneCount >= slot.sets.length ? 'complete' : ''}">
       <div class="ex-head"><div class="num">${i+1}</div>
@@ -534,7 +580,10 @@ function renderDay(day){
 
   if(day === 'home'){
     const cool = d.cool || [];
-    h += `<div class="box reset"><h3>Cool-down: back care <span class="small">${cool.filter(Boolean).length}/${COOL.length}</span></h3>
+    if(cool.filter(Boolean).length === COOL.length && !opened.has('cool'))
+      h += `<button class="fold" data-unfold="cool"><span class="num">✓</span><span class="what"><b>Cool-down: back care</b>
+        <span class="small">${COOL.length}/${COOL.length} · tap to open</span></span></button>`;
+    else h += `<div class="box reset"><h3>Cool-down: back care <span class="small">${cool.filter(Boolean).length}/${COOL.length}</span></h3>
       ${COOL.map((r, k) => `<div class="rrow ${cool[k] ? 'done' : ''}">
         <div><b>${esc(r.name)}</b> · ${esc(r.dose)}<div class="small">${esc(r.cue)}</div></div>
         <button class="tick" data-cool="${k}" aria-label="${esc(r.name)} done">✓</button></div>`).join('')}</div>`;
@@ -549,11 +598,8 @@ function renderDay(day){
   $main.innerHTML = h;
 }
 
-function renderLog(){
-  let h = `<div class="actions">
-    <button class="btn ghost" data-act="backup">Backup</button>
-    <button class="btn ghost" data-act="restore">Restore</button></div>
-    <p class="small">${syncText()} Export a backup now and then — it can be imported into the app later.</p>
+function renderSettings(){
+  let h = `<p class="small">${syncText()}</p>
     <div class="box gh"><h3>Body weight</h3>
       <label>kg — used for assisted pull-ups (you lift body weight − assist), body-weight exercises and the report
         <input id="bw" inputmode="decimal" value="${esc(bodyweight)}" placeholder="kg"></label></div>`;
@@ -567,7 +613,15 @@ function renderLog(){
     </div>
     <div class="actions"><button class="btn" data-act="ghsave">Save</button>
       <button class="btn ghost" data-act="ghpull">Load from GitHub</button>
-      ${gh.token ? '<button class="btn ghost" data-act="ghforget">Forget token</button>' : ''}</div></details>`;
+      ${gh.token ? '<button class="btn ghost" data-act="ghforget">Forget token</button>' : ''}</div></details>
+    <div class="box"><h3>Backup</h3><p class="small">Export a backup now and then — it can be imported into the app later.</p>
+      <div class="actions"><button class="btn ghost" data-act="backup">Backup</button>
+      <button class="btn ghost" data-act="restore">Restore</button></div></div>`;
+  $main.innerHTML = h;
+}
+
+function renderHistory(){
+  let h = `<p class="small">${syncText()}</p>`;
   if(!history.length) h += `<p class="empty">No finished workouts yet.</p>`;
   [...history].reverse().forEach(s => {
     const p = PLAN[s.day];
@@ -651,8 +705,12 @@ function renderReport(){
 
 // ---------- Events ----------
 document.addEventListener('click', e => {
-  const t = e.target.closest('button'); if(!t) return;
-  if(t.dataset.tab){ view = t.dataset.tab; store.set('fb3.view', view); render(); scrollTo(0, 0); return; }
+  const t = e.target.closest('button'); if(!t){ showMenu(false); return; }
+  if(t.id === 'more'){ showMenu(document.getElementById('menu').hidden); return; }
+  showMenu(false);
+  if(t.dataset.tab){ if(t.dataset.tab !== view) opened.clear(); view = t.dataset.tab; store.set('fb3.view', view); render(); scrollTo(0, 0); return; }
+  if(t.id === 'back'){ view = lastDay; render(); scrollTo(0, 0); return; }
+  if(t.dataset.unfold){ const k = t.dataset.unfold; opened.add(/^\d+$/.test(k) ? +k : k); render(); return; }
   if(t.dataset.rest){ adjustRest(t.dataset.rest); return; }
   if(t.id === 'wake'){ toggleWake(); return; }
 
@@ -816,8 +874,13 @@ function beep(){
 
 // ---------- Session clock + keep screen on ----------
 function tickClock(){
-  const d = drafts[view], el = document.getElementById('clock');
-  if(!d || !d.startedAt){ el.textContent = ''; return; }
+  const d = drafts[view], el = document.getElementById('clock'), prog = document.getElementById('prog');
+  // sync dot: green = everything is in GitHub, orange = waiting (no signal, or a GitHub problem)
+  const dot = document.getElementById('sdot'), waiting = !!syncError || history.some(s => !s.synced);
+  dot.hidden = !ghReady(); dot.classList.toggle('wait', waiting); dot.title = syncText();
+  const all = d && d.startedAt && !PAGES[view] ? d.slots.flatMap(x => x.sets) : [];
+  prog.textContent = all.length ? `${all.filter(s => s.done).length}/${all.length} sets` : '';
+  if(!d || !d.startedAt || PAGES[view]){ el.textContent = ''; return; }
   const s = Math.floor((Date.now() - d.startedAt) / 1000);
   el.textContent = s >= 3600 ? `${Math.floor(s/3600)}:${mmss(s % 3600).padStart(5, '0')}` : mmss(s);
 }
@@ -879,7 +942,7 @@ async function sync(){
     if(added){ toast(`Loaded ${added} workout${added === 1 ? '' : 's'} from GitHub`); render(); }
   }catch(e){ syncError = e.message.startsWith('GitHub') ? e.message : 'no connection — will retry.'; }
   syncing = false;
-  if(view === 'log') render();
+  if(view === 'history' || view === 'settings') render(); else tickClock();
 }
 // Fetches workouts that are in GitHub but not on this phone. Returns how many were added.
 async function pullNew(){
