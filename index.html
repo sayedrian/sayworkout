@@ -66,6 +66,7 @@ button.fold .what{flex:1;min-width:0}
 button.fold .small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pill{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 11px;font-size:13px}
 .pill.on{background:var(--done);color:#fff;border-color:var(--done)}
+#wake[hidden]{display:none}
 #wake .clock{color:inherit;font-size:13px}
 nav{display:flex;gap:6px;padding:4px 0 10px}
 nav button{flex:1;border:1px solid var(--line);background:var(--card);border-radius:10px;
@@ -172,8 +173,8 @@ details.sess summary span{font-weight:400;color:var(--muted);font-size:13px}
       <h1 id="title">Full Body 3</h1>
       <span class="prog" id="prog"></span>
       <span class="sdot" id="sdot" hidden></span>
-      <!-- keeps the screen on (green when on); during a workout it shows how long you've been training -->
-      <button class="pill" id="wake" title="Keep the screen on during the workout"><span id="wakeTxt">Screen on</span><span class="clock" id="clock"></span></button>
+      <!-- training clock while a workout runs; green = the screen is kept on -->
+      <span class="pill" id="wake" hidden>☀ <span class="clock" id="clock"></span></span>
       <button class="icon" id="more" aria-label="Menu" aria-expanded="false">⋯</button>
     </div>
     <div class="menu" id="menu" hidden>
@@ -423,7 +424,7 @@ function begin(day, late){
   const other = running(day);
   if(other){ toast(`${PLAN[other].title} is running — finish or clear it first`); return false; }
   const d = draft(day, true);
-  if(!d.startedAt){ d.startedAt = Date.now() - (late ? LATE_START : 0); if(!wantWake) toggleWake(late); }
+  if(!d.startedAt){ d.startedAt = Date.now() - (late ? LATE_START : 0); wakeRefused = false; }
   return true;
 }
 function lastFor(name){
@@ -731,7 +732,6 @@ document.addEventListener('click', e => {
   if(t.id === 'back'){ view = lastDay; render(); scrollTo(0, 0); return; }
   if(t.dataset.unfold){ const k = t.dataset.unfold; opened.add(/^\d+$/.test(k) ? +k : k); render(); return; }
   if(t.dataset.rest){ adjustRest(t.dataset.rest); return; }
-  if(t.id === 'wake'){ toggleWake(); return; }
 
   if(t.dataset.tick){
     if(!begin(view, true)) return;
@@ -904,24 +904,33 @@ function tickClock(){
   dot.hidden = !ghReady(); dot.classList.toggle('wait', waiting); dot.title = syncText();
   const all = d && d.startedAt && !PAGES[view] ? d.slots.flatMap(x => x.sets) : [];
   prog.textContent = all.length ? `${all.filter(s => s.done).length}/${all.length} sets` : '';
-  const txt = document.getElementById('wakeTxt');
-  if(!d || !d.startedAt || PAGES[view]){ el.textContent = ''; txt.textContent = 'Screen on'; return; }
+  keepAwake();
+  const pill = document.getElementById('wake');
+  pill.classList.toggle('on', !!wakeLock);
+  pill.title = wakeLock ? 'The screen stays on during the workout' : 'This browser can’t keep the screen on';
+  pill.hidden = !d || !d.startedAt || !!PAGES[view];
+  if(pill.hidden){ el.textContent = ''; return; }
   const s = Math.floor((Date.now() - d.startedAt) / 1000);
-  txt.textContent = '☀ ';
   el.textContent = s >= 3600 ? `${Math.floor(s/3600)}:${mmss(s % 3600).padStart(5, '0')}` : mmss(s);
 }
 setInterval(() => { tickRest(); tickClock(); }, 250);
 
-let wakeLock = null, wantWake = false;
-async function toggleWake(quiet){
-  wantWake = !wantWake;
-  if(wantWake) await getWake(); else { try{ await wakeLock?.release(); }catch(e){} wakeLock = null; }
-  document.getElementById('wake').classList.toggle('on', wantWake && !!wakeLock);
-  if(wantWake && !wakeLock){ wantWake = false; if(!quiet) toast('This browser can’t keep the screen on'); }
+// No button (user, 2026-10-18): the screen stays on while any workout is running and is let go
+// when none is. The phone's own lock still works; coming back to the app turns it on again.
+let wakeLock = null, wakeAsking = false, wakeRefused = false;
+async function keepAwake(){
+  const want = ALL.some(d => drafts[d]?.startedAt) && document.visibilityState === 'visible';
+  if(want && !wakeLock && !wakeAsking && !wakeRefused){
+    wakeAsking = true;
+    try{
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });   // phone locked, app hidden
+    }catch(e){ wakeLock = null; wakeRefused = true; }
+    wakeAsking = false;
+  } else if(!want && wakeLock){ const l = wakeLock; wakeLock = null; try{ await l.release(); }catch(e){} }
 }
-async function getWake(){ try{ wakeLock = await navigator.wakeLock.request('screen'); }catch(e){ wakeLock = null; } }
 document.addEventListener('visibilitychange', () => {
-  if(document.visibilityState === 'visible'){ if(wantWake) getWake(); tickRest(); }
+  if(document.visibilityState === 'visible'){ wakeRefused = false; keepAwake(); tickRest(); }
 });
 
 // ---------- GitHub sync (finished workouts → data/workouts/ in your private repo) ----------
