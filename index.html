@@ -109,8 +109,11 @@ nav button .dot{position:absolute;top:6px;right:8px;width:7px;height:7px;border-
 .howlist li{padding:2px 0}
 .howlist .ok{color:var(--done)}
 .howlist .no{color:var(--bad)}
-button.cue{display:block;width:100%;text-align:left;color:var(--muted)}
-button.cue.mv{padding:0 14px 8px;font-size:13px;color:var(--muted)}
+.vid{flex:none;width:40px;height:34px;border:1px solid var(--line);border-radius:10px;background:var(--input);color:var(--accent);display:grid;place-items:center;padding:0}
+.vid svg{width:24px;height:24px}
+.vid svg rect{fill:none;stroke:currentColor;stroke-width:1.8}
+.vid svg path{fill:currentColor}
+.vid[aria-expanded="true"]{background:var(--accent);color:var(--input);border-color:var(--accent)}
 .ex .demowrap{padding:0 10px 10px}
 .demo{display:block;width:100%;max-width:340px;margin:2px auto;background:var(--input);border-radius:12px}
 .demo .floor{stroke:var(--line);stroke-width:2}
@@ -1310,9 +1313,9 @@ function renderDay(day){
         <div class="ex-title">
           <div class="pick"><select data-swap="${i}" aria-label="Exercise (tap to swap)">${options}</select></div>
           <div class="rx">${rx(ex)} · rest ${restTxt(ex.rest)} ${slot.name !== ex.name ? '· <span class="swap">swapped</span>' : ''}</div>
-        </div></div>
-      ${HOW[slot.name] ? `<button class="cue mv" data-demo="${esc(slot.name)}" aria-expanded="${demoOpen === slot.name}" title="Tap to see how">${esc(cueLine(slot.name))} <span class="play">${demoOpen === slot.name ? '▾' : '▸ how'}</span></button>
-      ${demoOpen === slot.name ? howBox(slot.name) : ''}` : `<p class="cue">${esc(ex.cue)}</p>`}
+        </div>${HOW[slot.name] || DEMO[slot.name] ? `<button class="vid" data-demo="${esc(slot.name)}" aria-expanded="${demoOpen === slot.name}" aria-label="How to do ${esc(slot.name)}" title="How to do it"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="3.5"/><path d="M10 9.2v5.6l4.8-2.8z"/></svg></button>` : ''}</div>
+      <p class="cue">${esc(cueLine(slot.name, ex.cue))}</p>
+      ${demoOpen === slot.name ? howBox(slot.name) : ''}
       ${hint ? `<div class="hint">${esc(hint)}</div>` : ''}
       ${last ? `<div class="last">Last (${dateTxt(last.at)}): ${last.sets.map(s => esc(setTxt(s, ex, slot.name))).join(' · ')}</div>` : ''}
       ${unit ? `<div class="unitnote">${esc(unit)}</div>` : ''}
