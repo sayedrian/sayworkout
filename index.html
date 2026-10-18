@@ -351,6 +351,10 @@ const COOL = [
 ];
 
 // Muscle group per exercise slot (swaps count for the same group). Used by the weekly report.
+// What the phone shows for each exercise (cues, mistakes): checked instructions, docs/exercises.md.
+// HOW:BEGIN (generated from docs/exercises.md by tests/exercise_doc.py --sync; do not edit)
+const HOW = {"Couch stretch": {"cues": ["Squeeze the back glutes, small tuck first, ribs down","Chest up only while the tailbone stays under","Hip moves forward; keep the small tuck"],"mistakes": ["✗ Leaning back, lower back arches to get upright → ✓ Small tuck, stay a bit forward","✗ Front knee falls in or out, hips turn to the side → ✓ Knee over ankle, hips face forward"]},"90/90 hip switches": {"cues": ["Sit tall, chest up, sit bones down","Lift both knees together, turn from the hips","Hands light on the floor, or off"],"mistakes": ["✗ Slouching, rounded lower back → ✓ Sit tall; sit on a folded mat if needed","✗ Swinging fast or pushing off hard with hands → ✓ Slow, 3–4 s per side, light hands"]},"Open book": {"cues": ["Knees together, top knee doesn't slide back","Hips still, only the chest turns","Eyes follow the hand"],"mistakes": ["✗ Top knee slides back and hips roll open → ✓ Press the knees together, hips still","✗ Forcing the hand to the floor → ✓ Stop at a comfortable stretch; it grows with reps"]},"Deep squat hold": {"cues": ["Heels down; stop where they would lift","Knees point the same way as the toes; push them out","Chest up, hold the support lightly"],"mistakes": ["✗ Heels lift off the floor → ✓ Widen the feet, toes out a little more, or go less deep","✗ Knees fall in → ✓ Push the knees out; knees point the same way as the toes"]},"Dead hang": {"cues": ["Arms straight; shoulders down, away from the ears","Ribs down, legs still, breathe","Step down on the box, don't drop"],"mistakes": ["✗ Shoulders fully up by the ears → ✓ Shoulders a little down, away from the ears","✗ Swinging, ribs lift and the back arches → ✓ Ribs down, legs together, body still"]},"Foam roll upper back": {"cues": ["Roller on the shoulder blades, never the lower back","Hands behind the head, elbows in","Ribs down, bum low; roll slowly"],"mistakes": ["✗ Rolling down onto the lower back → ✓ Stop at the bottom of the shoulder blades","✗ Lower back arches over the roller, ribs lift → ✓ Ribs down, brace lightly, bum low"]},"Knees-to-chest stretch": {"cues": ["Knees up one at a time, then hug both","Small pull; lower back stays on the mat","Head and shoulders stay down"],"mistakes": ["✗ Lifting both straight legs together → ✓ Bring one knee up, then the other","✗ Yanking the knees hard → ✓ Small pull, mild stretch only"]},"Lying hamstring stretch": {"cues": ["Tube round the foot, leg up to a gentle stretch","Other knee bent, foot flat","Hips stay on the mat; no bouncing"],"mistakes": ["✗ Pulling hard so the hips lift off the mat → ✓ Less height, hips on the mat","✗ Bouncing at the end → ✓ Hold still and breathe"]},"Glute bridge": {"cues": ["Knees out into the band","Ribs down, squeeze 1 s at the top","Stop at a straight line: shoulders, hips, knees"],"mistakes": ["✗ Hips go too high and the lower back arches → ✓ stop at the straight line, ribs down","✗ Knees fall in against the band → ✓ knees point the same way as the toes, push out"]},"Ab wheel rollout": {"cues": ["Stop before the back sags","Ribs down, small tuck, arms straight","Hips and wheel come back together"],"mistakes": ["✗ Lower back sags (belly drops) at the far point → ✓ roll out less, keep the small tuck","✗ Hips go up and back, only the arms move → ✓ hips travel forward with the body"]},"Seated band row": {"cues": ["Sit tall on the block, don't lean back","Elbows back, close to the ribs","Squeeze the shoulder blades 1 s"],"mistakes": ["✗ Leaning back to finish the rep → ✓ trunk stays still; use a lighter tube","✗ Lower back rounds, you slump on the block → ✓ sit taller, bend the knees more"]},"Push-up on handles": {"cues": ["Body in one line, glutes tight","Elbows about 45°, wrists straight","Chest just lower than the top of the handles"],"mistakes": ["✗ Hips sag and the lower back arches → ✓ squeeze glutes, ribs down","✗ Elbows go out to 90° → ✓ elbows about 45° from the body"]},"Bulgarian split squat": {"cues": ["Front heel stays down","Small tuck, ribs down: no arch","Front knee points the same way as the toes"],"mistakes": ["✗ Front foot too close: heel lifts, knee pushes far forward → ✓ step the foot further out","✗ Back leg pulls the lower back into an arch → ✓ small tuck, lean forward a little"]},"Lying band pulldown": {"cues": ["Back flat on the mat, ribs down","Elbows down to the ribs, hands are hooks","Squeeze the shoulder blades 1 s"],"mistakes": ["✗ Arms reach too far back, ribs lift, back arches → ✓ stop where the back stays flat","✗ Shoulders shrug up to the ears → ✓ shoulders down, away from the ears, then pull"]},"Lying back raise": {"cues": ["Squeeze glutes first, then lift a little","Look at the floor, chin tucked","Hold 2 s; small lift, no big arch"],"mistakes": ["✗ Lifting the chest and head high, neck bent back → ✓ lift only a few cm, eyes down","✗ Legs lift too (full superman) → ✓ feet and thighs stay on the mat"]},"Band pull-apart": {"cues": ["Arms almost straight, at shoulder height","Band to the chest, squeeze the shoulder blades","Shoulders down, away from the ears"],"mistakes": ["✗ Shrugging the shoulders up → ✓ shoulders down first, then pull","✗ Elbows bend and it becomes a row → ✓ keep arms almost straight; use a lighter band"]},"Barbell back squat": {"cues": ["Brace: belly breath, ribs down, hold it","Knees point the same way as the toes","Stop before your lower back rounds"],"mistakes": ["✗ Bum pushed out, ribs lift, lower back arches → ✓ Ribs down, squeeze glutes at the top","✗ Chest falls, hips shoot up first → ✓ Hips and chest rise together"]},"Weighted dead bug": {"cues": ["Back flat on the mat","Right arm with left leg, then switch","Back lifts? Reach less far. Still lifts? End the set."],"mistakes": ["✗ Lower back lifts, ribs lift → ✓ Reach less far; back flat on the mat","✗ Fast, swinging arms and legs → ✓ Slow reach, about 2 s out and 2 s back"]},"Flat dumbbell press": {"cues": ["Lower to the lower chest, not the armpits","Elbows about 45° from the body","Hips stay on the bench"],"mistakes": ["✗ Elbows out to 90°, weights at the armpits → ✓ Elbows in to 45°, lower to the lower chest","✗ Ribs lift, big arch, hips lift off the bench → ✓ Feet flat, ribs down, hips on the bench"]},"Wide-grip lat pulldown": {"cues": ["Hands are hooks: drive the elbows down","Bar to the top of the chest","Squeeze the shoulder blades 1 s"],"mistakes": ["✗ Leaning far back and swinging → ✓ Small lean, body still; lighter weight","✗ Bar behind the neck → ✓ Bar in front, to the collarbone"]},"Lying leg curl": {"cues": ["Hips stay down on the pad","Two seconds on the way down"],"mistakes": ["✗ Hips lift and lower back arches → ✓ Press hips into the pad; lighter weight","✗ Weight drops fast → ✓ Lower slowly, about 2 s"]},"Chest-supported dumbbell row": {"cues": ["Elbows back and close to the ribs","Chest rests on the pad, don't push","Squeeze the shoulder blades 1 s"],"mistakes": ["✗ Chest lifts off the pad, back arches → ✓ Chest stays on the pad; lighter weight","✗ Shrugging the shoulders up → ✓ Shoulders down, elbows back"]},"Dumbbell lateral raise": {"cues": ["Elbows go up first; hands no higher than the elbows","Stop at shoulder height","No swinging, body stays still"],"mistakes": ["✗ Swinging, leaning back to lift → ✓ Lighter weight, body still","✗ Shrugging, hands above the elbows → ✓ Shoulders down, away from the ears; elbows first"]},"Triceps pushdown": {"cues": ["Elbows stay pressed to your sides","Only the forearms move"],"mistakes": ["✗ Elbows drift forward, body pushes down → ✓ Elbows still at the ribs; lighter weight","✗ Ribs lift, lower back arches → ✓ Small lean: fold at the hips, ribs down"]},"Assisted pull-up (wide overhand)": {"cues": ["Shoulders down, then drive the elbows down","Chin over the bar, squeeze 1 s","Knees under hips, ribs down"],"mistakes": ["✗ Knees drift back, ribs lift, lower back arches → ✓ Knees under hips, ribs down","✗ Swinging or kicking up → ✓ More assist kg, slow reps"]},"Rear-delt dumbbell fly": {"cues": ["Arms out to the sides, not back","Arms out in a T, in line with the shoulders; hold 1 s","Chest stays on the pad"],"mistakes": ["✗ Elbows bend more and it becomes a row → ✓ Keep the same small elbow bend all the way","✗ Chest lifts and back arches → ✓ Chest on the pad; lighter weights"]},"Leg press": {"cues": ["Stop just before your bum lifts off the seat","Knees point the same way as the toes","Push through the whole foot, heels down"],"mistakes": ["✗ So deep the bum lifts or rolls up off the seat → ✓ Stop higher; set the stops there","✗ Knees fall inward when pushing → ✓ Knees point the same way as the toes; push them out"]},"Seated cable row (neutral grip)": {"cues": ["Drive the elbows back, close to the ribs","Stay tall: don't swing back and forth","Squeeze the shoulder blades 1 s"],"mistakes": ["✗ Leaning far back to move the weight → ✓ Stay upright; use a lighter weight","✗ Back rounds as the arms go forward → ✓ Back straight; only the shoulders reach forward"]},"Seated dumbbell shoulder press": {"cues": ["Ribs down, back stays on the pad","Elbows a little in front of the body","Wrists stay over the elbows"],"mistakes": ["✗ Ribs lift and the lower back arches to finish → ✓ Ribs down; use lighter dumbbells","✗ Elbows straight out to the sides → ✓ Elbows a little in front of the body (about 30°)"]},"Machine chest press": {"cues": ["Handles at mid-chest height","Elbows about 45° from the body","Shoulder blades stay on the pad"],"mistakes": ["✗ Seat too low or high (handles at neck or belly) → ✓ Move the seat: handles at mid-chest","✗ Ribs lift and the back arches off the pad → ✓ Ribs down; hips and back stay on the pad"]},"Reverse pec deck": {"cues": ["Elbows slightly bent, lead with the elbows","Hold 1 s with the arms out wide","Shoulders down, away from the ears"],"mistakes": ["✗ Too heavy: shrugging and bending the elbows → ✓ Lighter weight; same small elbow bend","✗ Chest leaves the pad to swing the weight → ✓ Keep the chest on the pad"]},"Hammer curl": {"cues": ["Palms face each other, elbows still","Two seconds down","Stand tall: no swing"],"mistakes": ["✗ Swinging the body to lift the weight → ✓ Stand still, lighter dumbbells","✗ Elbows drift forward at the top → ✓ Keep elbows at your sides"]},"Chest-supported row machine": {"cues": ["Drive the elbows back, close to the ribs","Chest stays on the pad; don't push into it","Squeeze the shoulder blades 1 s"],"mistakes": ["✗ Chest lifts off the pad to heave the weight → ✓ Lighter weight; chest stays on the pad","✗ Shrugging to the ears → ✓ Shoulders down, away from the ears; elbows back"]},"Barbell hip thrust": {"cues": ["Chin tucked, eyes forward, ribs down","Shoulders, hips, knees in one line at the top","Shins vertical at the top; squeeze glutes 1 s"],"mistakes": ["✗ Arching the lower back to get the hips higher → ✓ Stop at a straight line, small tuck","✗ Head thrown back, looking at the ceiling → ✓ Chin tucked, eyes on the wall in front"]},"Side plank": {"cues": ["Elbow under shoulder","Straight line ear–hip–ankle; hips don't sag","Top hip right above the bottom hip"],"mistakes": ["✗ Hips sag toward the floor → ✓ Squeeze glutes, push the hip up to the line","✗ Hips back or chest rolls forward → ✓ Top hip and shoulder right above the bottom ones"]},"Romanian deadlift": {"cues": ["Hips back, knees slightly bent and still","Bar touches the legs all the way down and up","Back straight at the bottom; stand tall at the top"],"mistakes": ["✗ Rounding the lower back to reach lower → ✓ Stop higher, where the back is still straight","✗ Lower back arched, bum pushed up at the bottom → ✓ Ribs down, back straight, no big arch"]},"Incline dumbbell press": {"cues": ["Low incline, about 30°","Elbows about 45°; lower to the upper chest","Hips stay on the bench; no big arch"],"mistakes": ["✗ Elbows flared straight out to the sides → ✓ Elbows about 45° from the body","✗ Arching the back or lifting the hips to press → ✓ Ribs down, hips stay on the bench"]},"Neutral-grip pulldown": {"cues": ["Palms facing each other; hands are hooks","Elbows down and close to the ribs","Handle to the upper chest; squeeze 1 s"],"mistakes": ["✗ Leaning far back and swinging the weight → ✓ Small fixed lean; only the arms move","✗ Pulling with the hands, elbows flare out → ✓ Drive the elbows down to the ribs"]},"45° back extension": {"cues": ["Pad below the front hip bones; fold at the hips","Go down only while the back stays straight","Squeeze glutes to rise; stop at a straight line"],"mistakes": ["✗ Rising past straight, arching the lower back → ✓ Stop when body and legs are one line","✗ Back rounds to go lower → ✓ Fold less; stop when the back of the thighs is tight"]},"Weighted crunch": {"cues": ["Plate on chest; feet free, not hooked under","Curl ribs toward the hips; lift shoulder blades","Lower back stays flat on the mat"],"mistakes": ["✗ Sitting all the way up / pulling with the legs → ✓ Lift only the shoulder blades","✗ Pulling the head forward → ✓ Chin tucked, a fist's space; look at your knees"]},"Calf press": {"cues": ["Balls of the feet on the edge; heels free","Knees slightly bent and still; only ankles move","Drop low, pause 1 s; push high, hold 1 s"],"mistakes": ["✗ Bum lifts or rolls up off the seat → ✓ Bend the knees a bit more; recline the seat","✗ Short bouncy reps → ✓ Full stretch at the bottom, 1 s pause, slow reps"]}};
+// HOW:END
 const MG = {
   mon:['Quads','Core','Chest','Back','Hamstrings & glutes','Back','Shoulders','Arms'],
   wed:['Quads','Core','Back','Shoulders','Quads','Chest','Shoulders','Arms'],
@@ -554,22 +558,6 @@ const DEMO = {
     { p:{x:150, y:124, ns:70, nt:-15, ft:-12, fs:72, to:185, nu:-100, nf:120, fu:-80, ff:115}, hold:300, move:1400 },
     { p:{x:160, y:124, ns:70, nt:-15, ft:-12, fs:72, to:185, nu:-100, nf:120, fu:-80, ff:115}, hold:300, move:1400 }]},
 };
-function demoAt(d, t){
-  const total = d.keys.reduce((n, k) => n + k.hold + k.move, 0);
-  t %= total;
-  for(let i = 0; i < d.keys.length; i++){
-    const k = d.keys[i], nx = d.keys[(i + 1) % d.keys.length];
-    if(t < k.hold) return { q:k.p, say:k.say, k, nx, e:0 };
-    t -= k.hold;
-    if(t < k.move){
-      const u = t / k.move, e = u < .5 ? 2 * u * u : 1 - (2 - 2 * u) ** 2 / 2, q = {};
-      for(const n in k.p) q[n] = k.p[n] + (nx.p[n] - k.p[n]) * e;
-      return { q, k, nx, e };
-    }
-    t -= k.move;
-  }
-  return { q:d.keys[0].p, k:d.keys[0], nx:d.keys[0], e:0 };
-}
 const demoSvg = name => `<svg class="demo" viewBox="0 0 200 130" data-name="${esc(name)}" role="img" aria-label="${esc(name)}, animated">
   ${DEMO[name].floor === false ? '' : '<line class="floor" x1="0" y1="125" x2="200" y2="125"/>'}${DEMO[name].props || ''}<g class="anim"></g></svg>`;
 function drawDemo(svg, name, t){
@@ -598,90 +586,161 @@ function runDemos(){
 }
 
 // ---------- 3D demos: an illustrated human drawn by the page (canvas; no files, no libraries) ----------
-// World in cm: x forward, y up, z toward the camera side; the floor is y = 0. Tips from research
-// (fitness.md §2b, "Desk reset tips") are shown as ✓/✗ captions, muscles in their real shape (red = stretch, green = work), guides and arrows.
+// World in cm: x forward, y up, z toward the camera side ("near", N); the floor is y = 0.
+// Each demo (DEMO3) is a loop of steps: a pose, the words to show (from HOW, i.e. docs/exercises.md),
+// the muscles that work (green) or stretch (red), and the checkpoint it must match (tested in tests/demo-tests.js).
+const rad = d => d * Math.PI / 180, deg = r => r * 180 / Math.PI;
 const v3 = {
   add:(a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]], sub:(a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]],
   mul:(a, s) => [a[0] * s, a[1] * s, a[2] * s], dot:(a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2],
   cross:(a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]],
   len:a => Math.hypot(a[0], a[1], a[2]), norm:a => { const l = Math.hypot(a[0], a[1], a[2]) || 1; return [a[0] / l, a[1] / l, a[2] / l]; },
+  lerp:(a, b, s) => [a[0] + (b[0] - a[0]) * s, a[1] + (b[1] - a[1]) * s, a[2] + (b[2] - a[2]) * s],
+  // turn v about the unit axis k by d degrees (right hand)
+  rot:(v, k, d) => { const c = Math.cos(rad(d)), s = Math.sin(rad(d)), kv = v3.cross(k, v), kd = v3.dot(k, v);
+    return [v[0] * c + kv[0] * s + k[0] * kd * (1 - c), v[1] * c + kv[1] * s + k[1] * kd * (1 - c), v[2] * c + kv[2] * s + k[2] * kd * (1 - c)]; },
+  // the part of v at right angles to the unit vector t
+  perp:(v, t) => { const d = v[0] * t[0] + v[1] * t[1] + v[2] * t[2]; return [v[0] - t[0] * d, v[1] - t[1] * d, v[2] - t[2] * d]; },
 };
-const sag = deg => [Math.cos(deg * Math.PI / 180), Math.sin(deg * Math.PI / 180), 0];   // in the side plane; 90 = up
+const sag = d => [Math.cos(rad(d)), Math.sin(rad(d)), 0];   // a direction in the side plane; 90 = up, 0 = forward
 // two-bone IK: middle joint (knee/elbow) for root → target, bending toward `hint`
 function ik(root, target, l1, l2, hint){
-  const d = v3.sub(target, root), dl = Math.min(v3.len(d), l1 + l2 - .01), u = v3.norm(d);
+  const d = v3.sub(target, root), dl = Math.max(Math.abs(l1 - l2) + .01, Math.min(v3.len(d), l1 + l2 - .01)), u = v3.norm(d);
   const v = v3.norm(v3.sub(hint, v3.mul(u, v3.dot(hint, u))));
   const c = Math.max(-1, Math.min(1, (l1 * l1 + dl * dl - l2 * l2) / (2 * l1 * dl)));
   return v3.add(root, v3.add(v3.mul(u, l1 * c), v3.mul(v, l1 * Math.sqrt(1 - c * c))));
 }
 const reach = (j, target, l) => v3.add(j, v3.mul(v3.norm(v3.sub(target, j)), l));
-const BODY = { thigh:44, shin:43, foot:21, lumbar:22, chest:28, neck:8, head:11, upper:29, fore:26, hip:10, sh:18 };
+// an adult man; the same lengths as tests/geometry/body_model.py, so the drawn angles are the checked ones
+const BODY = { thigh:44.6, shin:44.8, foot:27.7, heel:6, ankleH:8, lumbar:24, chest:33, shDrop:2.4, neck:8, head:11,
+  upper:33.9, fore:26.6, grip:7.8, hand:10, hip:9, sh:18 };
 // clothes and skin: [lit, base, shade]
 const MAT = { skin:['#fbe3d0', '#e4b596', '#c58866'], shirt:['#93b8f0', '#4d7fd0', '#30599c'], shorts:['#737a86', '#474e59', '#30353d'],
-  shoe:['#6a7180', '#3f4552', '#262a33'], sole:['#ffffff', '#eceef1', '#c3c8cf'], hair:['#7d604b', '#4d3a2b', '#2f2318'], eye:['#3a2a20', '#2a1d15', '#1a120c'] };
-// drawn as connected pieces, back to front, each with one outline (an illustration, not a robot)
-const PIECES = ['armF', 'legF', 'shoeF', 'legN', 'shoeN', 'shorts', 'shirt', 'head', 'armN'];
-// muscles shown by role: red = being stretched, green = working, red with ✗ = the mistake
-const MUSCLE = { hipflex:{ label:'Hip flexors · stretch', role:'stretch' }, glute:{ label:'Glutes · squeeze', role:'work' },
-  abs:{ label:'Abs · ribs down', role:'work' }, lowback:{ label:'Lower back · pinched', role:'bad' } };
-// q: pelvis px,py · spine angles la (lumbar), ca (chest), ha (head) · ankles an*/af* · toe angles tn/tf ·
-// hands hn*/hf*; static per demo: knee and elbow hints. Near side = +z.
-function human(q, d, breathe){
-  const B = BODY, P = [q.px, q.py, 0], items = [], mus = {}, Z = [0, 0, 1];
-  const piece = (m, tag) => m === 'shorts' && !/^thigh/.test(tag) ? 'shorts' : /^(foot|sole)/.test(tag) ? 'shoe' + tag.slice(-1) : /^(arm|fore|hand)/.test(tag) ? 'arm' + tag.slice(-1)
-    : /^(thigh|shin|calf)/.test(tag) ? 'leg' + tag.slice(-1) : m === 'shirt' ? 'shirt' : 'head';
+  shoe:['#6a7180', '#3f4552', '#262a33'], sole:['#ffffff', '#eceef1', '#c3c8cf'], hair:['#7d604b', '#4d3a2b', '#2f2318'], eye:['#3a2a20', '#2a1d15', '#1a120c'],
+  steel:['#f2f4f7', '#b9c0ca', '#6f7884'], iron:['#6b7280', '#3b414c', '#1f242b'], pad:['#6f6f7a', '#45454f', '#2b2b33'],
+  foam:['#a8d8f0', '#5aa9d6', '#2f6f98'], block:['#b8e0b0', '#7fbf73', '#4f8c45'], rubber:['#5a5f68', '#33373e', '#1c1f24'] };
+// the muscle words of docs/exercises.md, each drawn in its real place; label = the word
+const MUSCLES = ['quads', 'glutes', 'hamstrings', 'adductors', 'calves', 'hip flexors', 'abs', 'obliques', 'lower back',
+  'lats', 'mid back', 'upper traps', 'rear delts', 'side delts', 'front delts', 'chest', 'upper chest', 'triceps', 'biceps',
+  'forearms', 'upper back', 'hip rotators', 'grip'];
+// q (one step of a demo): pelvis px,py,pz · whole-body turn `yaw` (about up) and `roll` (about forward) ·
+// side-plane angles la (lower back), ca (chest), ha (head) · chest twist tw, side bend sb, head turn hy ·
+// ankles an/af and hands hn/hf (world points; hands = the grip) · knee/elbow directions kN kF eN eF (else the demo's) ·
+// toe directions fdN/fdF (world; else forward). N = near side (+z), F = far side.
+function human(q, d, breathe = 0){
+  const B = BODY, P = [q.px, q.py, q.pz || 0], items = [], J = {}, mus = {};
+  const R = v => v3.rot(v3.rot(v, [1, 0, 0], q.roll || 0), [0, 1, 0], q.yaw || 0), W = v => v3.add(P, R(v));
+  const at = (p, ...vs) => vs.reduce((o, v) => v3.add(o, v), p), lerp = v3.lerp;
+  const piece = (m, tag) => /^(foot|sole)/.test(tag) ? 'shoe' + tag.slice(-1) : /^(arm|fore|hand)/.test(tag) ? 'arm' + tag.slice(-1)
+    : /^(thigh|shin)/.test(tag) ? 'leg' + tag.slice(-1) : m === 'shorts' ? 'shorts' : m === 'shirt' ? 'shirt' : 'head';
   const cap = (a, b, r1, r2, m, tag, bias = 0) => items.push({ k:'c', a, b, r1, r2, m, tag, bias, g:piece(m, tag) });
-  const sph = (c, r, m, tag, bias = 0) => items.push({ k:'s', c, r, m, tag, bias, g:piece(m, tag) });
-  const lerp = (a, b, s) => v3.add(a, v3.mul(v3.sub(b, a), s)), at = (p, ...vs) => vs.reduce((o, v) => v3.add(o, v), p);
-  // a bone drawn as several short pieces following a radius profile [[s, r]…], so limbs taper and bulge like a body
+  const sph = (c, r, m, tag, bias = 0, face) => items.push({ k:'s', c, r, m, tag, bias, face, g:piece(m, tag) });
   const prof = (pr, s) => { for(let i = 1; i < pr.length; i++) if(s <= pr[i][0]){ const [s0, r0] = pr[i - 1], [s1, r1] = pr[i]; return r0 + (r1 - r0) * (s - s0) / (s1 - s0); } return pr[pr.length - 1][1]; };
-  const bone = (a, b, pr, mat, tag, cut) => {   // one smooth tube per material (e.g. shorts, then skin from `cut` on)
-    const part = (s0, s1, m) => { const rs = []; for(let i = 0; i <= 8; i++){ const s = s0 + (s1 - s0) * i / 8; rs.push(prof(pr, s)); }
+  const bone = (a, b, pr, mat, tag, cut) => {   // one smooth tapered tube per material (e.g. shorts, then skin from `cut` on)
+    const part = (s0, s1, m) => { const rs = []; for(let i = 0; i <= 8; i++) rs.push(prof(pr, s0 + (s1 - s0) * i / 8));
       items.push({ k:'t', a:lerp(a, b, s0), b:lerp(a, b, s1), rs, m, tag, bias:0, g:piece(m, tag) }); };
     if(cut) { part(0, cut, mat[0]); part(cut - .04, 1, mat[1]); } else part(0, 1, mat);
   };
-  const hipN = v3.add(P, [0, 0, B.hip]), hipF = v3.add(P, [0, 0, -B.hip]), br = 1 + .03 * breathe;
-  const front = sag(q.la - 90), back = sag(q.la + 90), waist = v3.add(P, v3.mul(sag(q.la), B.lumbar));
-  const neck = v3.add(waist, v3.mul(sag(q.ca), B.chest)), head = v3.add(neck, v3.mul(sag(q.ha), B.neck + B.head));
-  const shN = at(neck, v3.mul(sag(q.ca), -5), [0, 0, B.sh]), shF = at(neck, v3.mul(sag(q.ca), -5), [0, 0, -B.sh]);
-  [[hipN, [q.anx, q.any, q.anz], q.tn, d.kneeN, 'N'], [hipF, [q.afx, q.afy, q.afz], q.tf, d.kneeF, 'F']].forEach(([h, an, ta, hint, s]) => {
-    const kn = ik(h, an, B.thigh, B.shin, hint), a = reach(kn, an, B.shin), toe = v3.add(a, v3.mul(sag(ta), B.foot - 5));
-    const ant = v3.norm(v3.cross(Z, v3.sub(kn, h)));   // front of the thigh
+  // trunk in the body's own side plane, then turned into the world
+  const LZ = [0, 0, 1], lumL = sag(q.la);
+  let caxL = sag(q.ca); if(q.sb) caxL = v3.norm(v3.add(v3.mul(caxL, Math.cos(rad(q.sb))), v3.mul(LZ, Math.sin(rad(q.sb)))));
+  let cfL = v3.norm(v3.cross(caxL, LZ)), clL = v3.norm(v3.cross(cfL, caxL));
+  if(q.tw){ cfL = v3.rot(cfL, caxL, q.tw); clL = v3.rot(clL, caxL, q.tw); }
+  const waistL = v3.mul(lumL, B.lumbar), neckL = v3.add(waistL, v3.mul(caxL, B.chest));
+  const front = R(sag(q.la - 90)), back = v3.mul(front, -1), lum = R(lumL), cax = R(caxL), cf = R(cfL), cl = R(clL), lat = R(LZ);
+  const waist = W(waistL), neck = W(neckL), br = 1 + .03 * breathe;
+  const sh = { N:at(neck, v3.mul(cax, -B.shDrop), v3.mul(cl, B.sh)), F:at(neck, v3.mul(cax, -B.shDrop), v3.mul(cl, -B.sh)) };
+  const hip = { N:W([0, 0, B.hip]), F:W([0, 0, -B.hip]) };
+  Object.assign(J, { pelvis:P, waist, neck, shN:sh.N, shF:sh.F, hipN:hip.N, hipF:hip.F, front, lum, cax, cf, cl, lat });
+  // legs: hip → knee (IK) → ankle; the shoe follows the toe direction, its sole under the foot
+  ['N', 'F'].forEach(s => {
+    const h = hip[s], an = q[s === 'N' ? 'an' : 'af'], hint = q['k' + s] || d['knee' + s] || [1, 0, 0];
+    const kn = ik(h, an, B.thigh, B.shin, hint), a = reach(kn, an, B.shin), sd0 = v3.norm(v3.sub(a, kn));
+    const fd = v3.norm(q['fd' + s] || R([1, 0, 0]));   // toes point here (flat foot = level); the ankle angle follows
+    const sd = v3.norm(v3.perp(sd0, fd));   // "down" through the sole
+    const heel = at(a, v3.mul(fd, -B.heel * .7), v3.mul(sd, B.ankleH - 2.4)), toe = at(a, v3.mul(fd, B.foot - B.heel - 2.5), v3.mul(sd, B.ankleH - 2.4));
+    const ant = v3.norm(v3.perp(v3.add(front, v3.mul(fd, .3)), v3.norm(v3.sub(kn, h))));
     bone(h, kn, [[0, 10], [.3, 9.6], [.55, 9], [.56, 7.8], [.85, 6.3], [1, 5.6]], ['shorts', 'skin'], 'thigh' + s, .56);
     bone(kn, a, [[0, 5.5], [.22, 6.1], [.45, 5.5], [.8, 3.9], [1, 3.5]], 'skin', 'shin' + s);
-    const heel = at(a, v3.mul(sag(ta), -5), [0, -1, 0]);
-    cap(at(heel, [0, -2.2, 0]), at(toe, [0, -2, 0]), 3, 2.6, 'sole', 'sole' + s, 3);
-    bone(heel, toe, [[0, 4.6], [.6, 4.4], [1, 3.4]], 'shoe', 'foot' + s);
-    if(s === 'N'){
-      mus.hipflex = [{ a:at(h, v3.mul(front, 7), [0, 0, 3]), b:at(lerp(h, kn, .86), v3.mul(ant, 5), [0, 0, 3]), w:4.8 },
-                     { a:at(lerp(P, waist, .95), v3.mul(front, 5), [0, 0, 5]), b:at(lerp(h, kn, .2), v3.mul(ant, 3), [0, 0, 4]), w:3.4 }];
-      mus.glute = [{ a:at(P, v3.mul(back, 9), v3.mul(sag(q.la), 5), [0, 0, 4]), b:at(lerp(h, kn, .28), v3.mul(ant, -6), [0, 0, 6]), w:9 }];
-    }
-    items['knee' + s] = kn; items['ankle' + s] = a;
+    cap(heel, toe, 2.4, 2.2, 'sole', 'sole' + s, 3);
+    bone(at(heel, v3.mul(sd, -2.6)), at(toe, v3.mul(sd, -2.4)), [[0, 4.6], [.6, 4.4], [1, 3.2]], 'shoe', 'foot' + s);
+    Object.assign(J, { ['knee' + s]:kn, ['ankle' + s]:a, ['heel' + s]:at(heel, v3.mul(sd, 2.4)), ['toe' + s]:at(toe, v3.mul(sd, 2.2)), ['fd' + s]:fd, ['ant' + s]:ant });
   });
-  [[shN, [q.hnx, q.hny, q.hnz], d.elbowN, 'N'], [shF, [q.hfx, q.hfy, q.hfz], d.elbowF, 'F']].forEach(([s, t, hint, n]) => {
-    const el = ik(s, t, B.upper, B.fore, hint), wr = reach(el, t, B.fore), hd = v3.norm(v3.sub(wr, el));
-    bone(s, el, [[0, 6.6], [.42, 5.9], [.43, 4.9], [.75, 4.4], [1, 3.9]], ['shirt', 'skin'], 'arm' + n, .43);
-    bone(el, wr, [[0, 4], [.3, 4.4], [.75, 3.2], [1, 2.8]], 'skin', 'fore' + n);
-    bone(wr, v3.add(wr, v3.mul(hd, 9)), [[0, 2.9], [.5, 3.6], [1, 2.7]], 'skin', 'hand' + n);
+  // arms: shoulder → elbow (IK) → grip point in the hand
+  ['N', 'F'].forEach(s => {
+    const t = q[s === 'N' ? 'hn' : 'hf'], hint = q['e' + s] || d['elbow' + s] || v3.mul(cf, -1);
+    const el = ik(sh[s], t, B.upper, B.fore + B.grip, hint), g = reach(el, t, B.fore + B.grip), hd = v3.norm(v3.sub(g, el)), wr = at(el, v3.mul(hd, B.fore));
+    bone(sh[s], el, [[0, 6.6], [.42, 5.9], [.43, 4.9], [.75, 4.4], [1, 3.9]], ['shirt', 'skin'], 'arm' + s, .43);
+    bone(el, wr, [[0, 4], [.3, 4.4], [.75, 3.2], [1, 2.8]], 'skin', 'fore' + s);
+    bone(wr, at(wr, v3.mul(hd, B.hand)), [[0, 2.9], [.5, 3.6], [1, 2.7]], 'skin', 'hand' + s);
+    Object.assign(J, { ['elbow' + s]:el, ['wrist' + s]:wr, ['grip' + s]:g });
   });
-  cap(hipF, hipN, 11.5, 11.5, 'shorts', 'pelvis');
-  [B.hip * .6, -B.hip * .6].forEach(z => sph(at(P, v3.mul(back, 6.5), [0, -3, z]), 9.6, 'shorts', 'glute'));
+  // pelvis, trunk, neck, head
+  cap(hip.F, hip.N, 11.5, 11.5, 'shorts', 'pelvis');
+  [B.hip * .6, -B.hip * .6].forEach(z => sph(at(P, v3.mul(back, 6.5), v3.mul(lum, -3), v3.mul(lat, z)), 9.6, 'shorts', 'glute'));
   cap(P, waist, 12, 12.6 * br, 'shirt', 'lowback');
-  cap(waist, v3.add(waist, v3.mul(sag(q.ca), B.chest * .6)), 13.6 * br, 15 * br, 'shirt', 'chest');
-  cap(shF, shN, 8.2, 8.2, 'shirt', 'shoulders');
-  cap(neck, v3.add(neck, v3.mul(sag(q.ha), B.neck + 2)), 5, 5, 'skin', 'neck', 30);
-  const fwd = sag(q.ha - 90), up = sag(q.ha);
-  sph(at(head, v3.mul(fwd, -3.2), v3.mul(up, 3.4)), 11.3, 'hair', 'hair', 20);
+  cap(waist, at(waist, v3.mul(cax, B.chest * .62)), 13.6 * br, 15 * br, 'shirt', 'chest');
+  cap(sh.F, sh.N, 8.2, 8.2, 'shirt', 'shoulders');
+  let hax = R(sag(q.ha)), hf0 = R(sag(q.ha - 90)); if(q.hy) hf0 = v3.rot(hf0, hax, q.hy);
+  if(q.sb) hax = v3.norm(v3.add(hax, v3.mul(cl, Math.sin(rad(q.sb)) * .6)));
+  const hl = v3.norm(v3.cross(hf0, hax)), head = at(neck, v3.mul(hax, B.neck + B.head));
+  cap(neck, at(neck, v3.mul(hax, B.neck + 2)), 5, 5, 'skin', 'neck', 30);
+  sph(at(head, v3.mul(hf0, -3.2), v3.mul(hax, 3.4)), 11.3, 'hair', 'hair', 20);
   sph(head, B.head, 'skin', 'head', 10);
-  sph(at(head, v3.mul(fwd, 4.5), v3.mul(up, -5.5)), 7, 'skin', 'jaw', 9);
-  sph(at(head, v3.mul(fwd, -1), [0, 0, 10.4]), 2.6, 'skin', 'ear', -5);
-  sph(at(head, v3.mul(fwd, 9.6), v3.mul(up, 1.5), [0, 0, 4]), 1.15, 'eye', 'eye', -9);
-  sph(at(head, v3.mul(fwd, 10.6), v3.mul(up, -1.5), [0, 0, 1]), 1.9, 'skin', 'nose', -8);
-  mus.abs = [{ a:at(P, v3.mul(front, 9), v3.mul(sag(q.la), 3), [0, 0, 4]), b:at(waist, v3.mul(sag(q.ca), 12), v3.mul(sag(q.ca - 90), 10.5), [0, 0, 4]), w:5.5 }];
-  mus.lowback = [{ a:at(P, v3.mul(back, 11), [0, 0, 4]), b:at(waist, v3.mul(sag(q.ca), 6), v3.mul(sag(q.ca + 90), 12.5), [0, 0, 4]), w:5.5 }];
-  items.mus = mus; items.P = P; items.waist = waist; items.head = head;
+  sph(at(head, v3.mul(hf0, 4.5), v3.mul(hax, -5.5)), 7, 'skin', 'jaw', 9);
+  [1, -1].forEach(o => {
+    sph(at(head, v3.mul(hf0, -1), v3.mul(hl, 10.4 * o)), 2.6, 'skin', 'ear', -5, at(v3.mul(hl, o), v3.mul(hf0, -.2)));
+    sph(at(head, v3.mul(hf0, 9.4), v3.mul(hax, 1.5), v3.mul(hl, 3.6 * o)), 1.15, 'eye', 'eye', -9, v3.norm(at(hf0, v3.mul(hl, 1.1 * o))));
+  });
+  sph(at(head, v3.mul(hf0, 10.6), v3.mul(hax, -1.5)), 1.9, 'skin', 'nose', -8, hf0);
+  Object.assign(J, { head, hf:hf0, hax });
+  // muscles: spindles {a, b, w, n} on the surface (n = which way that surface faces); bilateral ones per side
+  const M = (word, side, list) => { (mus[word] = mus[word] || {})[side] = list; };
+  ['N', 'F'].forEach(s => {
+    const o = s === 'N' ? 1 : -1, h = hip[s], kn = J['knee' + s], a = J['ankle' + s], la = v3.mul(lat, o), sl = v3.mul(cl, o);
+    const td = v3.norm(v3.sub(kn, h)), ant = J['ant' + s], post = v3.mul(ant, -1), lt = v3.norm(v3.perp(la, td));
+    M('quads', s, [{ a:at(lerp(h, kn, .18), v3.mul(ant, 7.5)), b:at(lerp(h, kn, .9), v3.mul(ant, 5.5)), w:7.5, n:ant }]);
+    M('hamstrings', s, [{ a:at(lerp(h, kn, .14), v3.mul(post, 7.5)), b:at(lerp(h, kn, .9), v3.mul(post, 5)), w:6.5, n:post }]);
+    M('adductors', s, [{ a:at(h, v3.mul(lt, -4), v3.mul(ant, 1)), b:at(lerp(h, kn, .62), v3.mul(lt, -6.5)), w:5.5, n:v3.mul(lt, -1) }]);
+    M('hip flexors', s, [{ a:at(h, v3.mul(front, 7), v3.mul(la, 2)), b:at(lerp(h, kn, .86), v3.mul(ant, 5.5)), w:5, n:ant },
+                         { a:at(lerp(P, waist, .95), v3.mul(front, 5), v3.mul(la, 4)), b:at(lerp(h, kn, .2), v3.mul(ant, 3.5)), w:3.6, n:front }]);
+    M('glutes', s, [{ a:at(P, v3.mul(back, 9), v3.mul(lum, 5), v3.mul(la, 4)), b:at(lerp(h, kn, .28), v3.mul(post, 6.5), v3.mul(lt, 3)), w:9, n:back }]);
+    M('hip rotators', s, [{ a:at(P, v3.mul(back, 10.5), v3.mul(lum, -1), v3.mul(la, 2)), b:at(h, v3.mul(lt, 6), v3.mul(post, 3)), w:3.8, n:back }]);
+    const shd = v3.norm(v3.sub(a, kn)), calf = v3.norm(v3.perp(v3.mul(J['fd' + s], -1), shd));
+    M('calves', s, [{ a:at(lerp(kn, a, .1), v3.mul(calf, 5.5)), b:at(lerp(kn, a, .62), v3.mul(calf, 4)), w:6.5, n:calf }]);
+    M('obliques', s, [{ a:at(P, v3.mul(lum, 7), v3.mul(la, 11), v3.mul(front, 3)), b:at(waist, v3.mul(cax, 10), v3.mul(sl, 12.5), v3.mul(cf, 5)), w:5.5, n:la }]);
+    const S = sh[s], el = J['elbow' + s], wr = J['wrist' + s], ua = v3.norm(v3.sub(el, S));
+    let aAnt = v3.perp(v3.sub(wr, el), ua); aAnt = v3.len(aAnt) > 4 ? v3.norm(aAnt) : v3.norm(v3.perp(cf, ua));
+    const fdir = v3.norm(v3.sub(wr, el)), fAnt = v3.norm(v3.perp(aAnt, fdir));
+    M('lats', s, [{ a:at(P, v3.mul(lum, 9), v3.mul(back, 8), v3.mul(la, 7)), b:at(lerp(S, el, .2), v3.mul(cf, -3)), w:7.5, n:v3.norm(at(back, la)) }]);
+    M('mid back', s, [{ a:at(neck, v3.mul(cax, -15), v3.mul(cf, -11)), b:at(S, v3.mul(cax, -10), v3.mul(cf, -8), v3.mul(sl, -3)), w:6, n:v3.mul(cf, -1) }]);
+    M('upper traps', s, [{ a:at(neck, v3.mul(hax, 5), v3.mul(cf, -3)), b:at(S, v3.mul(cax, 3), v3.mul(cf, -2), v3.mul(sl, -3)), w:4.5, n:cax }]);
+    M('rear delts', s, [{ a:at(S, v3.mul(cf, -4.5)), b:at(lerp(S, el, .38), v3.mul(cf, -3)), w:5, n:v3.mul(cf, -1) }]);
+    M('side delts', s, [{ a:at(S, v3.mul(sl, 3.5), v3.mul(cax, 2)), b:at(lerp(S, el, .42), v3.mul(sl, 3)), w:5.5, n:sl }]);
+    M('front delts', s, [{ a:at(S, v3.mul(cf, 4.5)), b:at(lerp(S, el, .38), v3.mul(cf, 3)), w:5, n:cf }]);
+    M('chest', s, [{ a:at(neck, v3.mul(cax, -15), v3.mul(cf, 13.5), v3.mul(sl, 1)), b:at(lerp(S, el, .12), v3.mul(cf, 4)), w:9, n:cf }]);
+    M('upper chest', s, [{ a:at(neck, v3.mul(cax, -6), v3.mul(cf, 12), v3.mul(sl, 1)), b:at(S, v3.mul(cf, 5)), w:5.5, n:cf }]);
+    M('biceps', s, [{ a:at(lerp(S, el, .22), v3.mul(aAnt, 4.6)), b:at(lerp(S, el, .88), v3.mul(aAnt, 3.6)), w:4.6, n:aAnt }]);
+    M('triceps', s, [{ a:at(lerp(S, el, .15), v3.mul(aAnt, -4.6)), b:at(lerp(S, el, .92), v3.mul(aAnt, -3.4)), w:4.8, n:v3.mul(aAnt, -1) }]);
+    M('forearms', s, [{ a:at(lerp(el, wr, .08), v3.mul(fAnt, 3.6)), b:at(lerp(el, wr, .82), v3.mul(fAnt, 2.4)), w:4.2, n:fAnt }]);
+    M('grip', s, [{ a:at(lerp(el, wr, .5), v3.mul(fAnt, 2.8)), b:at(wr, v3.mul(fdir, 5)), w:3.6, n:fAnt }]);
+  });
+  M('abs', 'C', [{ a:at(P, v3.mul(front, 9.5), v3.mul(lum, 3)), b:at(waist, v3.mul(cax, 12), v3.mul(cf, 10.5)), w:6, n:front }]);
+  M('lower back', 'C', [{ a:at(P, v3.mul(back, 11), v3.mul(lum, 2)), b:at(waist, v3.mul(cax, 6), v3.mul(cf, -12.5)), w:6, n:back }]);
+  M('upper back', 'C', [{ a:at(waist, v3.mul(cax, 5), v3.mul(cf, -12.5)), b:at(neck, v3.mul(cax, -5), v3.mul(cf, -10.5)), w:6.5, n:v3.mul(cf, -1) }]);
+  items.mus = mus; items.J = J;
   return items;
+}
+// measures for the tests and checkpoints (the definitions at the top of docs/exercises.md)
+function measure(J, s){   // s = 'N' or 'F'
+  const ang = (a, b, c) => { const u = v3.norm(v3.sub(a, b)), v = v3.norm(v3.sub(c, b)); return deg(Math.acos(Math.max(-1, Math.min(1, v3.dot(u, v))))); };
+  const vert = v => deg(Math.acos(Math.max(-1, Math.min(1, v3.norm(v)[1]))));
+  const shMid = v3.lerp(J.shN, J.shF, .5), up = v3.norm(v3.sub(shMid, J.pelvis)), u = v3.norm(v3.sub(J['elbow' + s], J['sh' + s]));
+  const down = v3.mul(J.cax, -1), side = v3.mul(J.cl, s === 'N' ? 1 : -1), toe = v3.add(J['ankle' + s], J['fd' + s]);
+  return { knee:ang(J['hip' + s], J['knee' + s], J['ankle' + s]), hip:deg(Math.acos(Math.max(-1, Math.min(1, v3.dot(up, v3.norm(v3.sub(J['knee' + s], J['hip' + s]))))))),
+    elbow:ang(J['sh' + s], J['elbow' + s], J['wrist' + s]), trunk:vert(v3.sub(shMid, J.pelvis)), shin:vert(v3.sub(J['knee' + s], J['ankle' + s])),
+    ankle:ang(J['knee' + s], J['ankle' + s], toe),
+    'shoulder flexion':deg(Math.atan2(v3.dot(u, J.cf), v3.dot(u, down))), 'shoulder abduction':deg(Math.atan2(v3.dot(u, side), v3.dot(u, down))) };
 }
 function camera(c, w, h, t){
   const yaw = (c.yaw + (c.sway || 0) * Math.sin(t / 4200)) * Math.PI / 180, el = c.el * Math.PI / 180;
@@ -708,37 +767,107 @@ function shade(ctx, A, B, R, pal){   // cylinder shading: lit edge toward the li
   const mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2, g = ctx.createLinearGradient(mx + nx * R, my + ny * R, mx - nx * R, my - ny * R);
   g.addColorStop(0, pal[0]); g.addColorStop(.45, pal[1]); g.addColorStop(1, pal[2]); return g;
 }
-function box(ctx, cam, lo, hi, cols){   // a solid box (sofa, bench), faces shaded, back faces skipped
-  const C = (i, j, k) => [[lo, hi][i][0], [lo, hi][j][1], [lo, hi][k][2]];
+// ---- equipment: boxes, cylinders (bars, plates, rollers, wheels), dumbbells, bands; drawn in depth order with the body
+const PROP_COL = { light:['#c9ced6', '#aab1bc', '#8d95a1'], dark:['#5d6878', '#465161', '#38414e'] };
+function drawBox(ctx, cam, p, dark){
+  const { lo, hi } = p, cols = p.cols || PROP_COL[dark ? 'dark' : 'light'], C = (i, j, k) => [[lo, hi][i][0], [lo, hi][j][1], [lo, hi][k][2]];
   const faces = [[[0,0,0],[0,1,0],[0,1,1],[0,0,1],[-1,0,0],2], [[1,0,0],[1,0,1],[1,1,1],[1,1,0],[1,0,0],1],
-    [[0,1,0],[1,1,0],[1,1,1],[0,1,1],[0,1,0],0], [[0,0,1],[0,1,1],[1,1,1],[1,0,1],[0,0,1],1], [[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0,0,-1],2]];
+    [[0,1,0],[1,1,0],[1,1,1],[0,1,1],[0,1,0],0], [[0,0,1],[0,1,1],[1,1,1],[1,0,1],[0,0,1],1], [[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0,0,-1],2],
+    [[0,0,0],[0,0,1],[1,0,1],[1,0,0],[0,-1,0],2]];
   faces.forEach(([a, b, c, e, n, s]) => {
-    const pts = [a, b, c, e].map(p => C(...p)), mid = v3.mul(pts.reduce((m, p) => v3.add(m, p), [0, 0, 0]), .25);
+    const pts = [a, b, c, e].map(q => C(...q)), mid = v3.mul(pts.reduce((m, q) => v3.add(m, q), [0, 0, 0]), .25);
     if(v3.dot(n, v3.sub(cam.pos, mid)) <= 0) return;
-    ctx.beginPath(); pts.map(cam.proj).forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); ctx.closePath();
+    ctx.beginPath(); pts.map(cam.proj).forEach((q, i) => i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y)); ctx.closePath();
     ctx.fillStyle = cols[s]; ctx.fill();
   });
 }
+function drawCyl(ctx, cam, a, b, r, pal){   // a solid cylinder: side faces toward the camera, then the near end
+  const ax = v3.norm(v3.sub(b, a)), u = v3.norm(v3.perp(Math.abs(ax[1]) < .9 ? [0, 1, 0] : [1, 0, 0], ax)), w = v3.cross(ax, u), N = 18;
+  const ring = c => Array.from({ length:N }, (_, i) => { const t = 2 * Math.PI * i / N; return v3.add(c, v3.add(v3.mul(u, r * Math.cos(t)), v3.mul(w, r * Math.sin(t)))); });
+  const A = ring(a), Bp = ring(b);
+  for(let i = 0; i < N; i++){
+    const j = (i + 1) % N, n = v3.norm(v3.sub(v3.lerp(A[i], A[j], .5), a)), mid = v3.lerp(A[i], Bp[j], .5);
+    if(v3.dot(n, v3.sub(cam.pos, mid)) <= 0) continue;
+    const lit = Math.max(0, -(n[0] * .3 + n[1] * -.85 + n[2] * -.4));   // light from above
+    ctx.beginPath(); [A[i], A[j], Bp[j], Bp[i]].map(cam.proj).forEach((q, k) => k ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y)); ctx.closePath();
+    ctx.fillStyle = ctx.strokeStyle = lit > .55 ? pal[0] : lit > .15 ? pal[1] : pal[2]; ctx.lineWidth = 1; ctx.fill(); ctx.stroke();
+  }
+  [[a, A, v3.mul(ax, -1)], [b, Bp, ax]].forEach(([c, ringPts, n]) => {
+    if(v3.dot(n, v3.sub(cam.pos, c)) <= 0) return;
+    ctx.beginPath(); ringPts.map(cam.proj).forEach((q, k) => k ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y)); ctx.closePath();
+    ctx.fillStyle = pal[1]; ctx.fill();
+  });
+}
+// a prop list for one moment: [{type:'box', lo, hi} | {type:'cyl', a, b, r, m} | {type:'band', pts, col, w} |
+// {type:'db', a, b} (dumbbell: handle a → b) | {type:'bar', a, b, plates}], each with an optional depth `bias`
+function expandProp(p){
+  if(p.type === 'db'){ const ax = v3.norm(v3.sub(p.b, p.a)), r = p.r || 6.5, l = p.l || 6;
+    return [{ type:'cyl', a:p.a, b:p.b, r:1.6, m:'steel' }, { type:'cyl', a:v3.sub(p.a, v3.mul(ax, l)), b:p.a, r, m:'iron' }, { type:'cyl', a:p.b, b:v3.add(p.b, v3.mul(ax, l)), r, m:'iron' }]; }
+  if(p.type === 'bar'){ const ax = v3.norm(v3.sub(p.b, p.a)), out = [{ type:'cyl', a:p.a, b:p.b, r:1.6, m:'steel' }];
+    (p.plates || []).forEach(([s, r, wdt]) => { const c = v3.lerp(p.a, p.b, s); out.push({ type:'cyl', a:v3.sub(c, v3.mul(ax, wdt / 2)), b:v3.add(c, v3.mul(ax, wdt / 2)), r, m:'iron' }); });
+    return out; }
+  return [p];
+}
+function drawProp(ctx, cam, p, dark, dpr){
+  if(p.type === 'box') return drawBox(ctx, cam, p, dark);
+  if(p.type === 'cyl') return drawCyl(ctx, cam, p.a, p.b, p.r, MAT[p.m] || MAT.steel);
+  if(p.type === 'band'){ ctx.save(); ctx.lineCap = ctx.lineJoin = 'round'; ctx.strokeStyle = p.col || '#d0342c';
+    const pts = p.pts.map(cam.proj); ctx.lineWidth = Math.max(1.5 * dpr, (p.w || 1.6) * pts[0].s);
+    ctx.beginPath(); pts.forEach((q, i) => i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y)); ctx.stroke(); ctx.restore(); }
+}
+const propCentre = p => p.type === 'box' ? v3.lerp(p.lo, p.hi, .5) : p.type === 'band' ? v3.lerp(p.pts[0], p.pts[p.pts.length - 1], .5) : v3.lerp(p.a, p.b, .5);
+// the words under the picture: a key's `say` names a line of HOW — c1..c3 (cues), m1/m2 (the ✗ part of a mistake),
+// m1fix/m2fix (its ✓ part), cap1… (an animation caption)
+function sayText(name, code){
+  const h = HOW[name] || {}; if(!code) return '';
+  const m = /^(c|m|cap)(\d)(fix)?$/.exec(code); if(!m) return '';
+  if(m[1] === 'c') return '✓ ' + (h.cues || [])[m[2] - 1];
+  if(m[1] === 'cap') return '✓ ' + (h.captions || [])[m[2] - 1];
+  const [bad, fix] = ((h.mistakes || [])[m[2] - 1] || '').split(' → ');
+  return m[3] ? fix : bad;
+}
+// one moment of a demo: pose, the step and the next one, and how far between them (e = 0 … 1)
+function demoAt(d, t){
+  const keys = typeof d.keys === 'function' ? d.keys() : d.keys, total = keys.reduce((n, k) => n + k.hold + k.move, 0);
+  t %= total;
+  for(let i = 0; i < keys.length; i++){
+    const k = keys[i], nx = keys[(i + 1) % keys.length];
+    if(t < k.hold) return { q:k.p, say:k.say, k, nx, e:0 };
+    t -= k.hold;
+    if(t < k.move){
+      const u = t / k.move, e = u < .5 ? 2 * u * u : 1 - (2 - 2 * u) ** 2 / 2, q = {};
+      for(const n in k.p) q[n] = Array.isArray(k.p[n]) ? k.p[n].map((v, j) => v + (nx.p[n][j] - v) * e) : k.p[n] + (nx.p[n] - k.p[n]) * e;
+      return { q, k, nx, e };
+    }
+    t -= k.move;
+  }
+  return { q:keys[0].p, k:keys[0], nx:keys[0], e:0 };
+}
+const ROLE = { stretch:['255,120,100', '232,52,40', '150,20,14'], work:['120,230,160', '30,170,90', '10,95,50'], bad:['255,120,100', '232,52,40', '150,20,14'] };
 let shadowCv = null;
 function draw3d(cv, name, t){
-  const d = DEMO3[name], dpr = Math.min(2, window.devicePixelRatio || 1), w = cv.clientWidth * dpr, h = Math.round(w * .62);
+  const d = DEMO3[name], dpr = Math.min(2, window.devicePixelRatio || 1), w = Math.max(300, cv.clientWidth || 360) * dpr, h = Math.round(w * .62);
   if(cv.width !== w || cv.height !== h){ cv.width = w; cv.height = h; }
   const ctx = cv.getContext('2d'), cam = camera(d.cam, w, h, t), css = getComputedStyle(document.documentElement);
-  const line = css.getPropertyValue('--line').trim(), dark = matchMedia('(prefers-color-scheme: dark)').matches && document.documentElement.dataset.theme !== 'light';
+  const line = css.getPropertyValue('--line').trim() || '#ccc', dark = matchMedia('(prefers-color-scheme: dark)').matches && document.documentElement.dataset.theme !== 'light';
   const st = demoAt(d, t), q = st.q, cur = st.k, nx = st.nx, e = st.e;
   const wt = key => key === cur ? 1 - e : key === nx ? e : 0;   // how strongly a key's markers show right now
-  const has = (field, v) => ((cur[field] || []).includes(v) ? wt(cur) : 0) + (nx !== cur && (nx[field] || []).includes(v) ? wt(nx) : 0);
+  const has = (role, v) => ((cur.mus?.[role] || []).includes(v) ? wt(cur) : 0) + (nx !== cur && (nx.mus?.[role] || []).includes(v) ? wt(nx) : 0);
+  const shows = v => ((cur.show || []).includes(v) ? wt(cur) : 0) + (nx !== cur && (nx.show || []).includes(v) ? wt(nx) : 0);
   ctx.clearRect(0, 0, w, h);
-  // floor: grid fading out, then soft shadows
-  ctx.lineWidth = dpr; ctx.strokeStyle = line;
-  for(let x = -150; x <= 125; x += 25){ const a = cam.proj([x, 0, -75]), b = cam.proj([x, 0, 75]); ctx.globalAlpha = .55; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
-  for(let z = -75; z <= 75; z += 25){ const a = cam.proj([-150, 0, z]), b = cam.proj([125, 0, z]); ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
+  // floor: grid fading out
+  const fl = d.floor || [-150, 125, -75, 75];
+  ctx.lineWidth = dpr; ctx.strokeStyle = line; ctx.globalAlpha = .55;
+  for(let x = fl[0]; x <= fl[1]; x += 25){ const a = cam.proj([x, 0, fl[2]]), b = cam.proj([x, 0, fl[3]]); ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
+  for(let z = fl[2]; z <= fl[3]; z += 25){ const a = cam.proj([fl[0], 0, z]), b = cam.proj([fl[1], 0, z]); ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
   ctx.globalAlpha = 1;
-  const items = human(q, d, Math.sin(t / 900));
+  const items = human(q, d, Math.sin(t / 900)), J = items.J;
+  const props = (typeof d.props === 'function' ? d.props(q, J) : d.props || []).flatMap(expandProp);
+  // soft shadows on the floor
   shadowCv = shadowCv || document.createElement('canvas'); shadowCv.width = w; shadowCv.height = h;
   const sc = shadowCv.getContext('2d'); sc.clearRect(0, 0, w, h); sc.fillStyle = '#000';
   const flat = p => [p[0] + p[1] * .25, .2, p[2] - p[1] * .1];
-  (d.props || []).forEach(b => { sc.beginPath(); [[b.lo[0], b.lo[2]], [b.hi[0], b.lo[2]], [b.hi[0], b.hi[2]], [b.lo[0], b.hi[2]]]
+  props.forEach(b => { if(b.type !== 'box') return; sc.beginPath(); [[b.lo[0], b.lo[2]], [b.hi[0], b.lo[2]], [b.hi[0], b.hi[2]], [b.lo[0], b.hi[2]]]
     .map(([x, z]) => cam.proj(flat([x + (b.hi[1] - b.lo[1]) * .1, b.hi[1], z]))).forEach((p, i) => i ? sc.lineTo(p.x, p.y) : sc.moveTo(p.x, p.y)); sc.fill(); });
   items.forEach(it => { sc.beginPath();
     if(it.k !== 's'){ const A = cam.proj(flat(it.a)), B = cam.proj(flat(it.b)), r1 = it.k === 't' ? Math.max(...it.rs) : it.r1, r2 = it.k === 't' ? r1 * .8 : it.r2;
@@ -746,10 +875,14 @@ function draw3d(cv, name, t){
     else { const C = cam.proj(flat(it.c)); sc.arc(C.x, C.y, it.r * C.s, 0, 7); }
     sc.fill(); });
   ctx.save(); ctx.globalAlpha = dark ? .5 : .22; ctx.filter = `blur(${6 * dpr}px)`; ctx.drawImage(shadowCv, 0, 0); ctx.restore();
-  (d.props || []).forEach(b => box(ctx, cam, b.lo, b.hi, dark ? ['#5d6878', '#465161', '#38414e'] : ['#c9ced6', '#aab1bc', '#8d95a1']));
-  // body: piece by piece, back to front; each piece gets one outline around it, then its shaded parts
+  // everything in depth order: body pieces (each with one outline) and props, far to near
   items.forEach(it => it.z = cam.depth(it.k !== 's' ? v3.mul(v3.add(it.a, it.b), .5) : it.c) + it.bias);
-  const ol = 1.5 * dpr, path = (it, grow) => { ctx.beginPath();
+  const groups = {};
+  items.forEach(it => (groups[it.g] = groups[it.g] || []).push(it));
+  const layers = Object.entries(groups).map(([g, parts]) => ({ g, parts, z:parts.reduce((s, it) => s + it.z, 0) / parts.length + (d.bias?.[g] || 0) }))
+    .concat(props.map(p => ({ prop:p, z:cam.depth(propCentre(p)) + (p.bias || 0) }))).sort((a, b) => b.z - a.z);
+  const ol = 1.5 * dpr, facing = it => !it.face || v3.dot(it.face, v3.sub(cam.pos, it.c)) > 0;
+  const path = (it, grow) => { ctx.beginPath();
     if(it.k === 't'){   // tapered tube: both sides follow the radius profile, round at the ends
       const A = cam.proj(it.a), B = cam.proj(it.b), n = it.rs.length - 1; let dx = B.x - A.x, dy = B.y - A.y; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;
       const R = i => it.rs[i] * (A.s + (B.s - A.s) * i / n) + grow, P = i => [A.x + (B.x - A.x) * i / n, A.y + (B.y - A.y) * i / n];
@@ -760,8 +893,9 @@ function draw3d(cv, name, t){
       it.R = Math.max(...it.rs) * Math.max(A.s, B.s); return [A, B]; }
     if(it.k === 'c'){ const A = cam.proj(it.a), B = cam.proj(it.b); capPath(ctx, A, B, it.r1 * A.s + grow, it.r2 * B.s + grow); return [A, B]; }
     const C = cam.proj(it.c); ctx.arc(C.x, C.y, it.r * C.s + grow, 0, 7); return [C]; };
-  (d.pieces || PIECES).forEach(g => {
-    const parts = items.filter(it => it.g === g).sort((a, b) => b.z - a.z);
+  layers.forEach(L => {
+    if(L.prop) return drawProp(ctx, cam, L.prop, dark, dpr);
+    const parts = L.parts.filter(facing).sort((a, b) => b.z - a.z);
     ctx.fillStyle = dark ? 'rgba(8,10,12,.7)' : 'rgba(40,30,25,.55)';
     parts.forEach(it => { if(it.tag !== 'eye'){ path(it, ol); ctx.fill(); } });
     parts.forEach(it => {
@@ -772,77 +906,83 @@ function draw3d(cv, name, t){
       ctx.fill();
     });
   });
-  // muscles in their anatomical shape, with fibres; then a label for each group
-  const ROLE = { stretch:['255,120,100', '232,52,40', '150,20,14'], work:['120,230,160', '30,170,90', '10,95,50'], bad:['255,120,100', '232,52,40', '150,20,14'] };
+  // muscles in their real shape, with fibres (the side nearer the camera; faint when on the far side of the body)
   const labels = [];
-  Object.keys(MUSCLE).forEach(key => {
-    const a = has('mus', key); if(a < .02) return;
-    const col = ROLE[MUSCLE[key].role], al = a * (.82 + .18 * Math.sin(t / 220));
-    items.mus[key].forEach(m => {
-      const A = cam.proj(m.a), Bp = cam.proj(m.b), W = m.w * (A.s + Bp.s) / 2;
-      let dx = Bp.x - A.x, dy = Bp.y - A.y; const l = Math.hypot(dx, dy) || 1; const nx = -dy / l, ny = dx / l;
-      const pt = (s, o) => { const hw = W * Math.max(.18, Math.pow(Math.sin(Math.PI * s), .7)); return [A.x + dx * s + nx * hw * o, A.y + dy * s + ny * hw * o]; };
+  ['bad', 'stretch', 'work'].forEach(role => MUSCLES.forEach(word => {
+    const a = has(role, word); if(a < .02 || !items.mus[word]) return;
+    const sides = items.mus[word], side = Object.keys(sides).sort((x, y) => cam.depth(sides[x][0].a) - cam.depth(sides[y][0].a))[0];
+    const col = ROLE[role];
+    sides[side].forEach(m => {
+      const vis = v3.dot(m.n, v3.sub(cam.pos, m.a)) > 0 ? 1 : .35, al = a * vis * (.82 + .18 * Math.sin(t / 220));
+      const A = cam.proj(m.a), Bp = cam.proj(m.b), Wd = m.w * (A.s + Bp.s) / 2;
+      let dx = Bp.x - A.x, dy = Bp.y - A.y; const l = Math.hypot(dx, dy) || 1; const nx2 = -dy / l, ny2 = dx / l;
+      const pt = (s, o) => { const hw = Wd * Math.max(.18, Math.pow(Math.sin(Math.PI * s), .7)); return [A.x + dx * s + nx2 * hw * o, A.y + dy * s + ny2 * hw * o]; };
       ctx.beginPath();
       for(let i = 0; i <= 12; i++) { const p = pt(i / 12, 1); i ? ctx.lineTo(...p) : ctx.moveTo(...p); }
       for(let i = 12; i >= 0; i--) ctx.lineTo(...pt(i / 12, -1));
       ctx.closePath();
-      const mx = A.x + dx / 2, my = A.y + dy / 2, g = ctx.createLinearGradient(mx + nx * W, my + ny * W, mx - nx * W, my - ny * W);
+      const mx = A.x + dx / 2, my = A.y + dy / 2, g = ctx.createLinearGradient(mx + nx2 * Wd, my + ny2 * Wd, mx - nx2 * Wd, my - ny2 * Wd);
       g.addColorStop(0, `rgba(${col[0]},${al})`); g.addColorStop(.45, `rgba(${col[1]},${al})`); g.addColorStop(1, `rgba(${col[2]},${al})`);
       ctx.fillStyle = g; ctx.fill();
       ctx.strokeStyle = `rgba(255,255,255,${(.38 * al).toFixed(3)})`; ctx.lineWidth = Math.max(1, .9 * dpr);
       [-.5, 0, .5].forEach(o => { ctx.beginPath(); for(let i = 1; i <= 11; i++){ const p = pt(i / 12, o); i > 1 ? ctx.lineTo(...p) : ctx.moveTo(...p); } ctx.stroke(); });
     });
-    const m = items.mus[key][0], c = cam.proj(v3.mul(v3.add(m.a, m.b), .5));
-    labels.push({ x:c.x, y:c.y, text:MUSCLE[key].label, col:ROLE[MUSCLE[key].role][1], a });
-  });
+    const m = sides[side][0], c = cam.proj(v3.lerp(m.a, m.b, .5));
+    labels.push({ x:c.x, y:c.y, text:(role === 'bad' ? '✗ ' : '') + word[0].toUpperCase() + word.slice(1), col:col[1], a });
+  }));
   ctx.font = `600 ${12 * dpr}px system-ui, sans-serif`; ctx.textBaseline = 'middle';
-  labels.forEach((L, i) => {
+  const placed = [];
+  labels.forEach(L => {
     const tw = ctx.measureText(L.text).width, pad = 6 * dpr, bh = 20 * dpr;
-    let x = L.x + 22 * dpr, y = L.y - (18 + 4 * i) * dpr;
-    x = Math.max(4 * dpr, Math.min(w - tw - 2 * pad - 4 * dpr, x)); y = Math.max(bh / 2 + 4 * dpr, Math.min(h - bh, y));
+    let x = L.x + 22 * dpr, y = L.y - 18 * dpr;
+    x = Math.max(4 * dpr, Math.min(w - tw - 2 * pad - 4 * dpr, x));
+    for(let n = 0; n < 8 && placed.some(p => Math.abs(p - y) < bh + 2 * dpr); n++) y += bh + 3 * dpr;   // no overlapping labels
+    y = Math.max(bh / 2 + 4 * dpr, Math.min(h - bh, y)); placed.push(y);
     ctx.globalAlpha = Math.min(1, L.a * 1.3);
     ctx.strokeStyle = `rgb(${L.col})`; ctx.lineWidth = 1.5 * dpr; ctx.beginPath(); ctx.moveTo(L.x, L.y); ctx.lineTo(x, y); ctx.stroke();
     ctx.fillStyle = `rgb(${L.col})`; ctx.beginPath(); ctx.roundRect(x, y - bh / 2, tw + 2 * pad, bh, bh / 2); ctx.fill();
     ctx.fillStyle = '#fff'; ctx.fillText(L.text, x + pad, y + .5 * dpr); ctx.globalAlpha = 1;
   });
-  // guides: vertical line along the front shin; curved arrow for the pelvis tuck
+  // guides: a dashed vertical line (e.g. "shin:F" = along the far shin) and a curved arrow for the small tuck
   const accent = `rgba(61,190,120,`;
-  const sh = has('show', 'shin');
-  if(sh > .01){ const k = items.kneeF, a = items.ankleF, A = cam.proj([a[0], 0, a[2]]), K = cam.proj([a[0], k[1] + 14, a[2]]);
-    ctx.save(); ctx.setLineDash([6 * dpr, 5 * dpr]); ctx.lineWidth = 2.5 * dpr; ctx.strokeStyle = accent + sh + ')';
-    ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(K.x, K.y); ctx.stroke(); ctx.restore(); }
-  const tk = has('show', 'tuck');
-  if(tk > .01){ const pts = []; for(let a = 150; a <= 245; a += 5) pts.push(cam.proj(v3.add(items.P, v3.add(v3.mul(sag(a + q.la - 90), 24), [0, 0, 16]))));
-    ctx.lineWidth = 3.5 * dpr; ctx.strokeStyle = ctx.fillStyle = accent + tk + ')'; ctx.lineCap = 'round';
-    ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); ctx.stroke();
-    const p = pts[pts.length - 1], o = pts[pts.length - 3], an = Math.atan2(p.y - o.y, p.x - o.x), L = 11 * dpr;
-    ctx.beginPath(); ctx.moveTo(p.x + Math.cos(an) * 4, p.y + Math.sin(an) * 4);
-    ctx.lineTo(p.x - Math.cos(an - .5) * L, p.y - Math.sin(an - .5) * L); ctx.lineTo(p.x - Math.cos(an + .5) * L, p.y - Math.sin(an + .5) * L); ctx.fill(); }
-  // caption under the picture: the tip for this moment
-  const capEl = cv.nextElementSibling, say = (e < .5 ? cur : nx).say || '';
+  (d.guides || []).forEach(gd => {
+    const s = shows(gd); if(s < .01) return;
+    const [kind, side] = gd.split(':');
+    if(kind === 'shin'){ const k = J['knee' + side], a = J['ankle' + side], A = cam.proj([a[0], 0, a[2]]), K = cam.proj([a[0], k[1] + 14, a[2]]);
+      ctx.save(); ctx.setLineDash([6 * dpr, 5 * dpr]); ctx.lineWidth = 2.5 * dpr; ctx.strokeStyle = accent + s + ')';
+      ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(K.x, K.y); ctx.stroke(); ctx.restore(); }
+    if(kind === 'tuck'){ const pts = []; for(let a = 150; a <= 245; a += 5) pts.push(cam.proj(v3.add(J.pelvis, v3.add(v3.mul(v3.add(v3.mul(J.lum, Math.sin(rad(a))), v3.mul(J.front, Math.cos(rad(a)))), 24), v3.mul(J.lat, 16)))));
+      ctx.lineWidth = 3.5 * dpr; ctx.strokeStyle = ctx.fillStyle = accent + s + ')'; ctx.lineCap = 'round';
+      ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); ctx.stroke();
+      const p = pts[pts.length - 1], o = pts[pts.length - 3], an = Math.atan2(p.y - o.y, p.x - o.x), L = 11 * dpr;
+      ctx.beginPath(); ctx.moveTo(p.x + Math.cos(an) * 4, p.y + Math.sin(an) * 4);
+      ctx.lineTo(p.x - Math.cos(an - .5) * L, p.y - Math.sin(an - .5) * L); ctx.lineTo(p.x - Math.cos(an + .5) * L, p.y - Math.sin(an + .5) * L); ctx.fill(); }
+  });
+  // the words under the picture: the tip for this moment
+  const capEl = cv.nextElementSibling, say = sayText(name, (e < .5 ? cur : nx).say);
   if(capEl && capEl.dataset.say !== say){ capEl.dataset.say = say; capEl.textContent = say; capEl.className = 'cap' + (say.startsWith('✗') ? ' bad' : say ? ' good' : ''); }
 }
 const DEMO3 = {
-  'Couch stretch': {
-    cam:{ target:[-14, 52, 0], yaw:24, sway:8, el:17, dist:360, zoom:2.0 },
-    props:[{ lo:[-100, 0, -45], hi:[-43, 42, 45] }, { lo:[-100, 42, -45], hi:[-80, 80, 45] }],
-    kneeN:[.3, -1, 0], kneeF:[.4, 1, 0], elbowN:[-.6, 0, 1], elbowF:[-.6, 0, -1],
-    keys:[
-      { p:{ px:-23, py:47, la:62, ca:50, ha:38, anx:-46, any:47, anz:10, tn:178, afx:28, afy:8, afz:-11, tf:-4,
-            hnx:21, hny:56, hnz:2, hfx:21, hfy:56, hfz:-14 }, hold:1900, move:1000,
-        say:'✓ Back knee down by the sofa, foot on the seat · front shin straight up', show:['shin'] },
-      { p:{ px:-21, py:47, la:76, ca:56, ha:42, anx:-46, any:47, anz:10, tn:178, afx:28, afy:8, afz:-11, tf:-4,
-            hnx:21, hny:56, hnz:2, hfx:21, hfy:56, hfz:-14 }, hold:1900, move:1200,
-        say:'✓ First tuck the pelvis: squeeze the glutes, ribs down', show:['tuck'], mus:['glute', 'abs'] },
-      { p:{ px:-14, py:48, la:93, ca:93, ha:80, anx:-46, any:47, anz:10, tn:178, afx:28, afy:8, afz:-11, tf:-4,
-            hnx:-24, hny:47, hnz:17, hfx:-24, hfy:47, hfz:-19 }, hold:2800, move:1000,
-        say:'✓ Rise tall, feel it in the front of the hip · breathe, 45 s', mus:['hipflex', 'glute'] },
-      { p:{ px:-9, py:48, la:122, ca:108, ha:100, anx:-46, any:47, anz:10, tn:178, afx:28, afy:8, afz:-11, tf:-4,
-            hnx:-20, hny:47, hnz:17, hfx:-20, hfy:47, hfz:-19 }, hold:1800, move:1000,
-        say:'✗ Don’t lean back and arch the lower back', mus:['lowback'] },
-      { p:{ px:-14, py:48, la:93, ca:93, ha:80, anx:-46, any:47, anz:10, tn:178, afx:28, afy:8, afz:-11, tf:-4,
-            hnx:-24, hny:47, hnz:17, hfx:-24, hfy:47, hfz:-19 }, hold:1300, move:1200,
-        say:'✓ Tall, ribs down, pelvis tucked', mus:['hipflex', 'glute', 'abs'] }]},
+  // Couch stretch (docs/exercises.md): back leg = near side (N), front leg = far side (F); home version on the sofa
+  'Couch stretch': (() => {
+    const back = { an:[-62.5, 46, 10], fdN:[-1, .12, 0], af:[15.9, 8, -12], fdF:[1, 0, -.05] };
+    const lean = { ...back, px:-34.9, py:53, la:52, ca:48, ha:38, hn:[2, 60, -1], hf:[4, 60, -19] };
+    const tuck = { ...lean, la:57, ca:47 };
+    const hold = { ...back, px:-28.7, py:52.1, la:68, ca:62, ha:70, hn:[7, 59, -1], hf:[9, 59, -19] };
+    const arch = { ...back, px:-22.7, py:50.4, la:108, ca:101, ha:106, hn:[-31, 60, 17], hf:[-31, 60, -19] };
+    return {
+      cam:{ target:[-16, 50, 0], yaw:24, sway:8, el:15, dist:380, zoom:2.0 }, sides:{ back:'N', front:'F' },
+      props:[{ type:'box', lo:[-100, 0, -45], hi:[-43, 42, 45] }, { type:'box', lo:[-100, 42, -45], hi:[-80, 80, 45] },
+             { type:'box', lo:[-47, 0, 1], hi:[-28, 3, 20], cols:['#b9c6d8', '#93a3b8', '#7a8aa0'] }],
+      kneeN:[.3, -1, 0], kneeF:[.4, 1, 0], elbowN:[-.4, -.2, 1], elbowF:[-.4, -.2, -1], guides:['shin:F', 'tuck'],
+      keys:[
+        { p:lean, hold:1600, move:900, cp:'start', show:['shin:F'] },
+        { p:tuck, hold:2200, move:1300, say:'c1', show:['tuck'], mus:{ work:['glutes', 'abs'] } },
+        { p:hold, hold:2200, move:300, say:'c2', cp:'hold', mus:{ stretch:['hip flexors', 'quads'], work:['glutes'] } },
+        { p:hold, hold:2400, move:1100, say:'c3', cp:'hold', mus:{ stretch:['hip flexors', 'quads'], work:['glutes', 'abs'] } },
+        { p:arch, hold:2000, move:1100, say:'m1', mus:{ bad:['lower back'] } },
+        { p:hold, hold:2200, move:1200, say:'m1fix', cp:'hold', mus:{ stretch:['hip flexors'], work:['glutes', 'abs'] } }] };
+  })(),
 };
 
 // ---------- Formatting ----------
