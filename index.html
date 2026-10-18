@@ -114,6 +114,7 @@ nav button .dot{position:absolute;top:6px;right:8px;width:7px;height:7px;border-
 
 .actions{display:flex;gap:8px;margin:16px 0}
 .btn{flex:1;border:0;border-radius:12px;padding:13px;font-weight:650;background:var(--accent);color:var(--accent-ink)}
+.btn.start{display:block;width:100%;margin:10px 0;padding:15px;font-size:17px;background:var(--done);color:#fff}
 .btn.ghost{background:var(--card);color:var(--ink);border:1px solid var(--line)}
 textarea{width:100%;min-height:70px;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:10px}
 
@@ -411,8 +412,19 @@ function lastUsed(ex){
 function newSet(){ return { kg:'', reps:'', done:false }; }
 function draft(day, create){
   if(!drafts[day] && create){ drafts[day] = blank(day); }
-  if(drafts[day] && create && !drafts[day].startedAt){ drafts[day].startedAt = Date.now(); }
   return drafts[day] || blank(day);
+}
+// A session starts with Start (user, 2026-10-18): the clock runs and the screen stays on.
+// Forgot Start? The first ✓ starts it, dated 2 minutes back to cover the time already spent.
+// One workout at a time: another can't start until the running one is finished or cleared.
+const LATE_START = 2 * 60000;
+const running = except => ALL.find(x => x !== except && drafts[x]?.startedAt);
+function begin(day, late){
+  const other = running(day);
+  if(other){ toast(`${PLAN[other].title} is running — finish or clear it first`); return false; }
+  const d = draft(day, true);
+  if(!d.startedAt){ d.startedAt = Date.now() - (late ? LATE_START : 0); if(!wantWake) toggleWake(late); }
+  return true;
 }
 function lastFor(name){
   for(let i = history.length - 1; i >= 0; i--){
@@ -507,6 +519,12 @@ function showMenu(on){
 function renderDay(day){
   const p = PLAN[day], d = draft(day, false), reset = resetFor(day);
   let h = `<p class="focus">${p.focus}</p>`;
+  if(!d.startedAt){
+    const other = running(day);
+    h += other ? `<div class="box"><b>${PLAN[other].title} is running.</b> Finish or clear it before starting this one.
+        <div class="actions"><button class="btn ghost" data-tab="${other}">Go to ${PLAN[other].title}</button></div></div>`
+      : `<button class="btn start" data-act="start">▶ Start ${esc(p.title)}</button>`;
+  }
   // a finished desk reset folds to one line; tap to open it again
   if(resetDone(d) === reset.length && !opened.has('reset'))
     h += `<button class="fold" data-unfold="reset"><span class="num">✓</span><span class="what"><b>Desk reset</b>
@@ -716,6 +734,7 @@ document.addEventListener('click', e => {
   if(t.id === 'wake'){ toggleWake(); return; }
 
   if(t.dataset.tick){
+    if(!begin(view, true)) return;
     const [i, j] = t.dataset.tick.split('.').map(Number), d = draft(view, true), s = d.slots[i].sets[j];
     const row = t.closest('.row'), kgIn = row.querySelector('[data-f="kg"]'), repIn = row.querySelector('[data-f="reps"]');
     s.done = !s.done;
@@ -723,7 +742,6 @@ document.addEventListener('click', e => {
       // one tap if the numbers match last time: take the greyed-in values (body-weight exercises have none)
       if(s.kg === '' && kgIn && kgIn.dataset.last) s.kg = kgIn.dataset.last;
       if(s.reps === '') s.reps = repIn.placeholder;
-      autoWake();
       // bands: the colours tapped for this exercise, and their kg
       if(bandOf(d.slots[i].name)){ const c = d.slots[i].band || []; s.band = c.join('+'); s.kg = bandKg(d.slots[i].name, c); }
       const ex = PLAN[view].ex[i];
@@ -733,11 +751,13 @@ document.addEventListener('click', e => {
     save(); render(); return;
   }
   if(t.dataset.reset){
+    if(!begin(view, true)) return;
     const d = draft(view, true), k = +t.dataset.reset;
     d.reset = RESET.map((_, n) => !!(d.reset || [])[n]); d.reset[k] = !d.reset[k];
     save(); render(); return;
   }
   if(t.dataset.cool){
+    if(!begin(view, true)) return;
     const d = draft(view, true), k = +t.dataset.cool;
     d.cool = COOL.map((_, n) => !!(d.cool || [])[n]); d.cool[k] = !d.cool[k];
     save(); render(); return;
@@ -761,6 +781,7 @@ document.addEventListener('click', e => {
     return;
   }
   const act = t.dataset.act;
+  if(act === 'start'){ begin(view, false); save(); render(); return; }
   if(act === 'finish'){
     const d = drafts[view];
     const filled = d ? d.slots.flatMap(x => x.sets).filter(s => !s.done && s.reps !== '') : [];
@@ -773,13 +794,14 @@ document.addEventListener('click', e => {
       if(!confirm(filled.length ? `Finish and save? ${filled.length} filled-in set${filled.length === 1 ? '' : 's'} without ✓ will be saved too.` : 'Finish and save this workout?')) return;
       filled.forEach(s => s.done = true);
     }
+    if(!d.startedAt) d.startedAt = Date.now() - LATE_START;   // typed in, never started
     // id: time + random suffix, so two workouts can never share one (or one file name)
     history.push({ ...d, id: Date.now() + Math.random().toString(36).slice(2, 7), finishedAt: Date.now(),
       ...(bodyweight ? { bw: bodyweight } : {}), synced: false });
-    delete drafts[view]; autoWoken = false; save(); stopRest(); render(); scrollTo(0, 0); toast('Workout saved ✓'); sync();
+    delete drafts[view]; save(); stopRest(); render(); scrollTo(0, 0); toast('Workout saved ✓'); sync();
   }
   if(act === 'discard'){
-    if(drafts[view] && confirm('Clear everything entered for today? (Saved workouts are kept.)')){ delete drafts[view]; autoWoken = false; save(); render(); }
+    if(drafts[view] && confirm('Clear everything entered for today? (Saved workouts are kept.)')){ delete drafts[view]; save(); render(); }
   }
   if(act === 'ghsave'){
     const v = id => document.getElementById(id).value.trim();
@@ -897,9 +919,6 @@ async function toggleWake(quiet){
   document.getElementById('wake').classList.toggle('on', wantWake && !!wakeLock);
   if(wantWake && !wakeLock){ wantWake = false; if(!quiet) toast('This browser can’t keep the screen on'); }
 }
-// the first ✓ of a workout switches the screen on by itself (tap the button to switch it off)
-const autoWake = () => { if(!wantWake && !autoWoken){ autoWoken = true; toggleWake(true); } };
-let autoWoken = false;
 async function getWake(){ try{ wakeLock = await navigator.wakeLock.request('screen'); }catch(e){ wakeLock = null; } }
 document.addEventListener('visibilitychange', () => {
   if(document.visibilityState === 'visible'){ if(wantWake) getWake(); tickRest(); }
