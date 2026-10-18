@@ -105,23 +105,18 @@ nav button .dot{position:absolute;top:6px;right:8px;width:7px;height:7px;border-
 .mv{border:0;background:none;padding:0;text-align:left;font-size:14px;color:var(--ink)}
 .mv .small{display:block}
 .mv .play{color:var(--accent);font-size:13px}
+.howlist{list-style:none;margin:6px 2px 4px;padding:0;font-size:13px;line-height:1.35}
+.howlist li{padding:2px 0}
+.howlist .ok{color:var(--done)}
+.howlist .no{color:var(--bad)}
+button.cue{display:block;width:100%;text-align:left;color:var(--muted)}
+button.cue.mv{padding:0 14px 8px;font-size:13px;color:var(--muted)}
+.ex .demowrap{padding:0 10px 10px}
 .demo3{max-width:520px;margin:2px auto;background:var(--input);border-radius:14px;overflow:hidden}
 .demo3d{display:block;width:100%}
 .demo3 .cap{font-size:14px;font-weight:600;padding:8px 12px 10px;min-height:2.6em}
 .demo3 .cap.good{color:var(--done)}
 .demo3 .cap.bad{color:var(--bad)}
-.demo{display:block;width:100%;max-width:340px;margin:2px auto;background:var(--input);border-radius:12px}
-.demo .floor{stroke:var(--line);stroke-width:2}
-.demo .prop{fill:var(--muted);opacity:.45}
-.demo .bar{stroke:var(--muted);stroke-width:4;stroke-linecap:round}
-.demo .near polyline,.demo .far polyline,.demo .torso{fill:none;stroke:var(--ink);stroke-width:4.5;stroke-linecap:round;stroke-linejoin:round}
-.demo .far{opacity:.3}
-.demo .head{fill:var(--input);stroke:var(--ink);stroke-width:4}
-.demo .roller{fill:var(--line);stroke:var(--muted);stroke-width:2}
-.demo .gaze{stroke:var(--ink);stroke-width:2.5;stroke-linecap:round}
-.demo .hot{fill:var(--hint);opacity:.6}
-.demo .say{font-size:9px;fill:var(--muted);text-anchor:middle}
-.demo .say.left{text-anchor:start}
 .rrow.done .tick{opacity:1;background:var(--done);border-color:var(--done);color:var(--card)}
 .reset h3 .small{font-weight:400}
 .row .bwcell{text-align:center;color:var(--muted);font-size:14px;padding:9px 0}
@@ -501,83 +496,21 @@ function nextStep(ex, name, sets){
 }
 function weekStart(t){ const d = new Date(t); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return d.getTime(); }
 
-// ---------- Exercise demos: short looping stick-figure animations, drawn here (no files) ----------
-// Side views use angles (0 = right, 90 = down) so limbs keep their length while moving.
-// Near limbs solid, far limbs faded. Each demo: keyframes {p: pose, hold, move, say}; `say` shows while held.
-const vec = (a, l) => [l * Math.cos(a * Math.PI / 180), l * Math.sin(a * Math.PI / 180)];
-const add = (p, a, l) => { const v = vec(a, l); return [p[0] + v[0], p[1] + v[1]]; };
-function side(q, root){
-  const k = q.k || 1, T = 40 * k, L = 30 * k, U = 22 * k, F = 20 * k;
-  let hip, kn, fn, el, hn, neck;
-  if(root === 'foot'){ fn = [q.x, q.y]; kn = add(fn, q.ns, -L); hip = add(kn, q.nt, -L); }
-  else if(root === 'hand'){ hn = [q.x, q.y]; el = add(hn, q.nf, -F); neck = add(el, q.nu, -U); hip = add(neck, q.to, -T); }
-  else hip = [q.x, q.y];
-  neck = neck || add(hip, q.to, T);
-  kn = kn || add(hip, q.nt, L); fn = fn || add(kn, q.ns, L);
-  el = el || add(neck, q.nu, U); hn = hn || add(el, q.nf, F);
-  const kf = add(hip, q.ft, L), ef = add(neck, q.fu, U);
-  return { near:[[hip, kn, fn], [hip, neck], [neck, el, hn]], far:[[hip, kf, add(kf, q.fs, L)], [neck, ef, add(ef, q.ff, F)]],
-    head:add(neck, q.hd ?? q.to, 11 * k), hr:8 * k, hip, neck };
+// tap a move or a cue line: its animation (if built) plus the checked cues and mistakes (docs/exercises.md)
+function howBox(name){
+  const h = HOW[name], anim = DEMO3[name] ? `<div class="demo3"><canvas class="demo3d" data-name="${esc(name)}" role="img" aria-label="${esc(name)}, 3D animation"></canvas><div class="cap"></div></div>`
+    : '';
+  const list = h ? `<ul class="howlist">${h.cues.map(c => `<li class="ok">✓ ${esc(c)}</li>`).join('')}${h.mistakes.map(m => `<li class="no">${esc(m)}</li>`).join('')}</ul>` : '';
+  return `<div class="demowrap">${anim}${list}</div>`;
 }
-const DEMO = {
-  'Couch stretch': { root:'hip', props:'<rect class="prop" x="10" y="104" width="50" height="21" rx="3"/>',
-    hot:f => add(f.hip, -20, 6), keys:[
-    { p:{x:63, y:93, nt:84, ns:221, ft:0, fs:92, to:-60, nu:60, nf:100, fu:55, ff:95}, hold:600, move:1200 },
-    { p:{x:68, y:92, nt:94, ns:221, ft:2, fs:95, to:-95, nu:110, nf:70, fu:105, ff:65}, hold:2400, move:1200, say:'squeeze the glute · ribs down' }]},
-  '90/90 hip switches': { build:q => {
-      const neck = [100, 74], hl = [91, 116], hr = [109, 116];
-      return { near:[[[64, 123], [q.lx, q.ly], hl, hr, [q.rx, q.ry], [136, 123]], [[100, 116], neck],
-        [neck, [84, 95], [79, 118]], [neck, [116, 95], [121, 118]]], far:[], head:[100, 63], hr:8 };
-    }, keys:[
-    { p:{lx:80, ly:92, rx:120, ry:92}, hold:300, move:900 },
-    { p:{lx:56, ly:113, rx:94, ry:104}, hold:900, move:900, say:'both knees left' },
-    { p:{lx:80, ly:92, rx:120, ry:92}, hold:300, move:900 },
-    { p:{lx:106, ly:104, rx:144, ry:113}, hold:900, move:900, say:'both knees right' }]},
-  'Open book': { build:q => {
-      const c = [100, 100], s = add(c, q.r - 90, 18), hand = add(s, q.a, 44);
-      return { near:[[s, hand]], far:[[[100, 120], [150, 121]], [[104, 121], [134, 117]]], head:c, hr:9,
-        extra:`<ellipse class="torso" cx="100" cy="100" rx="11" ry="21" transform="rotate(${q.r.toFixed(1)} 100 100)"/>`,
-        after:`<line class="gaze" x1="${add(c, q.a, 4)[0].toFixed(1)}" y1="${add(c, q.a, 4)[1].toFixed(1)}" x2="${add(c, q.a, 12)[0].toFixed(1)}" y2="${add(c, q.a, 12)[1].toFixed(1)}"/>` +
-          '<text class="say left" x="4" y="127">seen from your head</text>' };
-    }, keys:[
-    { p:{a:45, r:0}, hold:700, move:900, say:'lie on your side, arms together' },
-    { p:{a:-90, r:-12}, hold:0, move:900 },
-    { p:{a:-225, r:-25}, hold:1500, move:900, say:'open · eyes follow the hand' },
-    { p:{a:-90, r:-12}, hold:0, move:900 }]},
-  'Deep squat hold': { root:'foot', props:'<rect class="prop" x="133" y="16" width="5" height="109" rx="2"/>', keys:[
-    { p:{x:90, y:124, nt:90, ns:90, ft:90, fs:90, to:-90, nu:15, nf:5, fu:18, ff:8}, hold:700, move:1300 },
-    { p:{x:90, y:124, nt:-10, ns:110, ft:-14, fs:112, to:-60, nu:2, nf:-8, fu:6, ff:-4}, hold:2200, move:1300, say:'heels down · chest up' }]},
-  'Dead hang': { root:'hand', floor:false, props:'<line class="bar" x1="60" y1="26" x2="140" y2="26"/>', keys:[
-    { p:{x:100, y:27, k:.78, nu:-60, nf:-95, fu:-64, ff:-95, to:-92, hd:-115, nt:96, ns:140, ft:100, fs:135}, hold:1300, move:800, say:'hang long, breathe' },
-    { p:{x:100, y:27, k:.78, nu:-48, nf:-104, fu:-52, ff:-104, to:-92, hd:-115, nt:96, ns:140, ft:100, fs:135}, hold:1500, move:800, say:'shoulders slightly active' }]},
-  'Foam roll upper back': { root:'foot', build:q => {
-      const f = side(q, 'foot'), m = add([88, 114], (q.x - 150) * 25, 9);
-      f.extra = `<circle class="roller" cx="88" cy="114" r="11"/><line class="gaze" x1="88" y1="114" x2="${m[0].toFixed(1)}" y2="${m[1].toFixed(1)}"/>`;
-      return f;
-    }, hot:() => [88, 101], caption:'roll slowly · not the lower back', keys:[
-    { p:{x:150, y:124, ns:70, nt:-15, ft:-12, fs:72, to:185, nu:-100, nf:120, fu:-80, ff:115}, hold:300, move:1400 },
-    { p:{x:160, y:124, ns:70, nt:-15, ft:-12, fs:72, to:185, nu:-100, nf:120, fu:-80, ff:115}, hold:300, move:1400 }]},
-};
-const demoSvg = name => `<svg class="demo" viewBox="0 0 200 130" data-name="${esc(name)}" role="img" aria-label="${esc(name)}, animated">
-  ${DEMO[name].floor === false ? '' : '<line class="floor" x1="0" y1="125" x2="200" y2="125"/>'}${DEMO[name].props || ''}<g class="anim"></g></svg>`;
-function drawDemo(svg, name, t){
-  const d = DEMO[name], { q, say } = demoAt(d, t), f = d.build ? d.build(q) : side(q, d.root);
-  const pl = ps => `<polyline points="${ps.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ')}"/>`;
-  const hot = d.hot && d.hot(f);
-  svg.querySelector('.anim').innerHTML = `<g class="far">${f.far.map(pl).join('')}</g>${f.extra || ''}` +
-    `<circle class="head" cx="${f.head[0].toFixed(1)}" cy="${f.head[1].toFixed(1)}" r="${f.hr}"/>` +
-    `<g class="near">${f.near.map(pl).join('')}</g>${f.after || ''}` +
-    (hot ? `<circle class="hot" cx="${hot[0].toFixed(1)}" cy="${hot[1].toFixed(1)}" r="${(4.5 + 1.5 * Math.sin(t / 180)).toFixed(1)}"/>` : '') +
-    (say || d.caption ? `<text class="say" x="100" y="10">${esc(say || d.caption)}</text>` : '');
-}
+const cueLine = (name, fallback) => HOW[name] ? HOW[name].cues.join(' · ') : fallback;
 // one animation loop while a demo is on screen
 let demoOpen = null, demoRaf = 0;
 function runDemos(){
   const drawAll = now => {
-    const svgs = document.querySelectorAll('svg.demo'), cvs = document.querySelectorAll('canvas.demo3d');
-    svgs.forEach(s => drawDemo(s, s.dataset.name, now));
+    const cvs = document.querySelectorAll('canvas.demo3d');
     cvs.forEach(c => draw3d(c, c.dataset.name, now));
-    return svgs.length + cvs.length;
+    return cvs.length;
   };
   drawAll(performance.now());   // first frame straight away, no blank box
   if(demoRaf) return;
@@ -624,12 +557,14 @@ const MUSCLES = ['quads', 'glutes', 'hamstrings', 'adductors', 'calves', 'hip fl
   'lats', 'mid back', 'upper traps', 'rear delts', 'side delts', 'front delts', 'chest', 'upper chest', 'triceps', 'biceps',
   'forearms', 'upper back', 'hip rotators', 'grip'];
 // q (one step of a demo): pelvis px,py,pz · whole-body turn `yaw` (about up) and `roll` (about forward) ·
+// `se` shoulders up (+ cm, a shrug) or down (−) ·
+// `spin` (about the body's own up axis, first: e.g. hips rolling open while lying on the side; give the chest −spin as tw to keep it) ·
 // side-plane angles la (lower back), ca (chest), ha (head) · chest twist tw, side bend sb, head turn hy ·
 // ankles an/af and hands hn/hf (world points; hands = the grip) · knee/elbow directions kN kF eN eF (else the demo's) ·
 // toe directions fdN/fdF (world; else forward). N = near side (+z), F = far side.
 function human(q, d, breathe = 0){
   const B = BODY, P = [q.px, q.py, q.pz || 0], items = [], J = {}, mus = {};
-  const R = v => v3.rot(v3.rot(v, [1, 0, 0], q.roll || 0), [0, 1, 0], q.yaw || 0), W = v => v3.add(P, R(v));
+  const R = v => v3.rot(v3.rot(v3.rot(v, [0, 1, 0], q.spin || 0), [1, 0, 0], q.roll || 0), [0, 1, 0], q.yaw || 0), W = v => v3.add(P, R(v));
   const at = (p, ...vs) => vs.reduce((o, v) => v3.add(o, v), p), lerp = v3.lerp;
   const piece = (m, tag) => /^(foot|sole)/.test(tag) ? 'shoe' + tag.slice(-1) : /^(arm|fore|hand)/.test(tag) ? 'arm' + tag.slice(-1)
     : /^(thigh|shin)/.test(tag) ? 'leg' + tag.slice(-1) : m === 'shorts' ? 'shorts' : m === 'shirt' ? 'shirt' : 'head';
@@ -649,7 +584,8 @@ function human(q, d, breathe = 0){
   const waistL = v3.mul(lumL, B.lumbar), neckL = v3.add(waistL, v3.mul(caxL, B.chest));
   const front = R(sag(q.la - 90)), back = v3.mul(front, -1), lum = R(lumL), cax = R(caxL), cf = R(cfL), cl = R(clL), lat = R(LZ);
   const waist = W(waistL), neck = W(neckL), br = 1 + .03 * breathe;
-  const sh = { N:at(neck, v3.mul(cax, -B.shDrop), v3.mul(cl, B.sh)), F:at(neck, v3.mul(cax, -B.shDrop), v3.mul(cl, -B.sh)) };
+  const shUp = v3.mul(cax, (q.se || 0) - B.shDrop);   // se: shoulders raised (+, shrug) or lowered (−) in cm
+  const sh = { N:at(neck, shUp, v3.mul(cl, B.sh)), F:at(neck, shUp, v3.mul(cl, -B.sh)) };
   const hip = { N:W([0, 0, B.hip]), F:W([0, 0, -B.hip]) };
   Object.assign(J, { pelvis:P, waist, neck, shN:sh.N, shF:sh.F, hipN:hip.N, hipF:hip.F, front, lum, cax, cf, cl, lat });
   // legs: hip → knee (IK) → ankle; the shoe follows the toe direction, its sole under the foot
@@ -769,8 +705,9 @@ function shade(ctx, A, B, R, pal){   // cylinder shading: lit edge toward the li
 }
 // ---- equipment: boxes, cylinders (bars, plates, rollers, wheels), dumbbells, bands; drawn in depth order with the body
 const PROP_COL = { light:['#c9ced6', '#aab1bc', '#8d95a1'], dark:['#5d6878', '#465161', '#38414e'] };
+const MAT_COL = { light:['#c3cddb', '#a9b6c8', '#8e9db2'], dark:['#3d4a5c', '#334052', '#2a3545'] };
 function drawBox(ctx, cam, p, dark){
-  const { lo, hi } = p, cols = p.cols || PROP_COL[dark ? 'dark' : 'light'], C = (i, j, k) => [[lo, hi][i][0], [lo, hi][j][1], [lo, hi][k][2]];
+  const { lo, hi } = p, cols = p.mat ? MAT_COL[dark ? 'dark' : 'light'] : p.cols || PROP_COL[dark ? 'dark' : 'light'], C = (i, j, k) => [[lo, hi][i][0], [lo, hi][j][1], [lo, hi][k][2]];
   const faces = [[[0,0,0],[0,1,0],[0,1,1],[0,0,1],[-1,0,0],2], [[1,0,0],[1,0,1],[1,1,1],[1,1,0],[1,0,0],1],
     [[0,1,0],[1,1,0],[1,1,1],[0,1,1],[0,1,0],0], [[0,0,1],[0,1,1],[1,1,1],[1,0,1],[0,0,1],1], [[0,0,0],[1,0,0],[1,1,0],[0,1,0],[0,0,-1],2],
     [[0,0,0],[0,0,1],[1,0,1],[1,0,0],[0,-1,0],2]];
@@ -880,7 +817,7 @@ function draw3d(cv, name, t){
   const groups = {};
   items.forEach(it => (groups[it.g] = groups[it.g] || []).push(it));
   const layers = Object.entries(groups).map(([g, parts]) => ({ g, parts, z:parts.reduce((s, it) => s + it.z, 0) / parts.length + (d.bias?.[g] || 0) }))
-    .concat(props.map(p => ({ prop:p, z:cam.depth(propCentre(p)) + (p.bias || 0) }))).sort((a, b) => b.z - a.z);
+    .concat(props.map(p => ({ prop:p, z:p.mat ? 1e9 : cam.depth(propCentre(p)) + (p.bias || 0) }))).sort((a, b) => b.z - a.z);   // a mat is always underneath
   const ol = 1.5 * dpr, facing = it => !it.face || v3.dot(it.face, v3.sub(cam.pos, it.c)) > 0;
   const path = (it, grow) => { ctx.beginPath();
     if(it.k === 't'){   // tapered tube: both sides follow the radius profile, round at the ends
@@ -913,7 +850,7 @@ function draw3d(cv, name, t){
     const sides = items.mus[word], side = Object.keys(sides).sort((x, y) => cam.depth(sides[x][0].a) - cam.depth(sides[y][0].a))[0];
     const col = ROLE[role];
     sides[side].forEach(m => {
-      const vis = v3.dot(m.n, v3.sub(cam.pos, m.a)) > 0 ? 1 : .35, al = a * vis * (.82 + .18 * Math.sin(t / 220));
+      const vis = v3.dot(m.n, v3.sub(cam.pos, m.a)) > 0 ? 1 : .6, al = a * vis * (.82 + .18 * Math.sin(t / 220));
       const A = cam.proj(m.a), Bp = cam.proj(m.b), Wd = m.w * (A.s + Bp.s) / 2;
       let dx = Bp.x - A.x, dy = Bp.y - A.y; const l = Math.hypot(dx, dy) || 1; const nx2 = -dy / l, ny2 = dx / l;
       const pt = (s, o) => { const hw = Wd * Math.max(.18, Math.pow(Math.sin(Math.PI * s), .7)); return [A.x + dx * s + nx2 * hw * o, A.y + dy * s + ny2 * hw * o]; };
@@ -985,6 +922,238 @@ const DEMO3 = {
   })(),
 };
 
+// ---- Batch 1: desk reset and cool-down (built with tests/demo-dev.sh; checked by tests/demo-checks.js) ----
+// 90/90 hip switches (docs/exercises.md): sitting on the floor, facing +x; knees to the right = front leg N (right), back leg F
+DEMO3['90/90 hip switches'] = (() => {
+    const mid = {"px":0,"py":12,"pz":0,"roll":0,"la":96,"ca":94,"ha":90,"tw":0,"sb":0,"hy":0,"fdN":[1,0,0],"fdF":[1,0,0],"eN":[-0.5,-0.3,0.6],"eF":[-0.5,-0.3,-0.6],"yaw":0,"an":[55,8,37],"af":[55,8,-37],"kN":[-0.1,1,-0.35],"kF":[-0.1,1,0.35],"hn":[-24,3,27],"hf":[-24,3,-27]};
+    const side = {"px":0,"py":12,"pz":0,"roll":0,"la":89,"ca":89,"ha":84,"tw":0,"sb":0,"hy":0,"fdN":[0.6,0,0.8],"fdF":[1,0,-0.2],"eN":[-0.5,-0.3,0.6],"eF":[-0.5,-0.3,-0.6],"yaw":-40,"an":[47.29,6,40.3],"af":[50.69,6,-50.67],"hn":[-25.46,3,17.34],"hf":[-8.36,3,-29.65],"kN":[-17.02,-1.93,26.69],"kF":[21.97,-1.93,22.8]};
+    const sideOff = {"px":0,"py":12,"pz":0,"roll":0,"la":89,"ca":89,"ha":84,"tw":0,"sb":0,"hy":0,"fdN":[0.6,0,0.8],"fdF":[1,0,-0.2],"eN":[-0.3,-0.6,0.8],"eF":[-0.3,-0.6,-0.8],"yaw":-40,"an":[47.29,6,40.3],"af":[50.69,6,-50.67],"hn":[-28.78,20,28.07],"hf":[22.65,20,-33.21],"kN":[-17.02,-1.93,26.69],"kF":[21.97,-1.93,22.8]};
+    const sideL = {"px":0,"py":12,"pz":0,"roll":0,"la":89,"ca":89,"ha":84,"tw":0,"sb":0,"hy":0,"fdN":[1,0,0.2],"fdF":[0.6,0,-0.8],"eN":[-0.5,-0.3,0.6],"eF":[-0.5,-0.3,-0.6],"yaw":40,"an":[50.69,6,50.67],"af":[47.29,6,-40.3],"hn":[-8.36,3,29.65],"hf":[-25.46,3,-17.34],"kN":[21.97,-1.93,-22.8],"kF":[-17.02,-1.93,-26.69]};
+    const slouch = {"px":0,"py":12,"pz":0,"roll":0,"la":142,"ca":60,"ha":42,"tw":0,"sb":0,"hy":0,"fdN":[1,0,0],"fdF":[1,0,0],"eN":[-0.5,-0.3,0.6],"eF":[-0.5,-0.3,-0.6],"yaw":0,"an":[55,8,37],"af":[55,8,-37],"kN":[-0.1,1,-0.35],"kF":[-0.1,1,0.35],"hn":[-24,3,27],"hf":[-24,3,-27]};
+    return {
+      cam:{"target":[22,24,0],"yaw":162,"sway":6,"el":47,"dist":380,"zoom":2}, sides:{ front:'N', back:'F' },
+      keys:[
+        { p:mid, hold:1800, move:600, say:'c1', cp:'middle', mus:{ work:['abs'] } },
+        { p:mid, hold:1500, move:3500, say:'c2', cp:'middle', mus:{ work:['hip rotators', 'glutes'] } },
+        { p:side, hold:1400, move:700, cp:'side', mus:{ stretch:['glutes', 'hip rotators'] } },
+        { p:sideOff, hold:2200, move:900, say:'c3', cp:'side', mus:{ stretch:['glutes', 'hip rotators'] } },
+        { p:side, hold:400, move:3500, cp:'side' },
+        { p:sideL, hold:2200, move:1600, cp:'other', mus:{ stretch:['adductors'], work:['abs'] } },
+        { p:mid, hold:500, move:1000 },
+        { p:slouch, hold:2000, move:1200, say:'m1', mus:{ bad:['lower back'] } },
+        { p:mid, hold:2000, move:900, say:'m1fix', cp:'middle', mus:{ work:['abs'] } }] };
+  })();
+// Open book (docs/exercises.md): lying on the left side, head toward +x, facing −z.
+// roll ≈ 90 puts the near side (N) on the floor, so N = bottom, F = top; the top arm (F) opens.
+// spin (about the body's own up axis) rolls the pelvis open in the mistake; the chest's turn in the world is spin + tw.
+DEMO3['Open book'] = (() => {
+  const ROLL = 84, YAW = 90, PX = 0, PY = 20;
+  const base = { px:PX, py:PY, pz:0, yaw:YAW, roll:ROLL, la:90, ca:90, ha:90, sb:0 };
+  const hips = spin => { const R = v => v3.rot(v3.rot(v3.rot(v, [0, 1, 0], spin), [1, 0, 0], ROLL), [0, 1, 0], YAW);
+    return { N:v3.add([PX, PY, 0], R([0, 0, 9])), F:v3.add([PX, PY, 0], R([0, 0, -9])) }; };
+  // a knee at height y, x along the body, in front of its hip (thigh length kept)
+  const knee = (h, y, x) => { const dx = x - h[0], dy = y - h[1]; return [x, y, h[2] - Math.sqrt(BODY.thigh ** 2 - dx * dx - dy * dy)]; };
+  const shin = (k, dy) => v3.add(k, v3.mul(v3.norm([-1, dy, 0]), BODY.shin));
+  // legs for a pelvis spin; topY = top knee height (on the bottom knee: 17.5; slid back off it: lower, behind it)
+  const legs = (spin, topY) => {
+    const H = hips(spin), kN = knee(H.N, 6.5, H.N[0] - 2), kF = knee(H.F, topY, H.N[0] - 2);
+    const an = shin(kN, -.03), af = shin(kF, topY > 15 ? -.06 : -.02);
+    return { an, af, fdN:[0, 0, -1], fdF:[0, 0, -1], kN:v3.sub(kN, v3.lerp(H.N, an, .5)), kF:v3.sub(kF, v3.lerp(H.F, af, .5)) };
+  };
+  // arms from the shoulders of the drawn body: the bottom arm lies straight forward on the mat; the top hand rests on
+  // the bottom hand (ab = null) or is placed at horizontal abduction `ab` from the turned chest; eyes follow it (hy = 'hand')
+  const pose = (spin, tw, hy, ab, lg, lift) => {
+    const q0 = { ...base, ...lg, spin, tw, hy, hn:[0, 4, -60], hf:[0, 11, -60], eN:[0, -1, 0], eF:[0, 1, .3] };
+    const J = human(q0, {}, 0).J, hn = [J.shN[0] - 1, 4.2, J.shN[2] - Math.sqrt(64 ** 2 - (J.shN[1] - 4.2) ** 2)];
+    let hf;
+    if(ab === null) hf = [hn[0], 11, hn[2] + 3];
+    else { const d = v3.norm(v3.add(v3.mul(J.cf, Math.cos(rad(ab))), v3.mul(J.cl, -Math.sin(rad(ab)))));
+      hf = v3.add(J.shF, v3.mul(v3.norm(v3.add(d, [0, lift || 0, 0])), 66.5)); }
+    const q = { ...q0, hn, hf, eF:ab === null ? [0, 1, .3] : v3.mul(J.cf, -1) };
+    if(hy === 'hand'){   // turn the head toward the hand (neck at most 85° past the chest)
+      let best = 0, err = 9;
+      for(let h = 0; h <= tw + 85; h++){ const Jh = human({ ...q, hy:h }, {}, 0).J, e = Math.acos(v3.dot(Jh.hf, v3.norm(v3.sub(hf, Jh.head))));
+        if(e < err){ err = e; best = h; } }
+      q.hy = best;
+    }
+    return q;
+  };
+  const still = legs(0, 17.5);
+  const start = pose(0, 0, 0, null, still), mid = pose(0, 22, 'hand', 15, still, 1.6), open = pose(0, 48, 'hand', 84, still);
+  // mistake: the pelvis rolls open 30° and the top knee slides back off the bottom knee, low near the mat;
+  // the chest turns 70° in all (30 spin + 40 twist) and the hand is pushed toward the floor
+  const bad = pose(30, 40, 'hand', 108, legs(30, 11));
+  const mat = { type:'box', mat:true, lo:[-80, 0, -90], hi:[105, 1.2, 75] };
+  const pillow = { type:'box', lo:[62, 1.2, -14], hi:[92, 16.5, 14], cols:['#c9d8c0', '#a9bf9e', '#8aa37f'] };
+  return {
+    cam:{ target:[15, 22, -25], yaw:225, sway:6, el:38, dist:420, zoom:2.0 }, sides:{ bottom:'N', top:'F' },
+    floor:[-100, 125, -100, 100], props:[mat, pillow],
+    kneeN:[0, 0, -1], kneeF:[0, 0, -1], elbowN:[0, -1, 0], elbowF:[0, 1, 0],
+    keys:[
+      { p:start, hold:2000, move:1300, say:'c1', cp:'start' },
+      { p:mid, hold:1500, move:1300, say:'c3', mus:{ work:['upper back', 'obliques'] } },
+      { p:open, hold:2200, move:2500, say:'c2', cp:'open', mus:{ stretch:['chest', 'front delts', 'upper back'] } },
+      { p:start, hold:1200, move:1400, cp:'start' },
+      { p:bad, hold:2200, move:1300, say:'m1', mus:{ bad:['lower back'] } },
+      { p:open, hold:2200, move:2500, say:'m1fix', cp:'open', mus:{ work:['upper back', 'obliques'] } }] };
+})();
+// Deep squat hold (docs/exercises.md), gym version: hands on a rack upright (a post in front)
+DEMO3['Deep squat hold'] = (() => {
+  const c = Math.cos(25 * Math.PI / 180), s = Math.sin(25 * Math.PI / 180);
+  const feet = { gd:0, hl:0, an:[0, 8, 22], af:[0, 8, -22], fdN:[c, 0, s], fdF:[c, 0, -s], kN:[c, 0, s * 1.3], kF:[c, 0, -s * 1.3] };
+  const stand = { ...feet, px:8, py:96, la:81, ca:81, ha:84, hn:[78, 125, 5.5], hf:[78, 125, -5.5] };
+  const hold = { ...feet, px:-18, py:38, la:52, ca:56, ha:75, hn:[78, 89, 5.5], hf:[78, 89, -5.5] };
+  const heels = { ...hold, an:[7, 21, 22], af:[7, 21, -22], fdN:[.74, -.6, .34], fdF:[.74, -.6, -.34], px:-13, py:37 };
+  return {
+    cam:{ target:[26, 78, 0], yaw:36, sway:6, el:12, dist:400, zoom:2.0 },
+    elbowN:[0, -1, .3], elbowF:[0, -1, -.3],
+    // the post; in the knees step a green line on the floor along each foot (the way the knee must point)
+    props:(q, J) => [{ type:'cyl', a:[82, 0, 0], b:[82, 210, 0], r:4, m:'steel' }].concat(q.gd < .5 ? [] : ['N', 'F'].map(s => {
+      const h = J['heel' + s], f = J['fd' + s], k = J['knee' + s], dir = v3.norm([f[0], 0, f[2]]), a = [h[0], .6, h[2]];
+      const e = v3.add(a, v3.mul(dir, Math.max(30, v3.dot(v3.sub(k, a), dir))));
+      return { type:'band', pts:[a, e, [e[0], k[1] - 5, e[2]]], col:'#2fa86a', w:1.1, bias:-20 }; }))
+      // heels off the floor: a red mark in the gap under each heel
+      .concat(q.hl < .5 ? [] : ['N', 'F'].map(s => { const h = J['heel' + s]; return { type:'band', pts:[[h[0], .5, h[2]], [h[0], h[1] - 2.5, h[2]]], col:'#e8342a', w:1.4, bias:-30 }; })),
+    keys:[
+      { p:stand, hold:1600, move:3200, cp:'stand' },
+      { p:hold, hold:2200, move:300, say:'c1', cp:'hold', mus:{ work:['quads'], stretch:['calves'] } },
+      { p:{ ...hold, gd:1 }, hold:2200, move:300, say:'c2', cp:'hold', mus:{ stretch:['adductors', 'glutes'] } },
+      { p:hold, hold:2200, move:1000, say:'c3', cp:'hold', mus:{ work:['abs', 'quads'] } },
+      { p:{ ...heels, hl:1 }, hold:2000, move:1000, say:'m1' },
+      { p:{ ...hold, px:-17, py:42, la:54, ca:58 }, hold:2200, move:2200, say:'m1fix', cp:'hold', mus:{ stretch:['calves'] } }] };
+})();
+
+// Dead hang (docs/exercises.md): pull-up bar 248 up, a 30-high box under it; hands overhand, a bit wider than the shoulders.
+// Shoulders with `se`: relaxed hang +3 cm, active (shoulders down) −1 cm, the shrug mistake +7.5 cm. Arms stay straight on the
+// bar, so the body rises when the shoulders go down. Arrows beside the shoulders follow se: green down when active, red up in the shrug.
+DEMO3['Dead hang'] = (() => {
+  const BAR = 248, BOX = 30, ARM = 68.2, grip = { hn:[0, BAR, 24], hf:[0, BAR, -24] };
+  const base = { ...grip, la:90, ca:90, ha:90, fdN:[1, 0, 0], fdF:[1, 0, 0] };
+  // hanging, arms straight: shoulders at BAR − ARM, so the pelvis height follows se; toes just above the box, knees bent
+  const hangAt = se => ({ ...base, se, px:-2, py:BAR - ARM - 54.6 - se, la:91, an:[-30, 47, 9], af:[-30, 47, -9], fdN:[.8, -.6, 0], fdF:[.8, -.6, 0] });
+  const setup = { ...base, se:0, px:-2, py:127.4, an:[-3, BOX + 8, 10], af:[-3, BOX + 8, -10] };
+  const relaxed = hangAt(3), active = hangAt(-1), shrug = hangAt(7.5);
+  const down = { ...base, se:0, px:-2, py:126.6, an:[-3, BOX + 8, 10], af:[-3, BOX + 8, -10] };
+  return {
+    cam:{ target:[0, 130, 0], yaw:50, sway:5, el:6, dist:420, zoom:1.75 },
+    elbowN:[-.3, 0, 1], elbowF:[-.3, 0, -1],
+    floor:[-100, 100, -75, 75], bias:{ legN:8, legF:8 },
+    props:(q, J) => {
+      const out = [{ type:'box', lo:[-48, 0, -26], hi:[18, BOX, 26] },
+        { type:'box', lo:[-4, 0, -66], hi:[4, BAR + 6, -58] }, { type:'box', lo:[-4, 0, 58], hi:[4, BAR + 6, 66] },
+        { type:'cyl', a:[0, BAR, -60], b:[0, BAR, 60], r:1.8, m:'steel' }];
+      const se = q.se || 0, up = J.cax;
+      if(se < 0 || se > 5) ['N', 'F'].forEach(s => {   // guide arrows beside the shoulders (outside the arms)
+        const at = (u, o) => v3.add(J['sh' + s], v3.add(v3.mul(up, u), v3.mul(J.cl, (s === 'N' ? 1 : -1) * 15 + o)));
+        out.push(se < 0 ? { type:'band', pts:[at(12, 0), at(-6, 0), at(-.5, 4), at(-6, 0), at(-.5, -4)], col:'#2fa86a', w:1.8, bias:-40 }
+          : { type:'band', pts:[at(-6, 0), at(12, 0), at(6.5, 4), at(12, 0), at(6.5, -4)], col:'#e8342a', w:1.8, bias:-40 }); });
+      return out; },
+    keys:[
+      { p:setup, hold:1600, move:1400 },
+      { p:relaxed, hold:1600, move:1000, cp:'hang', mus:{ work:['grip', 'forearms'] } },
+      { p:active, hold:2200, move:400, say:'c1', cp:'active shoulders', mus:{ work:['lats', 'mid back'] } },
+      { p:active, hold:2200, move:1000, say:'c2', cp:'hang', mus:{ work:['grip', 'forearms'] } },
+      { p:shrug, hold:2000, move:1000, say:'m1' },
+      { p:active, hold:2200, move:1200, say:'m1fix', cp:'hang', mus:{ stretch:['lats', 'chest'] } },
+      { p:down, hold:2000, move:1200, say:'c3' }] };
+})();
+// Foam roll upper back (docs/exercises.md): lying on the back, head toward -x, feet toward +x; side view.
+// The roller (r 7.5) lies across the body at x = rx. mk() puts the body on the roller: it lifts the pelvis (py) so the
+// back touches the roller at `s` cm along the chest (or along the lower back for the mistake), and puts the
+// hands behind the head, fingers laced.
+DEMO3['Foam roll upper back'] = (() => {
+  const RR = 7.5, feet = { an:[106, 8, 11], af:[106, 8, -11], fdN:[1, 0, 0], fdF:[1, 0, 0] };
+  const mk = ({ s, on = 'chest', ...p }) => {
+    const q = { ...feet, rx:0, pz:0, py:0, hn:[0, 0, 0], hf:[0, 0, 0], kN:[.5, 1, .1], kF:[.5, 1, -.1], eN:[.6, .8, .3], eF:[.6, .8, -.3], ...p };
+    let J = human(q, {}, 0).J;
+    const ax = on === 'chest' ? J.cax : J.lum, base = on === 'chest' ? J.waist : J.pelvis;
+    const rb = on === 'chest' ? (s <= 20.5 ? 13.6 + .068 * s : Math.max(9, Math.sqrt(225 - (s - 20.5) ** 2))) : 12.2;
+    const bk = on === 'chest' ? v3.mul(J.cf, -1) : v3.mul(J.front, -1);
+    const C = v3.add(v3.add(base, v3.mul(ax, s)), v3.mul(bk, rb + RR));   // roller centre
+    q.py = RR - C[1]; q.rx = C[0];
+    J = human(q, {}, 0).J;
+    const back = v3.mul(J.hf, -1), hand = o => v3.add(J.head, v3.add(v3.mul(back, 6), v3.add(v3.mul(J.hax, -5), v3.mul(J.lat, 5 * o))));
+    q.hn = hand(1); q.hf = hand(-1);
+    return q;
+  };
+  const bottom = mk({ s:12, px:41, la:162, ca:162, ha:152 });
+  const top = mk({ s:29, px:55, la:170, ca:168, ha:158 });
+  const relax = mk({ s:14, px:47, la:150, ca:182, ha:174 });
+  const lowBack = mk({ s:12, on:'lum', px:20, la:178, ca:196, ha:186, an:[100, 8, 11], af:[100, 8, -11] });
+  return {
+    cam:{ target:[32, 24, 0], yaw:14, sway:6, el:22, dist:380, zoom:2.5 },
+    kneeN:[.5, 1, 0], kneeF:[.5, 1, 0], elbowN:[.6, .8, .3], elbowF:[.6, .8, -.3],
+    props:q => [{ type:'box', lo:[-90, 0, -45], hi:[140, 1, 45], cols:['#8fa3bd', '#73879f', '#5d7088'], bias:1000 },
+                { type:'cyl', a:[q.rx, RR, -30], b:[q.rx, RR, 30], r:RR, m:'foam', bias:-40 }],
+    keys:[
+      { p:bottom, hold:1800, move:1100, cp:'bottom', say:'c2', mus:{ work:['abs'] } },
+      { p:top, hold:2000, move:2200, cp:'top', say:'c1', mus:{ stretch:['upper back'] } },
+      { p:relax, hold:2400, move:1100, cp:'relax', say:'c3', mus:{ stretch:['upper back', 'mid back'], work:['abs'] } },
+      { p:lowBack, hold:2000, move:1200, say:'m1', mus:{ bad:['lower back'] } },
+      { p:bottom, hold:2000, move:1200, say:'m1fix', cp:'bottom', mus:{ work:['abs'], stretch:['mid back'] } }] };
+})();
+// Knees-to-chest stretch (docs/exercises.md): lying on the back on a mat, head toward -x; legs N (near) and F (far)
+DEMO3['Knees-to-chest stretch'] = (() => {
+  const Y = 16, A = 9.5;   // pelvis height lying on the mat; ankle height with the foot flat on the mat
+  const flatN = { an:[60, A, 11], fdN:[1, 0, 0], kN:[0, 1, 0] }, flatF = { af:[60, A, -11], fdF:[1, 0, 0], kF:[0, 1, 0] };
+  const hugN = { an:[16, 54, 10], fdN:[.75, .66, 0], kN:[-1, .3, 0] }, hugF = { af:[16, 54, -10], fdF:[.75, .66, 0], kF:[-1, .3, 0] };
+  const straightN = { an:[62, 78, 10], fdN:[-.6, .8, 0], kN:[-.7, .7, 0] }, straightF = { af:[62, 78, -10], fdF:[-.6, .8, 0], kF:[-.7, .7, 0] };
+  const body = { px:0, py:Y, pz:0, la:180, ca:180, ha:180 };
+  const armsDown = { hn:[-12, 5, 27], hf:[-12, 5, -27] };
+  const shinN = [-19, 57, 15], shinF = [-19, 57, -15];
+  const start = { ...body, ...flatN, ...flatF, ...armsDown };
+  const oneUp = { ...body, ...hugN, ...flatF, hn:shinN, hf:[-19, 57, 5] };
+  const hug = { ...body, ...hugN, ...hugF, hn:shinN, hf:shinF };
+  const oneDown = { ...body, ...hugN, ...flatF, hn:shinN, hf:[-19, 57, 5] };
+  const straight = { ...body, ...straightN, ...straightF, ...armsDown };
+  return {
+    cam:{ target:[-8, 30, 0], yaw:12, sway:6, el:16, dist:380, zoom:2.4 },
+    props:[{ type:'box', lo:[-100, 0, -32], hi:[80, 1.5, 32], cols:['#b9c6d8', '#93a3b8', '#7a8aa0'] }],
+    elbowN:[.2, -.4, 1], elbowF:[.2, -.4, -1],
+    keys:[
+      { p:start, hold:1600, move:1300, cp:'start' },
+      { p:oneUp, hold:1800, move:1300, say:'c1', mus:{ stretch:['glutes'] } },
+      { p:hug, hold:2400, move:600, say:'c2', cp:'hold', mus:{ stretch:['lower back', 'glutes'] } },
+      { p:hug, hold:2200, move:1300, say:'c3', cp:'hold', mus:{ stretch:['lower back'] } },
+      { p:oneDown, hold:1200, move:1300 },
+      { p:start, hold:1200, move:1200, cp:'start' },
+      { p:straight, hold:2000, move:1300, say:'m1', mus:{ bad:['lower back'] } },
+      { p:start, hold:500, move:1300 },
+      { p:oneUp, hold:2000, move:1300, say:'m1fix', mus:{ stretch:['glutes'] } },
+      { p:hug, hold:1500, move:1300, cp:'hold', mus:{ stretch:['lower back', 'glutes'] } },
+      { p:oneDown, hold:900, move:1300 }] };
+})();
+
+// Lying hamstring stretch (docs/exercises.md): stretched leg = near side (N), other leg = far side (F), knee bent, foot flat;
+// a tube round the ball of the near foot, one end in each hand
+DEMO3['Lying hamstring stretch'] = (() => {
+  const Y = 16, A = 9.5;
+  const body = { px:0, py:Y, pz:0, la:180, ca:180, ha:180 };
+  const other = { af:[60, A, -11], fdF:[1, 0, 0], kF:[0, 1, 0] };
+  const setup = { ...body, ...other, an:[60, A, 11], fdN:[1, 0, 0], kN:[0, 1, 0], hn:[-18, 32, 13], hf:[-18, 32, 5] };
+  const kneeIn = { ...body, ...other, an:[23, 72, 10], fdN:[-.34, .94, 0], kN:[-.6, .8, 0], hn:[-24, 44, 13], hf:[-24, 44, 5] };
+  const hold = { ...body, ...other, an:[59.6, 82, 10], fdN:[-.68, .73, 0], kN:[-.7, .7, 0], hn:[-20, 42, 13], hf:[-20, 42, 5] };
+  const lift = { ...other, px:0, py:30, pz:0, la:200, ca:190, ha:180, an:[16, 116, 10], fdN:[-.98, .17, 0], kN:[-1, .1, 0], hn:[-30, 46, 13], hf:[-30, 46, 5] };
+  return {
+    cam:{ target:[-5, 44, 0], yaw:14, sway:6, el:16, dist:380, zoom:2.25 },
+    sides:{ 'stretched leg':'N', other:'F' }, measure:['N'],
+    props:(q, J) => {
+      const ball = v3.lerp(J.heelN, J.toeN, .68), o = v3.norm(v3.perp(v3.sub(ball, J.ankleN), J.fdN)), b = v3.add(ball, v3.mul(o, 1.2));
+      return [{ type:'box', lo:[-100, 0, -32], hi:[80, 1.5, 32], cols:['#b9c6d8', '#93a3b8', '#7a8aa0'] },
+        { type:'band', pts:[J.gripN, v3.add(b, [0, 0, 3]), v3.add(b, [0, 0, -3]), J.gripF], col:'#2f9e57', w:1.4, bias:-4 }];
+    },
+    elbowN:[.2, -.6, 1], elbowF:[.2, -.6, -1],
+    keys:[
+      { p:setup, hold:1500, move:1300 },
+      { p:kneeIn, hold:1800, move:3000, cp:'start', mus:{ work:['abs'] } },
+      { p:hold, hold:2400, move:400, say:'c1', cp:'hold', mus:{ stretch:['hamstrings', 'calves'] } },
+      { p:hold, hold:2200, move:400, say:'c2', cp:'hold', mus:{ stretch:['hamstrings'], work:['abs'] } },
+      { p:hold, hold:2200, move:1400, say:'c3', cp:'hold', mus:{ stretch:['hamstrings', 'calves'] } },
+      { p:lift, hold:2000, move:1400, say:'m1', mus:{ bad:['lower back'] } },
+      { p:hold, hold:2200, move:2000, say:'m1fix', cp:'hold', mus:{ stretch:['hamstrings'], work:['abs'] } },
+      { p:kneeIn, hold:900, move:1300, cp:'start' }] };
+})();
+
 // ---------- Formatting ----------
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const range = ex => ex.min === ex.max ? ex.min : `${ex.min}–${ex.max}`;
@@ -1042,9 +1211,9 @@ function renderDay(day){
   else h += `<div class="box reset"><h3>Desk reset (~5 min) <span class="small">${resetDone(d)}/${reset.length}</span></h3>
     ${reset.map((r, k) => `<div class="rrow ${(d.reset || [])[k] ? 'done' : ''}">
       <button class="mv" data-demo="${esc(r.name)}" aria-expanded="${demoOpen === r.name}" title="Tap to see how">
-        <b>${esc(r.name)}</b> · ${esc(r.dose)} <span class="play">${demoOpen === r.name ? '▾' : '▸'}</span><span class="small">${esc(r.cue)}</span></button>
+        <b>${esc(r.name)}</b> · ${esc(r.dose)} <span class="play">${demoOpen === r.name ? '▾' : '▸'}</span><span class="small">${esc(cueLine(r.name, r.cue))}</span></button>
       <button class="tick" data-reset="${k}" aria-label="${esc(r.name)} done">✓</button>
-      ${demoOpen === r.name ? `<div class="demowrap">${DEMO3[r.name] ? `<div class="demo3"><canvas class="demo3d" data-name="${esc(r.name)}" role="img" aria-label="${esc(r.name)}, 3D animation"></canvas><div class="cap"></div></div>` : demoSvg(r.name)}</div>` : ''}</div>`).join('')}
+      ${demoOpen === r.name ? howBox(r.name) : ''}</div>`).join('')}
     <div class="small">Hip flexors are the stretch that matters most. ${day === 'home' ? 'Start every set with the same band and distance as last time.' : 'Warm-up sets only for exercise 1.'}</div></div>`;
 
   p.ex.forEach((ex, i) => {
@@ -1084,7 +1253,8 @@ function renderDay(day){
           <div class="pick"><select data-swap="${i}" aria-label="Exercise (tap to swap)">${options}</select></div>
           <div class="rx">${rx(ex)} · rest ${restTxt(ex.rest)} ${slot.name !== ex.name ? '· <span class="swap">swapped</span>' : ''}</div>
         </div></div>
-      <p class="cue">${esc(ex.cue)}</p>
+      ${HOW[slot.name] ? `<button class="cue mv" data-demo="${esc(slot.name)}" aria-expanded="${demoOpen === slot.name}" title="Tap to see how">${esc(cueLine(slot.name))} <span class="play">${demoOpen === slot.name ? '▾' : '▸ how'}</span></button>
+      ${demoOpen === slot.name ? howBox(slot.name) : ''}` : `<p class="cue">${esc(ex.cue)}</p>`}
       ${hint ? `<div class="hint">${esc(hint)}</div>` : ''}
       ${last ? `<div class="last">Last (${dateTxt(last.at)}): ${last.sets.map(s => esc(setTxt(s, ex, slot.name))).join(' · ')}</div>` : ''}
       ${unit ? `<div class="unitnote">${esc(unit)}</div>` : ''}
@@ -1116,8 +1286,10 @@ function renderDay(day){
         <span class="small">${COOL.length}/${COOL.length} · tap to open</span></span></button>`;
     else h += `<div class="box reset"><h3>Cool-down: back care <span class="small">${cool.filter(Boolean).length}/${COOL.length}</span></h3>
       ${COOL.map((r, k) => `<div class="rrow ${cool[k] ? 'done' : ''}">
-        <div><b>${esc(r.name)}</b> · ${esc(r.dose)}<div class="small">${esc(r.cue)}</div></div>
-        <button class="tick" data-cool="${k}" aria-label="${esc(r.name)} done">✓</button></div>`).join('')}</div>`;
+        <button class="mv" data-demo="${esc(r.name)}" aria-expanded="${demoOpen === r.name}" title="Tap to see how">
+          <b>${esc(r.name)}</b> · ${esc(r.dose)} <span class="play">${demoOpen === r.name ? '▾' : '▸'}</span><span class="small">${esc(cueLine(r.name, r.cue))}</span></button>
+        <button class="tick" data-cool="${k}" aria-label="${esc(r.name)} done">✓</button>
+        ${demoOpen === r.name ? howBox(r.name) : ''}</div>`).join('')}</div>`;
   }
   h += `<div class="box"><h3>Notes</h3>
       <textarea id="notes" placeholder="How did it feel? Anything to change?">${esc(d.notes)}</textarea></div>
