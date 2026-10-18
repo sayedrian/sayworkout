@@ -105,7 +105,7 @@ nav button .dot{position:absolute;top:6px;right:8px;width:7px;height:7px;border-
 .mv{border:0;background:none;padding:0;text-align:left;font-size:14px;color:var(--ink)}
 .mv .small{display:block}
 .mv .play{color:var(--accent);font-size:13px}
-.demo3{max-width:420px;margin:2px auto;background:var(--input);border-radius:14px;overflow:hidden}
+.demo3{max-width:520px;margin:2px auto;background:var(--input);border-radius:14px;overflow:hidden}
 .demo3d{display:block;width:100%}
 .demo3 .cap{font-size:14px;font-weight:600;padding:8px 12px 10px;min-height:2.6em}
 .demo3 .cap.good{color:var(--done)}
@@ -597,9 +597,9 @@ function runDemos(){
   demoRaf = requestAnimationFrame(frame);
 }
 
-// ---------- 3D demos: a shaded mannequin drawn by the page (canvas; no files, no libraries) ----------
+// ---------- 3D demos: an illustrated human drawn by the page (canvas; no files, no libraries) ----------
 // World in cm: x forward, y up, z toward the camera side; the floor is y = 0. Tips from research
-// (fitness.md §2b, "Desk reset tips") are shown as ✓/✗ captions, glowing body parts, guides and arrows.
+// (fitness.md §2b, "Desk reset tips") are shown as ✓/✗ captions, muscles in their real shape (red = stretch, green = work), guides and arrows.
 const v3 = {
   add:(a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]], sub:(a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]],
   mul:(a, s) => [a[0] * s, a[1] * s, a[2] * s], dot:(a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2],
@@ -615,38 +615,72 @@ function ik(root, target, l1, l2, hint){
   return v3.add(root, v3.add(v3.mul(u, l1 * c), v3.mul(v, l1 * Math.sqrt(1 - c * c))));
 }
 const reach = (j, target, l) => v3.add(j, v3.mul(v3.norm(v3.sub(target, j)), l));
-const BODY = { thigh:44, shin:43, foot:19, lumbar:22, chest:28, neck:8, head:11, upper:29, fore:27, hip:10, sh:18 };
+const BODY = { thigh:44, shin:43, foot:21, lumbar:22, chest:28, neck:8, head:11, upper:29, fore:26, hip:10, sh:18 };
+// clothes and skin: [lit, base, shade]
+const MAT = { skin:['#fbe3d0', '#e4b596', '#c58866'], shirt:['#93b8f0', '#4d7fd0', '#30599c'], shorts:['#737a86', '#474e59', '#30353d'],
+  shoe:['#6a7180', '#3f4552', '#262a33'], sole:['#ffffff', '#eceef1', '#c3c8cf'], hair:['#7d604b', '#4d3a2b', '#2f2318'], eye:['#3a2a20', '#2a1d15', '#1a120c'] };
+// drawn as connected pieces, back to front, each with one outline (an illustration, not a robot)
+const PIECES = ['armF', 'legF', 'shoeF', 'legN', 'shoeN', 'shorts', 'shirt', 'head', 'armN'];
+// muscles shown by role: red = being stretched, green = working, red with ✗ = the mistake
+const MUSCLE = { hipflex:{ label:'Hip flexors · stretch', role:'stretch' }, glute:{ label:'Glutes · squeeze', role:'work' },
+  abs:{ label:'Abs · ribs down', role:'work' }, lowback:{ label:'Lower back · pinched', role:'bad' } };
 // q: pelvis px,py · spine angles la (lumbar), ca (chest), ha (head) · ankles an*/af* · toe angles tn/tf ·
 // hands hn*/hf*; static per demo: knee and elbow hints. Near side = +z.
-function mannequin(q, d, breathe){
-  const B = BODY, P = [q.px, q.py, 0], items = [];
-  const cap = (a, b, r1, r2, tag) => items.push({ k:'c', a, b, r1, r2, tag });
-  const sph = (c, r, tag) => items.push({ k:'s', c, r, tag });
-  const hipN = v3.add(P, [0, 0, B.hip]), hipF = v3.add(P, [0, 0, -B.hip]);
-  const back = sag(q.la + 90), waist = v3.add(P, v3.mul(sag(q.la), B.lumbar)), neck = v3.add(waist, v3.mul(sag(q.ca), B.chest));
-  const head = v3.add(neck, v3.mul(sag(q.ha), B.neck + B.head));
-  const shN = v3.add(v3.add(neck, v3.mul(sag(q.ca), -5)), [0, 0, B.sh]), shF = v3.add(v3.add(neck, v3.mul(sag(q.ca), -5)), [0, 0, -B.sh]);
-  const legs = [[hipN, [q.anx, q.any, q.anz], q.tn, d.kneeN, 'N'], [hipF, [q.afx, q.afy, q.afz], q.tf, d.kneeF, 'F']];
-  legs.forEach(([h, an, ta, hint, s]) => {
-    const kn = ik(h, an, B.thigh, B.shin, hint), a = reach(kn, an, B.shin), toe = v3.add(a, v3.mul(sag(ta), B.foot));
-    cap(h, kn, 8, 5.6, 'thigh' + s); cap(kn, a, 5.4, 3.8, 'shin' + s); cap(a, toe, 3.6, 2.6, 'foot' + s); sph(kn, 5.6, 'knee' + s);
-    if(s === 'N') items.hipflex = [v3.add(h, v3.mul(back, -5)), v3.add(h, v3.mul(v3.sub(kn, h), .45))];
+function human(q, d, breathe){
+  const B = BODY, P = [q.px, q.py, 0], items = [], mus = {}, Z = [0, 0, 1];
+  const piece = (m, tag) => m === 'shorts' && !/^thigh/.test(tag) ? 'shorts' : /^(foot|sole)/.test(tag) ? 'shoe' + tag.slice(-1) : /^(arm|fore|hand)/.test(tag) ? 'arm' + tag.slice(-1)
+    : /^(thigh|shin|calf)/.test(tag) ? 'leg' + tag.slice(-1) : m === 'shirt' ? 'shirt' : 'head';
+  const cap = (a, b, r1, r2, m, tag, bias = 0) => items.push({ k:'c', a, b, r1, r2, m, tag, bias, g:piece(m, tag) });
+  const sph = (c, r, m, tag, bias = 0) => items.push({ k:'s', c, r, m, tag, bias, g:piece(m, tag) });
+  const lerp = (a, b, s) => v3.add(a, v3.mul(v3.sub(b, a), s)), at = (p, ...vs) => vs.reduce((o, v) => v3.add(o, v), p);
+  // a bone drawn as several short pieces following a radius profile [[s, r]…], so limbs taper and bulge like a body
+  const prof = (pr, s) => { for(let i = 1; i < pr.length; i++) if(s <= pr[i][0]){ const [s0, r0] = pr[i - 1], [s1, r1] = pr[i]; return r0 + (r1 - r0) * (s - s0) / (s1 - s0); } return pr[pr.length - 1][1]; };
+  const bone = (a, b, pr, mat, tag, cut) => {   // one smooth tube per material (e.g. shorts, then skin from `cut` on)
+    const part = (s0, s1, m) => { const rs = []; for(let i = 0; i <= 8; i++){ const s = s0 + (s1 - s0) * i / 8; rs.push(prof(pr, s)); }
+      items.push({ k:'t', a:lerp(a, b, s0), b:lerp(a, b, s1), rs, m, tag, bias:0, g:piece(m, tag) }); };
+    if(cut) { part(0, cut, mat[0]); part(cut - .04, 1, mat[1]); } else part(0, 1, mat);
+  };
+  const hipN = v3.add(P, [0, 0, B.hip]), hipF = v3.add(P, [0, 0, -B.hip]), br = 1 + .03 * breathe;
+  const front = sag(q.la - 90), back = sag(q.la + 90), waist = v3.add(P, v3.mul(sag(q.la), B.lumbar));
+  const neck = v3.add(waist, v3.mul(sag(q.ca), B.chest)), head = v3.add(neck, v3.mul(sag(q.ha), B.neck + B.head));
+  const shN = at(neck, v3.mul(sag(q.ca), -5), [0, 0, B.sh]), shF = at(neck, v3.mul(sag(q.ca), -5), [0, 0, -B.sh]);
+  [[hipN, [q.anx, q.any, q.anz], q.tn, d.kneeN, 'N'], [hipF, [q.afx, q.afy, q.afz], q.tf, d.kneeF, 'F']].forEach(([h, an, ta, hint, s]) => {
+    const kn = ik(h, an, B.thigh, B.shin, hint), a = reach(kn, an, B.shin), toe = v3.add(a, v3.mul(sag(ta), B.foot - 5));
+    const ant = v3.norm(v3.cross(Z, v3.sub(kn, h)));   // front of the thigh
+    bone(h, kn, [[0, 10], [.3, 9.6], [.55, 9], [.56, 7.8], [.85, 6.3], [1, 5.6]], ['shorts', 'skin'], 'thigh' + s, .56);
+    bone(kn, a, [[0, 5.5], [.22, 6.1], [.45, 5.5], [.8, 3.9], [1, 3.5]], 'skin', 'shin' + s);
+    const heel = at(a, v3.mul(sag(ta), -5), [0, -1, 0]);
+    cap(at(heel, [0, -2.2, 0]), at(toe, [0, -2, 0]), 3, 2.6, 'sole', 'sole' + s, 3);
+    bone(heel, toe, [[0, 4.6], [.6, 4.4], [1, 3.4]], 'shoe', 'foot' + s);
+    if(s === 'N'){
+      mus.hipflex = [{ a:at(h, v3.mul(front, 7), [0, 0, 3]), b:at(lerp(h, kn, .86), v3.mul(ant, 5), [0, 0, 3]), w:4.8 },
+                     { a:at(lerp(P, waist, .95), v3.mul(front, 5), [0, 0, 5]), b:at(lerp(h, kn, .2), v3.mul(ant, 3), [0, 0, 4]), w:3.4 }];
+      mus.glute = [{ a:at(P, v3.mul(back, 9), v3.mul(sag(q.la), 5), [0, 0, 4]), b:at(lerp(h, kn, .28), v3.mul(ant, -6), [0, 0, 6]), w:9 }];
+    }
     items['knee' + s] = kn; items['ankle' + s] = a;
   });
   [[shN, [q.hnx, q.hny, q.hnz], d.elbowN, 'N'], [shF, [q.hfx, q.hfy, q.hfz], d.elbowF, 'F']].forEach(([s, t, hint, n]) => {
-    const el = ik(s, t, B.upper, B.fore, hint), hand = reach(el, t, B.fore);
-    cap(s, el, 4.8, 4, 'arm' + n); cap(el, hand, 3.9, 3, 'fore' + n); sph(el, 4, 'elbow' + n); sph(hand, 4.2, 'hand' + n);
+    const el = ik(s, t, B.upper, B.fore, hint), wr = reach(el, t, B.fore), hd = v3.norm(v3.sub(wr, el));
+    bone(s, el, [[0, 6.6], [.42, 5.9], [.43, 4.9], [.75, 4.4], [1, 3.9]], ['shirt', 'skin'], 'arm' + n, .43);
+    bone(el, wr, [[0, 4], [.3, 4.4], [.75, 3.2], [1, 2.8]], 'skin', 'fore' + n);
+    bone(wr, v3.add(wr, v3.mul(hd, 9)), [[0, 2.9], [.5, 3.6], [1, 2.7]], 'skin', 'hand' + n);
   });
-  const br = 1 + .035 * breathe;
-  cap(hipF, hipN, 11, 11, 'pelvis');
-  [B.hip * .65, -B.hip * .65].forEach(z => sph(v3.add(v3.add(P, v3.mul(back, 7)), [0, -3, z]), 9.5, 'glute'));
-  cap(P, waist, 11.5, 12 * br, 'lowback');
-  cap(waist, v3.add(waist, v3.mul(sag(q.ca), B.chest * .62)), 13 * br, 14 * br, 'chest');
-  cap(shF, shN, 7.5, 7.5, 'shoulders');
-  cap(neck, v3.add(neck, v3.mul(sag(q.ha), B.neck + 2)), 4.6, 4.6, 'neck');
-  sph(head, B.head, 'head');
-  sph(v3.add(head, v3.mul(sag(q.ha - 90), B.head * .85)), 2.4, 'nose');
-  items.P = P; items.waist = waist; items.head = head;
+  cap(hipF, hipN, 11.5, 11.5, 'shorts', 'pelvis');
+  [B.hip * .6, -B.hip * .6].forEach(z => sph(at(P, v3.mul(back, 6.5), [0, -3, z]), 9.6, 'shorts', 'glute'));
+  cap(P, waist, 12, 12.6 * br, 'shirt', 'lowback');
+  cap(waist, v3.add(waist, v3.mul(sag(q.ca), B.chest * .6)), 13.6 * br, 15 * br, 'shirt', 'chest');
+  cap(shF, shN, 8.2, 8.2, 'shirt', 'shoulders');
+  cap(neck, v3.add(neck, v3.mul(sag(q.ha), B.neck + 2)), 5, 5, 'skin', 'neck', 30);
+  const fwd = sag(q.ha - 90), up = sag(q.ha);
+  sph(at(head, v3.mul(fwd, -3.2), v3.mul(up, 3.4)), 11.3, 'hair', 'hair', 20);
+  sph(head, B.head, 'skin', 'head', 10);
+  sph(at(head, v3.mul(fwd, 4.5), v3.mul(up, -5.5)), 7, 'skin', 'jaw', 9);
+  sph(at(head, v3.mul(fwd, -1), [0, 0, 10.4]), 2.6, 'skin', 'ear', -5);
+  sph(at(head, v3.mul(fwd, 9.6), v3.mul(up, 1.5), [0, 0, 4]), 1.15, 'eye', 'eye', -9);
+  sph(at(head, v3.mul(fwd, 10.6), v3.mul(up, -1.5), [0, 0, 1]), 1.9, 'skin', 'nose', -8);
+  mus.abs = [{ a:at(P, v3.mul(front, 9), v3.mul(sag(q.la), 3), [0, 0, 4]), b:at(waist, v3.mul(sag(q.ca), 12), v3.mul(sag(q.ca - 90), 10.5), [0, 0, 4]), w:5.5 }];
+  mus.lowback = [{ a:at(P, v3.mul(back, 11), [0, 0, 4]), b:at(waist, v3.mul(sag(q.ca), 6), v3.mul(sag(q.ca + 90), 12.5), [0, 0, 4]), w:5.5 }];
+  items.mus = mus; items.P = P; items.waist = waist; items.head = head;
   return items;
 }
 function camera(c, w, h, t){
@@ -657,17 +691,22 @@ function camera(c, w, h, t){
     proj:p => { const v = v3.sub(p, pos), z = v3.dot(v, f), s = F / z; return { x:w / 2 + v3.dot(v, r) * s, y:h * .55 - v3.dot(v, u) * s, s }; } };
 }
 const LIGHT = [-.55, -.83];
+// a shape plus round ends, all traced the same way round so overlaps never cancel into holes
+function outline(ctx, pts, ends){
+  let area = 0; pts.forEach(([x, y], i) => { const [u, v] = pts[(i + 1) % pts.length]; area += x * v - u * y; });
+  pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.closePath();
+  ends.forEach(([x, y, R]) => { ctx.moveTo(x + R, y); ctx.arc(x, y, R, 0, 2 * Math.PI, area < 0); });
+}
 function capPath(ctx, A, B, R1, R2){
   let dx = B.x - A.x, dy = B.y - A.y; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;
-  ctx.moveTo(A.x - dy * R1, A.y + dx * R1); ctx.lineTo(B.x - dy * R2, B.y + dx * R2);
-  ctx.lineTo(B.x + dy * R2, B.y - dx * R2); ctx.lineTo(A.x + dy * R1, A.y - dx * R1); ctx.closePath();
-  ctx.moveTo(A.x + R1, A.y); ctx.arc(A.x, A.y, R1, 0, 7); ctx.moveTo(B.x + R2, B.y); ctx.arc(B.x, B.y, R2, 0, 7);
+  outline(ctx, [[A.x - dy * R1, A.y + dx * R1], [B.x - dy * R2, B.y + dx * R2], [B.x + dy * R2, B.y - dx * R2], [A.x + dy * R1, A.y - dx * R1]],
+    [[A.x, A.y, R1], [B.x, B.y, R2]]);
 }
 function shade(ctx, A, B, R, pal){   // cylinder shading: lit edge toward the light, dark rim away from it
   let nx = -(B.y - A.y), ny = B.x - A.x; const l = Math.hypot(nx, ny) || 1; nx /= l; ny /= l;
   if(nx * LIGHT[0] + ny * LIGHT[1] < 0){ nx = -nx; ny = -ny; }
   const mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2, g = ctx.createLinearGradient(mx + nx * R, my + ny * R, mx - nx * R, my - ny * R);
-  g.addColorStop(0, pal[0]); g.addColorStop(.4, pal[1]); g.addColorStop(1, pal[2]); return g;
+  g.addColorStop(0, pal[0]); g.addColorStop(.45, pal[1]); g.addColorStop(1, pal[2]); return g;
 }
 function box(ctx, cam, lo, hi, cols){   // a solid box (sofa, bench), faces shaded, back faces skipped
   const C = (i, j, k) => [[lo, hi][i][0], [lo, hi][j][1], [lo, hi][k][2]];
@@ -695,36 +734,77 @@ function draw3d(cv, name, t){
   for(let x = -150; x <= 125; x += 25){ const a = cam.proj([x, 0, -75]), b = cam.proj([x, 0, 75]); ctx.globalAlpha = .55; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
   for(let z = -75; z <= 75; z += 25){ const a = cam.proj([-150, 0, z]), b = cam.proj([125, 0, z]); ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
   ctx.globalAlpha = 1;
-  const items = mannequin(q, d, Math.sin(t / 900));
+  const items = human(q, d, Math.sin(t / 900));
   shadowCv = shadowCv || document.createElement('canvas'); shadowCv.width = w; shadowCv.height = h;
   const sc = shadowCv.getContext('2d'); sc.clearRect(0, 0, w, h); sc.fillStyle = '#000';
   const flat = p => [p[0] + p[1] * .25, .2, p[2] - p[1] * .1];
   (d.props || []).forEach(b => { sc.beginPath(); [[b.lo[0], b.lo[2]], [b.hi[0], b.lo[2]], [b.hi[0], b.hi[2]], [b.lo[0], b.hi[2]]]
     .map(([x, z]) => cam.proj(flat([x + (b.hi[1] - b.lo[1]) * .1, b.hi[1], z]))).forEach((p, i) => i ? sc.lineTo(p.x, p.y) : sc.moveTo(p.x, p.y)); sc.fill(); });
   items.forEach(it => { sc.beginPath();
-    if(it.k === 'c'){ const A = cam.proj(flat(it.a)), B = cam.proj(flat(it.b)); capPath(sc, A, B, it.r1 * A.s, it.r2 * B.s); }
+    if(it.k !== 's'){ const A = cam.proj(flat(it.a)), B = cam.proj(flat(it.b)), r1 = it.k === 't' ? Math.max(...it.rs) : it.r1, r2 = it.k === 't' ? r1 * .8 : it.r2;
+      capPath(sc, A, B, r1 * A.s, r2 * B.s); }
     else { const C = cam.proj(flat(it.c)); sc.arc(C.x, C.y, it.r * C.s, 0, 7); }
     sc.fill(); });
   ctx.save(); ctx.globalAlpha = dark ? .5 : .22; ctx.filter = `blur(${6 * dpr}px)`; ctx.drawImage(shadowCv, 0, 0); ctx.restore();
   (d.props || []).forEach(b => box(ctx, cam, b.lo, b.hi, dark ? ['#5d6878', '#465161', '#38414e'] : ['#c9ced6', '#aab1bc', '#8d95a1']));
-  // body, far parts first; each part shaded like a cylinder, then any marker on it
-  const pal = ['#fbf6ee', '#dccfbd', '#8f7f6b'], glowCol = { good:'61,190,120', warn:'255,145,40', bad:'235,70,60' };
-  items.forEach(it => it.z = cam.depth(it.k === 'c' ? v3.mul(v3.add(it.a, it.b), .5) : it.c));
-  items.sort((a, b) => b.z - a.z).forEach(it => {
-    ctx.beginPath();
-    if(it.k === 'c'){ const A = cam.proj(it.a), B = cam.proj(it.b); capPath(ctx, A, B, it.r1 * A.s, it.r2 * B.s); ctx.fillStyle = shade(ctx, A, B, Math.max(it.r1 * A.s, it.r2 * B.s), pal); }
-    else { const C = cam.proj(it.c), R = it.r * C.s, g = ctx.createRadialGradient(C.x + LIGHT[0] * R * .4, C.y + LIGHT[1] * R * .4, R * .1, C.x, C.y, R * 1.05);
-      g.addColorStop(0, pal[0]); g.addColorStop(.55, pal[1]); g.addColorStop(1, pal[2]); ctx.arc(C.x, C.y, R, 0, 7); ctx.fillStyle = g; }
-    ctx.fill();
-    for(const [kind, col] of [['glow', 'warn'], ['good', 'good'], ['bad', 'bad']]){
-      const a = has(kind, it.tag) || (it.tag !== 'nose' && has('tint', kind) * .55);
-      if(a > .01){ ctx.fillStyle = `rgba(${glowCol[col]},${(.55 * a * (.75 + .25 * Math.sin(t / 160))).toFixed(3)})`; ctx.fill(); }
-    }
+  // body: piece by piece, back to front; each piece gets one outline around it, then its shaded parts
+  items.forEach(it => it.z = cam.depth(it.k !== 's' ? v3.mul(v3.add(it.a, it.b), .5) : it.c) + it.bias);
+  const ol = 1.5 * dpr, path = (it, grow) => { ctx.beginPath();
+    if(it.k === 't'){   // tapered tube: both sides follow the radius profile, round at the ends
+      const A = cam.proj(it.a), B = cam.proj(it.b), n = it.rs.length - 1; let dx = B.x - A.x, dy = B.y - A.y; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;
+      const R = i => it.rs[i] * (A.s + (B.s - A.s) * i / n) + grow, P = i => [A.x + (B.x - A.x) * i / n, A.y + (B.y - A.y) * i / n];
+      const pts = [];
+      for(let i = 0; i <= n; i++){ const [x, y] = P(i); pts.push([x - dy * R(i), y + dx * R(i)]); }
+      for(let i = n; i >= 0; i--){ const [x, y] = P(i); pts.push([x + dy * R(i), y - dx * R(i)]); }
+      outline(ctx, pts, [[A.x, A.y, R(0)], [B.x, B.y, R(n)]]);
+      it.R = Math.max(...it.rs) * Math.max(A.s, B.s); return [A, B]; }
+    if(it.k === 'c'){ const A = cam.proj(it.a), B = cam.proj(it.b); capPath(ctx, A, B, it.r1 * A.s + grow, it.r2 * B.s + grow); return [A, B]; }
+    const C = cam.proj(it.c); ctx.arc(C.x, C.y, it.r * C.s + grow, 0, 7); return [C]; };
+  (d.pieces || PIECES).forEach(g => {
+    const parts = items.filter(it => it.g === g).sort((a, b) => b.z - a.z);
+    ctx.fillStyle = dark ? 'rgba(8,10,12,.7)' : 'rgba(40,30,25,.55)';
+    parts.forEach(it => { if(it.tag !== 'eye'){ path(it, ol); ctx.fill(); } });
+    parts.forEach(it => {
+      const pal = MAT[it.m], [A, B] = path(it, 0);
+      if(it.k !== 's') ctx.fillStyle = shade(ctx, A, B, it.k === 't' ? it.R : Math.max(it.r1 * A.s, it.r2 * B.s), pal);
+      else { const R = it.r * A.s, gr = ctx.createRadialGradient(A.x + LIGHT[0] * R * .4, A.y + LIGHT[1] * R * .4, R * .1, A.x, A.y, R * 1.05);
+        gr.addColorStop(0, pal[0]); gr.addColorStop(.6, pal[1]); gr.addColorStop(1, pal[2]); ctx.fillStyle = gr; }
+      ctx.fill();
+    });
   });
-  // stretch marker: the front of the back hip glows where the stretch is felt
-  const hf = has('glow', 'hipflex');
-  if(hf > .01){ const A = cam.proj(items.hipflex[0]), B = cam.proj(items.hipflex[1]);
-    ctx.beginPath(); capPath(ctx, A, B, 6 * A.s, 4.5 * B.s); ctx.fillStyle = `rgba(255,145,40,${(.75 * hf * (.7 + .3 * Math.sin(t / 160))).toFixed(3)})`; ctx.fill(); }
+  // muscles in their anatomical shape, with fibres; then a label for each group
+  const ROLE = { stretch:['255,120,100', '232,52,40', '150,20,14'], work:['120,230,160', '30,170,90', '10,95,50'], bad:['255,120,100', '232,52,40', '150,20,14'] };
+  const labels = [];
+  Object.keys(MUSCLE).forEach(key => {
+    const a = has('mus', key); if(a < .02) return;
+    const col = ROLE[MUSCLE[key].role], al = a * (.82 + .18 * Math.sin(t / 220));
+    items.mus[key].forEach(m => {
+      const A = cam.proj(m.a), Bp = cam.proj(m.b), W = m.w * (A.s + Bp.s) / 2;
+      let dx = Bp.x - A.x, dy = Bp.y - A.y; const l = Math.hypot(dx, dy) || 1; const nx = -dy / l, ny = dx / l;
+      const pt = (s, o) => { const hw = W * Math.max(.18, Math.pow(Math.sin(Math.PI * s), .7)); return [A.x + dx * s + nx * hw * o, A.y + dy * s + ny * hw * o]; };
+      ctx.beginPath();
+      for(let i = 0; i <= 12; i++) { const p = pt(i / 12, 1); i ? ctx.lineTo(...p) : ctx.moveTo(...p); }
+      for(let i = 12; i >= 0; i--) ctx.lineTo(...pt(i / 12, -1));
+      ctx.closePath();
+      const mx = A.x + dx / 2, my = A.y + dy / 2, g = ctx.createLinearGradient(mx + nx * W, my + ny * W, mx - nx * W, my - ny * W);
+      g.addColorStop(0, `rgba(${col[0]},${al})`); g.addColorStop(.45, `rgba(${col[1]},${al})`); g.addColorStop(1, `rgba(${col[2]},${al})`);
+      ctx.fillStyle = g; ctx.fill();
+      ctx.strokeStyle = `rgba(255,255,255,${(.38 * al).toFixed(3)})`; ctx.lineWidth = Math.max(1, .9 * dpr);
+      [-.5, 0, .5].forEach(o => { ctx.beginPath(); for(let i = 1; i <= 11; i++){ const p = pt(i / 12, o); i > 1 ? ctx.lineTo(...p) : ctx.moveTo(...p); } ctx.stroke(); });
+    });
+    const m = items.mus[key][0], c = cam.proj(v3.mul(v3.add(m.a, m.b), .5));
+    labels.push({ x:c.x, y:c.y, text:MUSCLE[key].label, col:ROLE[MUSCLE[key].role][1], a });
+  });
+  ctx.font = `600 ${12 * dpr}px system-ui, sans-serif`; ctx.textBaseline = 'middle';
+  labels.forEach((L, i) => {
+    const tw = ctx.measureText(L.text).width, pad = 6 * dpr, bh = 20 * dpr;
+    let x = L.x + 22 * dpr, y = L.y - (18 + 4 * i) * dpr;
+    x = Math.max(4 * dpr, Math.min(w - tw - 2 * pad - 4 * dpr, x)); y = Math.max(bh / 2 + 4 * dpr, Math.min(h - bh, y));
+    ctx.globalAlpha = Math.min(1, L.a * 1.3);
+    ctx.strokeStyle = `rgb(${L.col})`; ctx.lineWidth = 1.5 * dpr; ctx.beginPath(); ctx.moveTo(L.x, L.y); ctx.lineTo(x, y); ctx.stroke();
+    ctx.fillStyle = `rgb(${L.col})`; ctx.beginPath(); ctx.roundRect(x, y - bh / 2, tw + 2 * pad, bh, bh / 2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.fillText(L.text, x + pad, y + .5 * dpr); ctx.globalAlpha = 1;
+  });
   // guides: vertical line along the front shin; curved arrow for the pelvis tuck
   const accent = `rgba(61,190,120,`;
   const sh = has('show', 'shin');
@@ -753,16 +833,16 @@ const DEMO3 = {
         say:'✓ Back knee down by the sofa, foot on the seat · front shin straight up', show:['shin'] },
       { p:{ px:-21, py:47, la:76, ca:56, ha:42, anx:-46, any:47, anz:10, tn:178, afx:28, afy:8, afz:-11, tf:-4,
             hnx:21, hny:56, hnz:2, hfx:21, hfy:56, hfz:-14 }, hold:1900, move:1200,
-        say:'✓ First tuck the pelvis: squeeze the glutes, ribs down', show:['tuck'], good:['glute'] },
-      { p:{ px:-14, py:48, la:93, ca:93, ha:93, anx:-46, any:47, anz:10, tn:178, afx:28, afy:8, afz:-11, tf:-4,
+        say:'✓ First tuck the pelvis: squeeze the glutes, ribs down', show:['tuck'], mus:['glute', 'abs'] },
+      { p:{ px:-14, py:48, la:93, ca:93, ha:80, anx:-46, any:47, anz:10, tn:178, afx:28, afy:8, afz:-11, tf:-4,
             hnx:-24, hny:47, hnz:17, hfx:-24, hfy:47, hfz:-19 }, hold:2800, move:1000,
-        say:'✓ Rise tall, feel it in the front of the hip · breathe, 45 s', glow:['hipflex'] },
+        say:'✓ Rise tall, feel it in the front of the hip · breathe, 45 s', mus:['hipflex', 'glute'] },
       { p:{ px:-9, py:48, la:122, ca:108, ha:100, anx:-46, any:47, anz:10, tn:178, afx:28, afy:8, afz:-11, tf:-4,
             hnx:-20, hny:47, hnz:17, hfx:-20, hfy:47, hfz:-19 }, hold:1800, move:1000,
-        say:'✗ Don’t lean back and arch the lower back', tint:['bad'], bad:['lowback'] },
-      { p:{ px:-14, py:48, la:93, ca:93, ha:93, anx:-46, any:47, anz:10, tn:178, afx:28, afy:8, afz:-11, tf:-4,
+        say:'✗ Don’t lean back and arch the lower back', mus:['lowback'] },
+      { p:{ px:-14, py:48, la:93, ca:93, ha:80, anx:-46, any:47, anz:10, tn:178, afx:28, afy:8, afz:-11, tf:-4,
             hnx:-24, hny:47, hnz:17, hfx:-24, hfy:47, hfz:-19 }, hold:1300, move:1200,
-        say:'✓ Tall, ribs down, pelvis tucked', tint:['good'] }]},
+        say:'✓ Tall, ribs down, pelvis tucked', mus:['hipflex', 'glute', 'abs'] }]},
 };
 
 // ---------- Formatting ----------
