@@ -183,14 +183,19 @@ details.sess summary span{font-weight:400;color:var(--muted);font-size:13px}
 #hold .hb .go{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);flex:2}
 #hold.wait .ht{color:var(--hint)}
 #hold.reached .ht,#hold.reached .hs{color:var(--done)}
-/* timed sets: ▶ inside the seconds box, the suggested seconds still showing beside it */
-.sb{position:relative;flex:1;min-width:0;display:block}
-.sb .sp{position:absolute;left:2px;top:2px;bottom:2px;width:24px;border:0;border-radius:7px;background:none;color:var(--accent);font-size:14px;padding:0;z-index:1}
-.sb input{padding-left:24px!important}
+/* timed sets: the whole seconds box is the play button (▶ + suggested seconds); press and hold to type */
+.secbtn{flex:1;width:100%;min-width:0;border:1px solid transparent;background:var(--input);border-radius:9px;padding:9px 2px;
+  font-size:17px;font-variant-numeric:tabular-nums;text-align:center;white-space:nowrap;
+  user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
+.secbtn .pl{color:var(--accent);font-size:14px}
+.secbtn .sg{color:var(--muted)}
+.row.done .secbtn{background:var(--done-bg)}
+.lr .secbtn{font-size:16px}
 .rrow.timed{grid-template-columns:1fr 46px 56px}
 .tmrs{height:42px;border-radius:10px;border:1px solid var(--accent);background:var(--card);color:var(--accent);font-size:17px;padding:0}
 .mv .got{color:var(--done)}
 .lr{display:flex;gap:4px;min-width:0}
+.lr > *{flex:1 1 0;min-width:0}
 .lr input{padding:9px 2px;font-size:16px}
 #toast{position:fixed;left:50%;top:70px;transform:translateX(-50%);background:var(--ink);color:var(--bg);
   padding:8px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20}
@@ -1253,12 +1258,17 @@ function runDemos(){
   demoRaf = requestAnimationFrame(frame);
 }
 
-// A timed set's seconds box with ▶ inside (user, 2026-10-25): tap ▶ on the side you start with,
-// that side is timed first, then the other. side: 'l' / 'r', '' = one side, null = not timed.
-function playIn(i, j, s, side, input){
-  if(side === null) return input;
-  const word = side === 'l' ? ' left side first' : side === 'r' ? ' right side first' : '';
-  return `<span class="sb">${s.done ? '' : `<button class="sp" data-hold="set.${i}.${j}${side ? '.' + side : ''}" aria-label="Time set ${j+1}${word}">▶</button>`}${input}</span>`;
+// A timed set's seconds box (user, 2026-10-25): the whole box is the play button — tap the side you
+// start with, that side is timed first, then the other. Press and hold (0.5 s) turns it into a box to type in.
+// f: 'l' / 'r' / 'reps'; sugg: the greyed-in seconds (last time, else the top of the range).
+let editing = null;   // 'i.j.f' of the seconds box being typed in
+function secCell(i, j, s, f, sugg){
+  const key = `${i}.${j}.${f}`, side = f === 'reps' ? '' : f, word = { l:' left', r:' right', '':'' }[side];
+  if(editing === key) return `<input inputmode="numeric" data-edit data-i="${i}" data-j="${j}" data-f="${f}" value="${esc(s[f] || '')}" placeholder="${esc(sugg)}" aria-label="Set ${j+1}${word} seconds">`;
+  const v = s[f] || '';
+  return `<button class="secbtn" data-press="${key}" data-i="${i}" data-j="${j}" data-f="${f}" data-sugg="${esc(sugg)}"
+    ${s.done ? '' : `data-hold="set.${i}.${j}${side ? '.' + side : ''}"`} aria-label="Set ${j+1}${word}: ${s.done ? '' : 'tap to time, '}hold to type">${
+    s.done ? esc(v || '–') : `<span class="pl">▶</span> ${v ? esc(v) : `<span class="sg">${esc(sugg)}</span>`}`}</button>`;
 }
 
 // ---------- Formatting ----------
@@ -1338,8 +1348,10 @@ function renderDay(day){
     let hint = '';
     if(last && last.sets.length >= ex.sets && last.sets.every(s => +s.reps >= topOf(ex, slot.name)))
       hint = `Hit the top of the range on every set last time → ${nextStep(ex, slot.name, last.sets)}, restart at the bottom.`;
-    let unit = bwk === 'plus' ? `Body weight. Holding weight? Enter ${load === 'hand' ? 'one dumbbell' : 'the extra kg'}; leave it empty if none.`
+    let unit = tm ? 'Tap a seconds box to time it · hold to type. ' : '';
+    unit += bwk === 'plus' ? `Body weight. Holding weight? Enter ${load === 'hand' ? 'one dumbbell' : 'the extra kg'}; leave it empty if none.`
              : bwk === 'only' ? '' : load === 'hand' ? 'Dumbbells: enter the weight of one dumbbell.' : '';
+    unit = unit.trim();
     if(load === 'assist'){
       const lifts = slot.sets.filter(s => s.kg !== '').map(s => lifted(s, slot.name));
       unit = !bodyweight ? 'Enter the assist. Add your body weight in ⋯ → Settings to see what you lift.'
@@ -1384,8 +1396,9 @@ function renderDay(day){
             ${band ? `<span class="bwcell">${esc(s.done ? (band === 'loop' ? s.band || '–' : s.kg || '–') : (band === 'loop' ? picked[0] || '–' : bandKg(slot.name, picked) || '–'))}</span>`
               : bwk === 'only' ? '<span class="bwcell">BW</span>'
               : `<input inputmode="decimal" data-i="${i}" data-j="${j}" data-f="kg" data-last="${esc(lastKg)}" value="${esc(s.kg)}" placeholder="${lastKg !== '' ? esc(lastKg) : bwk ? 'BW' : '–'}" aria-label="Set ${j+1} ${headOf(slot.name)}">`}
-            ${tm && tm.sides ? `<span class="lr">${['l', 'r'].map(f => playIn(i, j, s, f, `<input inputmode="numeric" data-i="${i}" data-j="${j}" data-f="${f}" value="${esc(s[f] || '')}" placeholder="${ref ? esc(ref[f] || ref.reps) : tm.max}" aria-label="Set ${j+1} ${f === 'l' ? 'left' : 'right'} seconds">`)).join('')}</span>`
-              : playIn(i, j, s, tm ? '' : null, `<input inputmode="numeric" data-i="${i}" data-j="${j}" data-f="reps" value="${esc(s.reps)}" placeholder="${ref ? esc(ref.reps) : tm ? tm.max : ex.max}" aria-label="Set ${j+1} ${tm ? 'seconds' : 'reps'}">`)}
+            ${tm && tm.sides ? `<span class="lr">${['l', 'r'].map(f => secCell(i, j, s, f, ref ? ref[f] || ref.reps : tm.max)).join('')}</span>`
+              : tm ? secCell(i, j, s, 'reps', ref ? ref.reps : tm.max)
+              : `<input inputmode="numeric" data-i="${i}" data-j="${j}" data-f="reps" value="${esc(s.reps)}" placeholder="${ref ? esc(ref.reps) : ex.max}" aria-label="Set ${j+1} reps">`}
             <button class="tick" data-tick="${i}.${j}" aria-label="Set ${j+1} done">✓</button>
           </div>`;}).join('')}
       </div>
@@ -1523,7 +1536,28 @@ function renderReport(){
 }
 
 // ---------- Events ----------
+// Press and hold a seconds box → type in it (a tap times it). The buzz says it switched.
+let pressT = 0, pressed = false;
+document.addEventListener('pointerdown', e => {
+  const b = e.target.closest('[data-press]'); if(!b) return;
+  clearTimeout(pressT);
+  pressT = setTimeout(() => {
+    pressed = true; editing = b.dataset.press;
+    try{ navigator.vibrate && navigator.vibrate(30); }catch(e){}
+    render();
+    const el = document.querySelector('[data-edit]'); if(el){ el.focus(); el.select(); }
+  }, 500);
+});
+['pointerup', 'pointercancel'].forEach(n => document.addEventListener(n, () => {
+  clearTimeout(pressT);
+  if(pressed) setTimeout(() => { pressed = false; }, 0);   // swallow the click that ends a long press
+}));
+document.addEventListener('scroll', () => clearTimeout(pressT), true);
+document.addEventListener('contextmenu', e => { if(e.target.closest('[data-press]')) e.preventDefault(); });
+document.addEventListener('focusout', e => { if(e.target.matches && e.target.matches('[data-edit]')) editing = null; });
+
 document.addEventListener('click', e => {
+  if(pressed){ pressed = false; return; }
   const t = e.target.closest('button'); if(!t){ showMenu(false); return; }
   if(t.id === 'more'){ showMenu(document.getElementById('menu').hidden); return; }
   showMenu(false);
@@ -1642,14 +1676,15 @@ document.addEventListener('change', e => {
 function setDone(day, i, j){
   const d = draft(day, true), slot = d.slots[i], s = slot.sets[j], ex = PLAN[day].ex[i];
   const box = f => day === view ? document.querySelector(`[data-i="${i}"][data-j="${j}"][data-f="${f}"]`) : null;
+  const sugg = f => box(f) ? box(f).placeholder || box(f).dataset.sugg || '' : '';
   // one tap if the numbers match last time: take the greyed-in values (body-weight exercises have none)
   const kgIn = box('kg');
   if(s.kg === '' && kgIn && kgIn.dataset.last) s.kg = kgIn.dataset.last;
   const tm = timedOf(ex, slot.name);
   if(tm && tm.sides){
-    ['l', 'r'].forEach(f => { if(!s[f] && box(f)) s[f] = box(f).placeholder; });
+    ['l', 'r'].forEach(f => { if(!s[f]) s[f] = sugg(f); });
     sideMin(s);
-  } else if(s.reps === '' && box('reps')) s.reps = box('reps').placeholder;
+  } else if(s.reps === '') s.reps = sugg('reps');
   // bands: the colours tapped for this exercise, and their kg
   if(bandOf(slot.name)){ const c = slot.band || []; s.band = c.join('+'); s.kg = bandKg(slot.name, c); }
   const lastSet = slot.sets.every(x => x.done);
