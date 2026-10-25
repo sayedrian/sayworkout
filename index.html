@@ -230,7 +230,9 @@ details.sess summary span{font-weight:400;color:var(--muted);font-size:13px}
 .pline:first-child{border-top:0}
 .pline span .small{display:block}
 .pline .g{font-weight:700;font-variant-numeric:tabular-nums}
-.pline .x{border:0;background:none;color:var(--bad);font-size:18px;padding:0}
+button.pline{width:100%;border:0;border-top:1px solid var(--line);background:none;text-align:left;color:var(--ink);font-size:15px}
+button.pline:first-child{border-top:0}
+.pline.on{background:var(--input);border-radius:9px}
 #toast{position:fixed;left:50%;top:70px;transform:translateX(-50%);background:var(--ink);color:var(--bg);
   padding:8px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20}
 #toast.show{opacity:1}
@@ -530,8 +532,12 @@ const isoDay = (t = Date.now()) => (new Date(t).getDay() + 6) % 7 + 1;
 const atToday = hm => { const [h, m] = hm.split(':').map(Number), d = new Date(); d.setHours(h, m, 0, 0); return d.getTime(); };
 // a time on a given day ('2026-10-24', '08:00'); noon of that day without a time
 const atDay = (day, hm = '12:00') => { const [y, mo, d] = day.split('-').map(Number), [h, m] = hm.split(':').map(Number); return new Date(y, mo - 1, d, h, m).getTime(); };
-// the day S shows (user, 2026-10-25: to log a past day too); null = today
+// the day S and P show (user, 2026-10-25: to log a past day too); null = today
 let suppView = null;
+const dayNav = (day, isToday) => `<div class="dnav"><button data-sdayn="-1" aria-label="Day before">‹</button>
+    <input type="date" id="sDate" value="${day}" max="${dayKey()}" aria-label="Day">
+    <button data-sdayn="1" aria-label="Next day" ${isToday ? 'disabled' : ''}>›</button>
+    ${isToday ? '' : '<button class="link" data-sdayn="0">Today</button>'}</div>`;
 const sDay = () => suppView || dayKey();
 const taken = (day, id) => !!(suppLog[day] && suppLog[day][id] && suppLog[day][id].on);
 const takenAt = (day, id) => { const v = suppLog[day]?.[id]; return v ? v.at || v.t : null; };
@@ -562,6 +568,7 @@ let protLog = store.get('fb3.protlog', {});           // {'2026-10-26': [{id, t,
 let protLast = store.get('fb3.protlast', {});         // last grams per source
 let protDirty = store.get('fb3.protdirty', { plan:false, days:[] });
 let protSrc = store.get('fb3.protsrc', 'Powder');     // the source picked last
+let protEdit = null;                                   // id of the entry being changed (tap it in the list)
 const saveProt = () => { ['prot', 'protlog', 'protlast', 'protdirty', 'protsrc'].forEach(k => store.set('fb3.' + k,
   { prot, protlog:protLog, protlast:protLast, protdirty:protDirty, protsrc:protSrc }[k])); };
 const protDay = (day = dayKey()) => (protLog[day] || []).filter(e => !e.del);
@@ -672,6 +679,8 @@ function nextStep(ex, name, sets){
   if(ex.time) return 'add a little weight';
   return loadOf(name) === 'assist' ? 'lower the assist one step' : 'add the smallest weight step';
 }
+// n calendar days later (not n × 24 h: a week with a clock change is 1 h longer or shorter)
+function addDays(t, n){ const d = new Date(t); d.setDate(d.getDate() + n); return d.getTime(); }
 function weekStart(t){ const d = new Date(t); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return d.getTime(); }
 
 // ---------- Exercise demos: short looping stick-figure animations, drawn here (no files) ----------
@@ -1567,10 +1576,7 @@ function renderSupp(){
       <button class="tick" data-supp="${esc(x.id)}" aria-label="${esc(x.name)} taken">✓</button></div>`;
   const timed = rows.filter(r => r.key !== Infinity), any = rows.filter(r => r.key === Infinity);
   // the day: ‹ › or the date box; never after today
-  let h = `<div class="dnav"><button data-sdayn="-1" aria-label="Day before">‹</button>
-    <input type="date" id="sDate" value="${day}" max="${dayKey()}" aria-label="Day">
-    <button data-sdayn="1" aria-label="Next day" ${isToday ? 'disabled' : ''}>›</button>
-    ${isToday ? '' : '<button class="link" data-sdayn="0">Today</button>'}</div>
+  let h = `${dayNav(day, isToday)}
     <p class="focus">${isToday ? 'Today · ' : ''}${dateTxt(noon)}</p><div class="box">`;
   h += timed.map(line).join('');
   if(any.length) h += `<div class="shead">Any time</div>` + any.map(line).join('');
@@ -1580,31 +1586,37 @@ function renderSupp(){
 }
 
 function renderProt(){
-  const day = dayKey(), now = Date.now(), total = protTotal(day), target = prot && +prot.target;
+  const day = sDay(), now = Date.now(), isToday = day === dayKey(), total = protTotal(day), target = prot && +prot.target;
   const pct = target ? Math.min(100, Math.round(total / target * 100)) : 0;
-  let h = `<p class="focus">${dateTxt(now)}</p><div class="box">
+  // the form adds a new entry, or changes the one tapped in the list
+  const ed = protEdit && protDay(day).find(e => e.id === protEdit), src = ed ? ed.src : protSrc;
+  let h = `${dayNav(day, isToday)}<p class="focus">${isToday ? 'Today · ' : ''}${dateTxt(atDay(day))}</p><div class="box">
     <div class="ptot">${total} g${target ? ` <span class="of">of ${target} g</span>` : ''}</div>
     ${target ? `<div class="pbar ${total >= target ? 'full' : ''}"><i style="width:${pct}%"></i></div>
       <div class="small">${total >= target ? '✓ Target reached' : `${target - total} g to go`}</div>`
       : `<div class="small">Set your daily target in ⋯ → Settings → Protein${ghReady() ? ' (or it loads from your repo)' : ''}.</div>`}
     <div class="padd">
-      <select id="pSrc" aria-label="Source">${PSRC.map(x => `<option ${x === protSrc ? 'selected' : ''}>${x}</option>`).join('')}</select>
-      <input id="pG" inputmode="decimal" value="${esc(protLast[protSrc] || '')}" placeholder="g" aria-label="Protein grams">
-      <input id="pText" class="full" placeholder="${protSrc === 'Meal' || protSrc === 'Snack' || protSrc === 'Other' ? 'What was it? (optional)' : 'Note (optional)'}" aria-label="What was it">
-      <input id="pAt" type="time" value="${hhmm(now)}" aria-label="Time">
-      <button class="btn" data-act="padd" style="padding:9px">Add</button>
+      ${ed ? '<div class="full small"><b>Changing an entry</b></div>' : ''}
+      <select id="pSrc" aria-label="Source">${PSRC.map(x => `<option ${x === src ? 'selected' : ''}>${x}</option>`).join('')}</select>
+      <input id="pG" inputmode="decimal" value="${esc(ed ? ed.g : protLast[src] || '')}" placeholder="g" aria-label="Protein grams">
+      <input id="pText" class="full" value="${esc(ed && ed.text || '')}" placeholder="${src === 'Meal' || src === 'Snack' || src === 'Other' ? 'What was it? (optional)' : 'Note (optional)'}" aria-label="What was it">
+      <input id="pAt" type="time" value="${hhmm(ed ? ed.at : isToday ? now : atDay(day))}" aria-label="Time">
+      <button class="btn" data-act="padd" style="padding:9px">${ed ? 'Save' : 'Add'}</button>
+      ${ed ? `<button class="btn ghost" data-act="pcancel" style="padding:9px">Cancel</button>
+        <button class="btn ghost" data-pdel="${esc(ed.id)}" style="padding:9px;color:var(--bad)">Remove</button>` : ''}
     </div></div>`;
   const list = protDay(day).sort((a, b) => a.at - b.at);
-  h += `<div class="box">${list.length ? list.map(e => `<div class="pline"><span class="small">${hhmm(e.at)}</span>
+  h += `<div class="box">${list.length ? list.map(e => `<button class="pline ${e.id === protEdit ? 'on' : ''}" data-pedit="${esc(e.id)}" aria-label="Change ${esc(e.src)} ${esc(e.g)} g">
+      <span class="small">${hhmm(e.at)}</span>
       <span>${esc(e.src)}${e.text ? `<span class="small">${esc(e.text)}</span>` : ''}</span>
-      <span class="g">${esc(e.g)} g</span><button class="x" data-pdel="${esc(e.id)}" aria-label="Remove">×</button></div>`).join('')
-    : '<p class="small">Nothing yet today.</p>'}</div>
+      <span class="g">${esc(e.g)} g</span><span class="small">✎</span></button>`).join('')
+    : `<p class="small">Nothing yet ${isToday ? 'today' : 'that day'}.</p>`}</div>
     <details class="sess"><summary>Rough protein amounts</summary><ul>
       <li>Chicken or turkey breast, 150 g cooked ≈ 45 g</li><li>Tuna, 1 can (drained) ≈ 25 g</li>
       <li>Salmon or white fish, 150 g ≈ 30–35 g</li><li>Beef or pork, lean, 150 g ≈ 40 g</li>
       <li>2 eggs ≈ 12 g</li><li>Cottage cheese, 200 g ≈ 22 g</li><li>Lentils or chickpeas, 200 g cooked ≈ 18 g</li>
       <li>Milk, 250 ml ≈ 8 g</li><li>Bread, 2 slices ≈ 7 g</li></ul></details>
-    <p class="small">Every amount is grams of protein. The last amount per source is filled in for next time. ${syncText()}</p>`;
+    <p class="small">Every amount is grams of protein. The last amount per source is filled in for next time. Tap an entry to change it. ${syncText()}</p>`;
   $main.innerHTML = h;
 }
 
@@ -1702,17 +1714,17 @@ function renderReport(){
     : '<p class="small">Nothing to raise yet — keep adding reps until every set reaches the top of its range.</p>'}</div>`;
 
   // 3. This week against last week: sessions and hard sets per muscle group
-  const wk = weekStart(Date.now()), prevWk = wk - 7 * 864e5;
+  const wk = weekStart(Date.now()), prevWk = addDays(wk, -7);
   const tally = (from, to) => {
     const ses = history.filter(o => o.startedAt >= from && o.startedAt < to), g = {};
     ses.forEach(o => o.slots.forEach(x => { const mg = exFor(x.name)?.mg || 'Other'; g[mg] = (g[mg] || 0) + x.sets.filter(t => t.done).length; }));
     return { n:ses.length, g, reset:ses.filter(o => resetDone(o) === RESET.length).length };
   };
-  const a = tally(wk, wk + 7 * 864e5), b = tally(prevWk, wk);
+  const a = tally(wk, addDays(wk, 7)), b = tally(prevWk, wk);
   // habit streak: weeks in a row where every workout started with the full desk reset
   let streak = 0;
-  for(let w = a.n ? wk : prevWk; ; w -= 7 * 864e5){
-    const x = tally(w, w + 7 * 864e5);
+  for(let w = a.n ? wk : prevWk; ; w = addDays(w, -7)){
+    const x = tally(w, addDays(w, 7));
     if(!x.n || x.reset < x.n) break;
     streak++;
   }
@@ -1751,7 +1763,7 @@ document.addEventListener('click', e => {
   const t = e.target.closest('button'); if(!t){ showMenu(false); return; }
   if(t.id === 'more'){ showMenu(document.getElementById('menu').hidden); return; }
   showMenu(false);
-  if(t.dataset.tab){ if(t.dataset.tab !== view){ opened.clear(); suppView = null; } view = t.dataset.tab; store.set('fb3.view', view); render(); scrollTo(0, 0); return; }
+  if(t.dataset.tab){ if(t.dataset.tab !== view){ opened.clear(); suppView = null; protEdit = null; } view = t.dataset.tab; store.set('fb3.view', view); render(); scrollTo(0, 0); return; }
   if(t.id === 'back'){ view = lastDay; render(); scrollTo(0, 0); return; }
   if(t.dataset.unfold){ const k = t.dataset.unfold; opened.add(/^\d+$/.test(k) ? +k : k); render(); return; }
   if(t.dataset.rest){ adjustRest(t.dataset.rest); return; }
@@ -1764,9 +1776,10 @@ document.addEventListener('click', e => {
     save(); render(); return;
   }
   if(t.dataset.hold){ startHold(view, t.dataset.hold); return; }
+  if(t.dataset.pedit){ protEdit = protEdit === t.dataset.pedit ? null : t.dataset.pedit; render(); scrollTo(0, 0); return; }
   if(t.dataset.pdel){
-    const day = dayKey(), e = (protLog[day] || []).find(x => x.id === t.dataset.pdel);
-    if(e && confirm(`Remove ${e.g} g (${e.src})?`)){ protChange(day, { ...e, del:true }); render(); sync(); }
+    const day = sDay(), e = (protLog[day] || []).find(x => x.id === t.dataset.pdel);
+    if(e && confirm(`Remove ${e.g} g (${e.src})?`)){ protChange(day, { ...e, del:true }); protEdit = null; render(); sync(); }
     return;
   }
   if(t.dataset.supp){
@@ -1778,7 +1791,7 @@ document.addEventListener('click', e => {
   if(t.dataset.sdayn){
     const n = +t.dataset.sdayn, d = new Date(atDay(sDay())); d.setDate(d.getDate() + n);
     const k = n === 0 || dayKey(d.getTime()) >= dayKey() ? null : dayKey(d.getTime());
-    suppView = k; render(); if(k) sync(); return;
+    suppView = k; protEdit = null; render(); if(k) sync(); return;
   }
   if(t.dataset.sadd || t.dataset.sdel || t.dataset.sday){
     readSuppEdit();
@@ -1855,15 +1868,21 @@ document.addEventListener('click', e => {
     store.set('fb3.gh', gh); toast('GitHub settings saved'); sync(); render();
   }
   if(act === 'padd'){
-    const g = parseFloat(document.getElementById('pG').value.replace(',', '.')), hm = document.getElementById('pAt').value;
+    const day = sDay(), g = parseFloat(document.getElementById('pG').value.replace(',', '.')), hm = document.getElementById('pAt').value;
     if(!(g > 0)){ toast('Enter the grams of protein'); return; }
-    const at = /^\d\d:\d\d$/.test(hm) ? atToday(hm) : Date.now();
+    const at = /^\d\d:\d\d$/.test(hm) ? atDay(day, hm) : day === dayKey() ? Date.now() : atDay(day);
     if(at > Date.now()){ toast('That time hasn’t come yet'); return; }
     const src = document.getElementById('pSrc').value, text = document.getElementById('pText').value.trim();
-    protLast[src] = String(g);
-    protChange(dayKey(), { id:Date.now().toString(36) + Math.random().toString(36).slice(2, 6), at, src, g, ...(text ? { text } : {}) });
-    toast(`+${g} g protein`); render(); sync();
+    const ed = protEdit && protDay(day).find(e => e.id === protEdit);
+    if(ed){ const { text:_, ...rest } = ed; protChange(day, { ...rest, at, src, g, ...(text ? { text } : {}) }); protEdit = null; toast('Changed'); }
+    else {
+      protLast[src] = String(g);
+      protChange(day, { id:Date.now().toString(36) + Math.random().toString(36).slice(2, 6), at, src, g, ...(text ? { text } : {}) });
+      toast(`+${g} g protein`);
+    }
+    render(); sync();
   }
+  if(act === 'pcancel'){ protEdit = null; render(); }
   if(act === 'ptarget'){
     const g = parseInt(document.getElementById('pTarget').value, 10);
     if(!(g > 0)){ toast('Enter the target in grams'); return; }
@@ -1897,7 +1916,7 @@ document.addEventListener('input', e => {
 document.addEventListener('change', e => {
   const t = e.target;
   if(t.id === 'repSel'){ reportId = t.value; render(); }
-  if(t.id === 'pSrc'){ protSrc = t.value; saveProt(); render(); }
+  if(t.id === 'pSrc' && !protEdit){ protSrc = t.value; saveProt(); render(); }
   // the time box of a taken supplement: correct when it was taken
   if(t.dataset.suppat && /^\d\d:\d\d$/.test(t.value) && taken(sDay(), t.dataset.suppat)){
     const day = sDay(), at = atDay(day, t.value);
@@ -1905,7 +1924,7 @@ document.addEventListener('change', e => {
     setTaken(t.dataset.suppat, true, at, day); render(); sync();
   }
   if(t.id === 'sDate' && /^\d{4}-\d\d-\d\d$/.test(t.value)){
-    suppView = t.value >= dayKey() ? null : t.value; render(); if(suppView) sync();
+    suppView = t.value >= dayKey() ? null : t.value; protEdit = null; render(); if(suppView) sync();
   }
   if(t.dataset.swap){ draft(view, true).slots[+t.dataset.swap].name = t.value; save(); render(); }
   if(t.id === 'importFile' && t.files[0]){
@@ -2231,7 +2250,7 @@ async function syncProt(){
     const p = JSON.parse(b64dec(pf.content));
     if(JSON.stringify(p) !== JSON.stringify(prot)){ prot = p; saveProt(); changed = true; }
   }
-  for(const day of [...new Set([dayKey(), ...protDirty.days])]){
+  for(const day of [...new Set([dayKey(), ...protDirty.days, ...(suppView ? [suppView] : [])])]){
     const path = `${PROT_DIR}/days/${day}.json`, f = await api(path + `?ref=${gh.branch}`);
     const remote = f ? JSON.parse(b64dec(f.content)).entries || [] : [];
     const merged = mergeEntries(remote, protLog[day]);
