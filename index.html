@@ -183,12 +183,15 @@ details.sess summary span{font-weight:400;color:var(--muted);font-size:13px}
 #hold .hb .go{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);flex:2}
 #hold.wait .ht{color:var(--hint)}
 #hold.reached .ht,#hold.reached .hs{color:var(--done)}
-.btn.tmr{display:block;width:calc(100% - 28px);margin:2px 14px 6px;padding:11px}
+/* timed sets: ▶ inside the seconds box, the suggested seconds still showing beside it */
+.sb{position:relative;flex:1;min-width:0;display:block}
+.sb .sp{position:absolute;left:2px;top:2px;bottom:2px;width:24px;border:0;border-radius:7px;background:none;color:var(--accent);font-size:14px;padding:0;z-index:1}
+.sb input{padding-left:24px!important}
 .rrow.timed{grid-template-columns:1fr 46px 56px}
 .tmrs{height:42px;border-radius:10px;border:1px solid var(--accent);background:var(--card);color:var(--accent);font-size:17px;padding:0}
 .mv .got{color:var(--done)}
 .lr{display:flex;gap:4px;min-width:0}
-.lr input{padding:9px 2px}
+.lr input{padding:9px 2px;font-size:16px}
 #toast{position:fixed;left:50%;top:70px;transform:translateX(-50%);background:var(--ink);color:var(--bg);
   padding:8px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20}
 #toast.show{opacity:1}
@@ -1250,6 +1253,14 @@ function runDemos(){
   demoRaf = requestAnimationFrame(frame);
 }
 
+// A timed set's seconds box with ▶ inside (user, 2026-10-25): tap ▶ on the side you start with,
+// that side is timed first, then the other. side: 'l' / 'r', '' = one side, null = not timed.
+function playIn(i, j, s, side, input){
+  if(side === null) return input;
+  const word = side === 'l' ? ' left side first' : side === 'r' ? ' right side first' : '';
+  return `<span class="sb">${s.done ? '' : `<button class="sp" data-hold="set.${i}.${j}${side ? '.' + side : ''}" aria-label="Time set ${j+1}${word}">▶</button>`}${input}</span>`;
+}
+
 // ---------- Formatting ----------
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const range = ex => ex.min === ex.max ? ex.min : `${ex.min}–${ex.max}`;
@@ -1323,7 +1334,7 @@ function renderDay(day){
     const doneCount = slot.sets.filter(s => s.done).length;
     const options = [ex.name, ...ex.alts].map(n => `<option ${n===slot.name?'selected':''}>${esc(n)}</option>`).join('');
     const load = loadOf(slot.name), bwk = bwOf(slot.name), band = bandOf(slot.name), picked = slot.band || [];
-    const tm = timedOf(ex, slot.name), next = slot.sets.findIndex(s => !s.done);
+    const tm = timedOf(ex, slot.name);
     let hint = '';
     if(last && last.sets.length >= ex.sets && last.sets.every(s => +s.reps >= topOf(ex, slot.name)))
       hint = `Hit the top of the range on every set last time → ${nextStep(ex, slot.name, last.sets)}, restart at the bottom.`;
@@ -1373,12 +1384,11 @@ function renderDay(day){
             ${band ? `<span class="bwcell">${esc(s.done ? (band === 'loop' ? s.band || '–' : s.kg || '–') : (band === 'loop' ? picked[0] || '–' : bandKg(slot.name, picked) || '–'))}</span>`
               : bwk === 'only' ? '<span class="bwcell">BW</span>'
               : `<input inputmode="decimal" data-i="${i}" data-j="${j}" data-f="kg" data-last="${esc(lastKg)}" value="${esc(s.kg)}" placeholder="${lastKg !== '' ? esc(lastKg) : bwk ? 'BW' : '–'}" aria-label="Set ${j+1} ${headOf(slot.name)}">`}
-            ${tm && tm.sides ? `<span class="lr">${['l', 'r'].map(f => `<input inputmode="numeric" data-i="${i}" data-j="${j}" data-f="${f}" value="${esc(s[f] || '')}" placeholder="${ref ? esc(ref[f] || ref.reps) : tm.max}" aria-label="Set ${j+1} ${f === 'l' ? 'left' : 'right'} seconds">`).join('')}</span>`
-              : `<input inputmode="numeric" data-i="${i}" data-j="${j}" data-f="reps" value="${esc(s.reps)}" placeholder="${ref ? esc(ref.reps) : tm ? tm.max : ex.max}" aria-label="Set ${j+1} ${tm ? 'seconds' : 'reps'}">`}
+            ${tm && tm.sides ? `<span class="lr">${['l', 'r'].map(f => playIn(i, j, s, f, `<input inputmode="numeric" data-i="${i}" data-j="${j}" data-f="${f}" value="${esc(s[f] || '')}" placeholder="${ref ? esc(ref[f] || ref.reps) : tm.max}" aria-label="Set ${j+1} ${f === 'l' ? 'left' : 'right'} seconds">`)).join('')}</span>`
+              : playIn(i, j, s, tm ? '' : null, `<input inputmode="numeric" data-i="${i}" data-j="${j}" data-f="reps" value="${esc(s.reps)}" placeholder="${ref ? esc(ref.reps) : tm ? tm.max : ex.max}" aria-label="Set ${j+1} ${tm ? 'seconds' : 'reps'}">`)}
             <button class="tick" data-tick="${i}.${j}" aria-label="Set ${j+1} done">✓</button>
           </div>`;}).join('')}
       </div>
-      ${tm && next >= 0 ? `<button class="btn tmr" data-hold="set.${i}.${next}">▶ Timer · set ${next+1}${tm.sides ? ' · left, then right' : ''}</button>` : ''}
       <div class="setbtns"><button class="link" data-addset="${i}">+ set</button>
         ${slot.sets.length > 1 && !slot.sets[slot.sets.length-1].done ? `<button class="link" data-delset="${i}">− set</button>` : ''}</div>
     </article>`;
@@ -1660,10 +1670,10 @@ let hold = null;
 const $hold = document.getElementById('hold');
 // what ▶ times: 'set.i.j' (an exercise set), 'reset.k' or 'cool.k'
 function holdPlan(day, key){
-  const [kind, a, b] = key.split('.'), sides = ['Left', 'Right'];
-  if(kind === 'set'){
+  const [kind, a, b, c] = key.split('.'), sides = ['Left', 'Right'];
+  if(kind === 'set'){   // 'set.i.j.r' = right side first
     const ex = PLAN[day].ex[+a], slot = draft(day, true).slots[+a], tm = timedOf(ex, slot.name);
-    return { title:`${slot.name} · set ${+b + 1}`, min:tm.min, max:tm.max, steps:tm.sides ? sides : [''] };
+    return { title:`${slot.name} · set ${+b + 1}`, min:tm.min, max:tm.max, steps:!tm.sides ? [''] : c === 'r' ? ['Right', 'Left'] : sides };
   }
   const r = (kind === 'reset' ? resetFor(day) : COOL)[+a], rounds = r.rounds || 1;
   const steps = Array.from({ length:rounds }, (_, n) => (r.sides ? sides : ['']).map(x => [rounds > 1 ? `Round ${n + 1}` : '', x].filter(Boolean).join(' · '))).flat();
@@ -1684,11 +1694,11 @@ function holdAct(a){
   finishHold();
 }
 function finishHold(){
-  const { day, key, secs } = hold, [kind, a, b] = key.split('.'), d = draft(day, true);
+  const { day, key, secs, steps } = hold, [kind, a, b] = key.split('.'), d = draft(day, true);
   hold = null;
   if(kind === 'set'){
     const s = d.slots[+a].sets[+b];
-    if(secs.length > 1){ s.l = String(secs[0]); s.r = String(secs[1]); sideMin(s); } else s.reps = String(secs[0]);
+    if(secs.length > 1){ secs.forEach((x, n) => s[steps[n] === 'Left' ? 'l' : 'r'] = String(x)); sideMin(s); } else s.reps = String(secs[0]);
     s.done = true; setDone(day, +a, +b);
   } else {
     const list = kind === 'reset' ? RESET : COOL;
