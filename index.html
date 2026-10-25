@@ -1652,8 +1652,8 @@ function sideMin(s){
 }
 
 // ---------- Hold timer (2026-10-25): time a hold without leaving the page ----------
-// ▶ → 3 s get ready → counts up; beeps + vibrates at the bottom of the range and again at the top,
-// keeps counting until Stop. Per side: left, 5 s to switch, right. The seconds go into the set
+// ▶ → 3 s to get into position (only Cancel) → counts up; beeps + vibrates at the bottom of the range and again at the top,
+// keeps counting until the button: "Change side" (then 5 s to switch, right starts by itself) or "Done". The seconds go into the set
 // (then the rest timer starts) or, for the desk reset and cool-down, into `holds` and the ✓.
 const READY_S = 3, SWITCH_S = 5;
 let hold = null;
@@ -1678,7 +1678,7 @@ function startHold(day, key){
 function holdAct(a){
   if(!hold) return;
   if(a === 'cancel'){ hold = null; tickHold(); return; }
-  if(hold.phase !== 'run'){ hold.at = Date.now(); tickHold(); return; }   // "Start now" during a countdown
+  if(hold.phase !== 'run') return;   // countdowns run out by themselves
   hold.secs.push(Math.floor((Date.now() - hold.at) / 1000));
   if(++hold.step < hold.steps.length){ hold.phase = 'switch'; hold.at = Date.now() + SWITCH_S * 1000; hold.left = null; tickHold(); return; }
   finishHold();
@@ -1719,8 +1719,8 @@ function tickHold(){
     if(left !== hold.left && hold.left !== null) beep(1, 660);   // a short tick each second of the countdown
     hold.left = left;
     $('holdT').textContent = left;
-    $('holdS').textContent = hold.phase === 'ready' ? 'Get ready' : `Switch: ${step.toLowerCase()} next`;
-    $('holdGo').textContent = 'Start now';
+    $('holdS').textContent = hold.phase === 'ready' ? 'Get into position' : /Left|Right/.test(step) ? `Change side: ${step.toLowerCase()} next` : `Next: ${step.toLowerCase()}`;
+    $('holdGo').hidden = true;
     $hold.className = 'wait';
     return;
   }
@@ -1730,7 +1730,10 @@ function tickHold(){
   $('holdT').textContent = el >= 60 ? mmss(el) : el;
   $('holdS').textContent = el >= hold.max ? '✓ Top of the range — stop when you like'
     : el >= hold.min ? `✓ Target reached — keep going to ${hold.max} s or stop` : `Target ${hold.min === hold.max ? hold.min : range(hold)} s`;
-  $('holdGo').textContent = hold.step < hold.steps.length - 1 ? `Stop ${step.toLowerCase()}` : 'Stop';
+  // the button says what comes next: another side, another round, or the end
+  const after = hold.steps[hold.step + 1];
+  $('holdGo').hidden = false;
+  $('holdGo').textContent = !after ? 'Done' : /Left|Right/.test(after) ? 'Change side' : 'Next round';
   $hold.className = el >= hold.min ? 'reached' : '';
 }
 
