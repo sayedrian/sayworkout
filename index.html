@@ -290,6 +290,33 @@ nav button .lb{font-size:11px;font-weight:650;line-height:1;font-variant-numeric
 .pquick .other{border-color:var(--line);color:var(--ink)}
 .pquick{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 2px}
 .pquick button{flex:1;min-width:120px;border:1px solid var(--accent);background:var(--card);color:var(--accent);border-radius:10px;padding:10px;font-weight:650;font-size:15px}
+/* gut card: big icons, few words */
+.gnow{display:flex;gap:8px;margin:8px 0}
+.gnow button{display:flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:10px;font-size:15px;font-weight:650}
+.gnow .poo{flex:1;font-size:17px;border-color:var(--accent);color:var(--accent)}
+.gnow .poo span{font-size:26px;line-height:1}
+.gnow [aria-pressed]{flex-direction:column;gap:0;min-width:64px;font-size:12px;font-weight:500;color:var(--muted)}
+.gnow [aria-pressed] span{font-size:22px;line-height:1.1}
+.gnow [aria-pressed="true"]{border-color:var(--hint);background:var(--hint-bg);color:var(--hint)}
+.gedit{background:var(--input);border-radius:12px;padding:10px;margin:6px 0}
+.gedit .top{display:flex;align-items:center;gap:8px;font-size:15px}
+.gedit .top input{width:auto;border:1px solid var(--line);background:var(--card);border-radius:9px;padding:6px;font-size:15px;color:var(--ink)}
+.gedit .top .btn{flex:0 0 auto;width:auto;margin-left:auto;padding:7px 18px}
+.bris{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:10px 0 2px}
+.bris button{display:flex;flex-direction:column;align-items:center;border:2px solid transparent;background:var(--card);border-radius:10px;padding:5px 0 3px;font-size:12px;color:var(--muted)}
+.bris svg{width:100%;max-width:40px;height:24px;fill:#8a5a32;stroke:#8a5a32}
+.bris .w svg{fill:#b98c5f;stroke:#b98c5f}
+.bris button[aria-pressed="true"]{border-color:var(--accent);color:var(--ink);font-weight:700}
+.bscale{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);padding:0 4px}
+.bscale b{color:var(--done);font-weight:600}
+.gtags{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px}
+.gtags button{display:flex;flex-direction:column;align-items:center;border:2px solid transparent;background:var(--card);border-radius:10px;padding:5px 2px;font-size:11px;color:var(--muted);line-height:1.2}
+.gtags span{font-size:22px;line-height:1.2}
+.gtags button[aria-pressed="true"]{border-color:var(--hint);background:var(--hint-bg);color:var(--hint);font-weight:650}
+.gline{display:flex;align-items:center;gap:10px;width:100%;border:0;border-top:1px solid var(--line);background:none;padding:8px 2px;font-size:15px;color:var(--ink);text-align:left}
+.gline svg{width:34px;height:20px;fill:#8a5a32;stroke:#8a5a32}
+.gline .tg{margin-left:auto;font-size:17px;letter-spacing:2px}
+.gline.on{background:var(--input);border-radius:9px}
 
 .pick{display:flex;align-items:center;gap:6px}
 .pick select{flex:1;min-width:0}
@@ -655,6 +682,40 @@ function mergeDay(a = {}, b = {}){
   Object.entries(b).forEach(([id, v]) => { if(!out[id] || (v.t || 0) > (out[id].t || 0)) out[id] = v; });
   return out;
 }
+// ---------- Gut (user, 2026-10-26): a simple log to show the doctor ----------
+// One tap logs a poo at the time now (on a past day: noon); then, if wanted, its Bristol type
+// (1–7, the scale doctors use) and a few icons. Bloating and gas are one tap per day.
+// Days: data/gut/days/<date>.json, {entries:[{id, t, at, type, tags, del}], flags:{bloat:{t, on}, gas:{t, on}}} —
+// entries merge like protein (latest t wins, a removed one stays as del), flags like supplement ticks.
+const GUT_DIR = 'data/gut';
+const GTAGS = [['strain', '😣', 'Strained'], ['empty', '⏳', 'Not empty'], ['pain', '😖', 'Pain'], ['blood', '🩸', 'Blood']];
+const GFLAGS = [['bloat', '🎈', 'Bloated'], ['gas', '💨', 'Gas']];
+const BTXT = ['', 'Hard lumps', 'Lumpy', 'Cracked', 'Smooth', 'Soft blobs', 'Mushy', 'Watery'];
+// the seven Bristol shapes, drawn small
+const BSVG = ['',
+  '<circle cx="7" cy="11" r="3.4"/><circle cx="16" cy="8.5" r="3"/><circle cx="25" cy="11.5" r="3.6"/>',
+  '<circle cx="7" cy="11" r="4"/><circle cx="12.5" cy="9.5" r="4.3"/><circle cx="18.5" cy="10.8" r="4"/><circle cx="24.5" cy="9.8" r="3.8"/>',
+  '<rect x="3" y="6" width="26" height="9" rx="4.5"/><path d="M10 6.5v3M16 14.5v-3M22 6.5v3" stroke="var(--card)" stroke-width="1.4"/>',
+  '<path d="M4 13c4-7 8-7 12-2s8 5 12-2" fill="none" stroke-width="5" stroke-linecap="round"/>',
+  '<ellipse cx="7.5" cy="11" rx="4.5" ry="3.2"/><ellipse cx="17" cy="12.5" rx="4.5" ry="3"/><ellipse cx="25.5" cy="9.5" rx="3.8" ry="2.8"/>',
+  '<path d="M3 15c0-3 2-4 4-4 0-3 4-4 6-2 1-3 6-3 7 0 2-2 6-1 6 2 3 0 4 2 3 4z"/>',
+  '<path d="M9 4c3 4 4 6 4 8a4 4 0 0 1-8 0c0-2 1-4 4-8zM22 3c3 4 4 6 4 8a4 4 0 0 1-8 0c0-2 1-4 4-8z"/><rect x="3" y="16.5" width="26" height="2" rx="1"/>'];
+const bIcon = n => `<svg viewBox="0 0 32 20" aria-hidden="true">${BSVG[n] || ''}</svg>`;
+let gutLog = store.get('fb3.gutlog', {});             // {'2026-10-26': {entries:[…], flags:{…}}}
+let gutDirty = store.get('fb3.gutdirty', { days:[] });
+let gutEdit = null;                                    // id of the entry open for details
+const saveGut = () => { store.set('fb3.gutlog', gutLog); store.set('fb3.gutdirty', gutDirty); };
+const gutDay = (day = dayKey()) => ((gutLog[day] || {}).entries || []).filter(e => !e.del);
+const gutFlag = (day, k) => !!(gutLog[day] && gutLog[day].flags && gutLog[day].flags[k] && gutLog[day].flags[k].on);
+function gutTouch(day, fn){
+  const g = gutLog[day] = { entries:[], flags:{}, ...(gutLog[day] || {}) };
+  fn(g);
+  if(!gutDirty.days.includes(day)) gutDirty.days.push(day);
+  saveGut();
+}
+const gutChange = (day, e) => gutTouch(day, g => { g.entries = [...g.entries.filter(x => x.id !== e.id), { ...e, t:Date.now() }]; });
+const gutSetFlag = (day, k, on) => gutTouch(day, g => { g.flags = { ...g.flags, [k]:{ t:Date.now(), on } }; });
+
 const slug = s => s.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'item';
 
 // Opens on the workout in progress, otherwise the next one in the rotation A → B → C → A.
@@ -1638,7 +1699,7 @@ let protForm = false;                                   // the protein form is o
 function renderFuel(){
   const day = sDay(), now = Date.now(), isToday = day === dayKey(), noon = atDay(day);
   $main.innerHTML = `${dayNav(day, isToday)}<p class="focus">${isToday ? 'Today · ' : ''}${dateTxt(noon)}</p>
-    ${suppCard(day, now, isToday, noon)}${protCard(day, now, isToday)}
+    ${suppCard(day, now, isToday, noon)}${protCard(day, now, isToday)}${gutCard(day, isToday)}
     <p class="small">Doses, reminders and the protein target are in ⋯ → Settings. ${syncText()}</p>`;
 }
 function suppCard(day, now, isToday, noon){
@@ -1704,6 +1765,27 @@ function protCard(day, now, isToday){
         <span>${esc(e.src)}${e.text ? `<span class="small">${esc(e.text)}</span>` : ''}</span>
         <span class="g">${esc(e.g)} g</span><span class="small">✎</span></button>`).join('')
     : `<button class="foldline plain" data-unfold="pent">${list.length} entr${list.length === 1 ? 'y' : 'ies'} ${isToday ? 'today' : 'that day'} <span class="more">show ▾</span></button>`;
+  return h + '</div>';
+}
+
+// Gut: 💩 logs one now and opens its details (type and icons, each saved on tap; ✓ closes);
+// tap an entry to open it again. Bloating and gas: one tap for the day.
+function gutCard(day, isToday){
+  const list = gutDay(day).sort((a, b) => a.at - b.at), ed = gutEdit && list.find(e => e.id === gutEdit);
+  let h = `<div class="box card"><h3>Gut <span class="st">${list.length ? `💩 ${list.length}` : ''}</span></h3>
+    <div class="gnow"><button class="poo" data-act="gnew" aria-label="Log a poo ${isToday ? 'now' : 'that day'}"><span>💩</span>+ ${isToday ? 'Now' : 'Log'}</button>
+      ${GFLAGS.map(([k, ic, lb]) => `<button data-gflag="${k}" aria-pressed="${gutFlag(day, k)}"><span>${ic}</span>${lb}</button>`).join('')}</div>`;
+  if(ed) h += `<div class="gedit">
+      <div class="top">💩 <input type="time" data-gutat="${esc(ed.id)}" value="${hhmm(ed.at)}" aria-label="Time">
+        <button class="link" data-gdel="${esc(ed.id)}" style="color:var(--bad)">Remove</button>
+        <button class="btn" data-act="gdone">✓</button></div>
+      <div class="bris">${[1, 2, 3, 4, 5, 6, 7].map(n => `<button class="${n > 5 ? 'w' : ''}" data-gtype="${n}" aria-pressed="${ed.type === n}" aria-label="Type ${n}: ${BTXT[n]}" title="${BTXT[n]}">${bIcon(n)}${n}</button>`).join('')}</div>
+      <div class="bscale"><span>hard</span><b>normal</b><span>loose</span></div>
+      <div class="gtags">${GTAGS.map(([k, ic, lb]) => `<button data-gtag="${k}" aria-pressed="${(ed.tags || []).includes(k)}"><span>${ic}</span>${lb}</button>`).join('')}</div></div>`;
+  h += list.filter(e => e.id !== gutEdit).map(e => `<button class="gline" data-gedit="${esc(e.id)}" aria-label="Change the one at ${hhmm(e.at)}">
+      <span class="small">${hhmm(e.at)}</span>${e.type ? bIcon(e.type) + `<span>${e.type} · ${BTXT[e.type]}</span>` : '<span class="small">💩 tap to add the type</span>'}
+      <span class="tg">${GTAGS.filter(([k]) => (e.tags || []).includes(k)).map(([, ic]) => ic).join('')}</span></button>`).join('');
+  if(!list.length && !isToday) h += `<p class="small">None logged that day.</p>`;
   return h + '</div>';
 }
 
@@ -1958,7 +2040,7 @@ document.addEventListener('click', e => {
   const t = e.target.closest('button'); if(!t){ showMenu(false); return; }
   if(t.id === 'more'){ showMenu(document.getElementById('menu').hidden); return; }
   showMenu(false);
-  if(t.dataset.tab){ if(t.dataset.tab !== view){ opened.clear(); suppView = null; protEdit = null; protForm = false; } view = t.dataset.tab; store.set('fb3.view', view); render(); scrollTo(0, 0); return; }
+  if(t.dataset.tab){ if(t.dataset.tab !== view){ opened.clear(); suppView = null; protEdit = null; protForm = false; gutEdit = null; } view = t.dataset.tab; store.set('fb3.view', view); render(); scrollTo(0, 0); return; }
   if(t.id === 'back'){ view = lastDay; render(); scrollTo(0, 0); return; }
   if(t.dataset.unfold){ const k = t.dataset.unfold; opened.add(/^\d+$/.test(k) ? +k : k); render(); return; }
   if(t.dataset.fold){ opened.delete(t.dataset.fold); render(); return; }
@@ -1984,6 +2066,30 @@ document.addEventListener('click', e => {
     undoToast(`+${g} g ${src}`, () => protChange(day, { ...e, del:true }));
     return;
   }
+  if(t.dataset.act === 'gnew'){
+    const day = sDay(), e = { id:Date.now().toString(36) + Math.random().toString(36).slice(2, 6), at:day === dayKey() ? Date.now() : atDay(day), tags:[] };
+    gutChange(day, e); gutEdit = e.id; render(); sync();
+    undoToast(`💩 logged ${hhmm(e.at)}`, () => { gutChange(day, { ...e, del:true }); gutEdit = null; });
+    return;
+  }
+  if(t.dataset.act === 'gdone'){ gutEdit = null; render(); return; }
+  if(t.dataset.gedit){ gutEdit = t.dataset.gedit; render(); return; }
+  if(t.dataset.gflag){ const day = sDay(), k = t.dataset.gflag; gutSetFlag(day, k, !gutFlag(day, k)); render(); sync(); return; }
+  if(t.dataset.gtype || t.dataset.gtag){
+    const day = sDay(), e = gutDay(day).find(x => x.id === gutEdit); if(!e) return;
+    if(t.dataset.gtype){ const n = +t.dataset.gtype; gutChange(day, { ...e, type:e.type === n ? null : n }); }
+    else {
+      const k = t.dataset.gtag, on = !(e.tags || []).includes(k);
+      gutChange(day, { ...e, tags:on ? [...(e.tags || []), k] : e.tags.filter(x => x !== k) });
+      if(on && k === 'blood') toast('🩸 Worth telling your doctor about');
+    }
+    render(); sync(); return;
+  }
+  if(t.dataset.gdel){
+    const day = sDay(), e = gutDay(day).find(x => x.id === t.dataset.gdel);
+    if(e){ gutChange(day, { ...e, del:true }); gutEdit = null; render(); sync(); undoToast(`💩 ${hhmm(e.at)} removed`, () => gutChange(day, { ...e, del:false })); }
+    return;
+  }
   if(t.dataset.pedit){ protEdit = protEdit === t.dataset.pedit ? null : t.dataset.pedit; render(); scrollTo(0, 0); return; }
   if(t.dataset.pdel){
     const day = sDay(), e = (protLog[day] || []).find(x => x.id === t.dataset.pdel);
@@ -2005,7 +2111,7 @@ document.addEventListener('click', e => {
   if(t.dataset.sdayn){
     const n = +t.dataset.sdayn, d = new Date(atDay(sDay())); d.setDate(d.getDate() + n);
     const k = n === 0 || dayKey(d.getTime()) >= dayKey() ? null : dayKey(d.getTime());
-    suppView = k; protEdit = null; render(); if(k) sync(); return;
+    suppView = k; protEdit = null; gutEdit = null; render(); if(k) sync(); return;
   }
   if(t.dataset.sadd || t.dataset.sdel || t.dataset.sday){
     readSuppEdit();
@@ -2144,7 +2250,12 @@ document.addEventListener('change', e => {
     setTaken(t.dataset.suppat, true, at, day); render(); sync();
   }
   if(t.id === 'sDate' && /^\d{4}-\d\d-\d\d$/.test(t.value)){
-    suppView = t.value >= dayKey() ? null : t.value; protEdit = null; render(); if(suppView) sync();
+    suppView = t.value >= dayKey() ? null : t.value; protEdit = null; gutEdit = null; render(); if(suppView) sync();
+  }
+  if(t.dataset.gutat && /^\d\d:\d\d$/.test(t.value)){
+    const day = sDay(), e = gutDay(day).find(x => x.id === t.dataset.gutat), at = atDay(day, t.value);
+    if(at > Date.now()){ toast('That time hasn’t come yet'); render(); return; }
+    if(e){ gutChange(day, { ...e, at }); render(); sync(); }
   }
   if(t.dataset.swap){ draft(view, true).slots[+t.dataset.swap].name = t.value; save(); render(); }
   if(t.id === 'importFile' && t.files[0]){
@@ -2339,7 +2450,7 @@ function beep(n = 3, freq = 880){
 function tickClock(){
   const d = drafts[view], el = document.getElementById('clock'), prog = document.getElementById('prog');
   // sync dot: green = everything is in GitHub, orange = waiting (no signal, or a GitHub problem)
-  const dot = document.getElementById('sdot'), waiting = !!syncError || history.some(s => !s.synced) || suppDirty.plan || suppDirty.days.length > 0 || protDirty.plan || protDirty.days.length > 0;
+  const dot = document.getElementById('sdot'), waiting = !!syncError || history.some(s => !s.synced) || suppDirty.plan || suppDirty.days.length > 0 || protDirty.plan || protDirty.days.length > 0 || gutDirty.days.length > 0;
   dot.hidden = !ghReady(); dot.classList.toggle('wait', waiting); dot.title = syncText();
   const all = d && d.startedAt && !PAGES[view] ? d.slots.flatMap(x => x.sets) : [];
   prog.textContent = all.length ? `${all.filter(s => s.done).length}/${all.length} sets` : '';
@@ -2433,14 +2544,16 @@ async function sync(){
     if(added){ toast(`Loaded ${added} workout${added === 1 ? '' : 's'} from GitHub`); renderSoon(); }
     if(await syncSupp()) renderSoon();
     if(await syncProt()) renderSoon();
-    if(await pullPastDays(`${SUPP_DIR}`, suppLog, (d, j) => { suppLog[d] = j.taken || {}; }) + await pullPastDays(`${PROT_DIR}`, protLog, (d, j) => { protLog[d] = j.entries || []; })){
-      saveSupp(); saveProt(); if(view === 'report') renderSoon();
+    if(await syncGut()) renderSoon();
+    if(await pullPastDays(`${SUPP_DIR}`, suppLog, (d, j) => { suppLog[d] = j.taken || {}; }) + await pullPastDays(`${PROT_DIR}`, protLog, (d, j) => { protLog[d] = j.entries || []; })
+      + await pullPastDays(GUT_DIR, gutLog, (d, j) => { gutLog[d] = { entries:j.entries || [], flags:j.flags || {} }; })){
+      saveSupp(); saveProt(); saveGut(); if(view === 'report') renderSoon();
     }
   }catch(e){ syncError = e.message.startsWith('GitHub') ? e.message : 'no connection — will retry.'; }
   syncing = false;
   if(view === 'history' || view === 'settings' || view === 'fuel' || view === 'report') renderSoon(); else tickClock();
   // ticked while this sync was running: go again
-  if(!syncError && (suppDirty.plan || suppDirty.days.length || protDirty.plan || protDirty.days.length)) setTimeout(sync, 1500);
+  if(!syncError && (suppDirty.plan || suppDirty.days.length || protDirty.plan || protDirty.days.length || gutDirty.days.length)) setTimeout(sync, 1500);
 }
 // Supplements: the list (this phone's edit goes up, otherwise GitHub's comes down) and the ticks
 // of today and of any day changed here, merged both ways. Returns true if anything on screen changed.
@@ -2500,6 +2613,21 @@ async function syncProt(){
       await api(path, { method:'PUT', body:JSON.stringify({ message:`Protein ${day}`,
         content:b64enc(JSON.stringify({ date:day, entries:merged }, null, 2) + '\n'), branch:gh.branch, ...(f ? { sha:f.sha } : {}) }) });
     protDirty.days = protDirty.days.filter(d => d !== day); saveProt();
+  }
+  return changed;
+}
+// Gut: the days shown or changed here, merged both ways (entries as protein, flags as supplement ticks).
+async function syncGut(){
+  let changed = false;
+  for(const day of [...new Set([dayKey(), ...gutDirty.days, ...(suppView ? [suppView] : [])])]){
+    const path = `${GUT_DIR}/days/${day}.json`, f = await api(path + `?ref=${gh.branch}`);
+    const remote = f ? JSON.parse(b64dec(f.content)) : {}, mine = gutLog[day] || {};
+    const merged = { entries:mergeEntries(remote.entries, mine.entries), flags:mergeDay(remote.flags, mine.flags) };
+    if(JSON.stringify(merged) !== JSON.stringify({ entries:mine.entries || [], flags:mine.flags || {} })){ gutLog[day] = merged; changed = true; }
+    if(gutDirty.days.includes(day) && JSON.stringify(merged) !== JSON.stringify({ entries:mergeEntries(remote.entries), flags:remote.flags || {} }))
+      await api(path, { method:'PUT', body:JSON.stringify({ message:`Gut ${day}`,
+        content:b64enc(JSON.stringify({ date:day, ...merged }, null, 2) + '\n'), branch:gh.branch, ...(f ? { sha:f.sha } : {}) }) });
+    gutDirty.days = gutDirty.days.filter(d => d !== day); saveGut();
   }
   return changed;
 }
