@@ -169,6 +169,26 @@ details.sess summary span{font-weight:400;color:var(--muted);font-size:13px}
 #bar .l{flex:1;font-size:13px;opacity:.8;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #bar button{border:1px solid currentColor;background:transparent;color:inherit;border-radius:9px;padding:7px 10px;font-size:14px}
 #bar.over{background:var(--done);color:#fff}
+/* hold timer: full screen, big numbers readable from a plank on the floor */
+#hold{position:fixed;inset:0;z-index:15;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:10px;padding:24px 16px calc(24px + env(safe-area-inset-bottom));text-align:center}
+#hold[hidden]{display:none}
+#hold .hl{font-size:18px;font-weight:650}
+#hold .hp{font-size:26px;font-weight:700;color:var(--accent)}
+#hold .ht{font-size:110px;line-height:1;font-weight:750;font-variant-numeric:tabular-nums}
+#hold .hs{font-size:16px;color:var(--muted);min-height:1.4em}
+#hold .hd{font-size:15px;color:var(--muted);min-height:1.4em}
+#hold .hb{display:flex;gap:10px;width:100%;max-width:420px;margin-top:14px}
+#hold .hb button{flex:1;border-radius:14px;padding:18px;font-size:19px;font-weight:700;border:1px solid var(--line);background:var(--card)}
+#hold .hb .go{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);flex:2}
+#hold.wait .ht{color:var(--hint)}
+#hold.reached .ht,#hold.reached .hs{color:var(--done)}
+.btn.tmr{display:block;width:calc(100% - 28px);margin:2px 14px 6px;padding:11px}
+.rrow.timed{grid-template-columns:1fr 46px 56px}
+.tmrs{height:42px;border-radius:10px;border:1px solid var(--accent);background:var(--card);color:var(--accent);font-size:17px;padding:0}
+.mv .got{color:var(--done)}
+.lr{display:flex;gap:4px;min-width:0}
+.lr input{padding:9px 2px}
 #toast{position:fixed;left:50%;top:70px;transform:translateX(-50%);background:var(--ink);color:var(--bg);
   padding:8px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20}
 #toast.show{opacity:1}
@@ -223,6 +243,11 @@ details.sess summary span{font-weight:400;color:var(--muted);font-size:13px}
   <span class="t" id="barT">0:00</span><span class="l" id="barL"></span>
   <button data-rest="-15">−15</button><button data-rest="15">+15</button><button data-rest="skip">Skip</button>
 </div></div>
+<div id="hold" hidden role="dialog" aria-label="Hold timer">
+  <div class="hl" id="holdL"></div><div class="hp" id="holdP"></div>
+  <div class="ht" id="holdT">0</div><div class="hs" id="holdS"></div><div class="hd" id="holdD"></div>
+  <div class="hb"><button data-hold-act="cancel">Cancel</button><button class="go" data-hold-act="go" id="holdGo">Stop</button></div>
+</div>
 <div id="toast"></div>
 <input type="file" id="importFile" accept="application/json,.json" hidden>
 
@@ -339,27 +364,28 @@ const DAYS = ['mon','wed','fri'];       // the gym rotation A → B → C
 const ALL = [...DAYS, 'home'];          // every tab; the home workout stands in for a missed gym day
 
 // Desk reset before every session (fitness.md §2b "Warm-up", 2026-10-16). Ticks are saved with the workout as `reset`.
+// `secs` = a timed hold (▶ runs the hold timer; the seconds are saved in `holds`), `sides` = left then right.
 const RESET = [
-  { name:'Couch stretch', dose:'45 s / side', cue:'Back foot up on a bench, squeeze that glute, ribs down.' },
+  { name:'Couch stretch', dose:'45 s / side', secs:45, sides:true, cue:'Back foot up on a bench, squeeze that glute, ribs down.' },
   { name:'90/90 hip switches', dose:'8 / side', cue:'Sit tall, knees bent 90°, rotate both knees side to side.' },
   { name:'Open book', dose:'8 / side', cue:'Lie on your side, knees bent, open the top arm and follow it with your eyes.' },
-  { name:'Deep squat hold', dose:'45 s', cue:'Hold a rack, heels down, chest up. +15 s when easy.' },
-  { name:'Dead hang', dose:'30 s', cue:'Shoulders slightly active, breathe. +15 s when easy.' },
+  { name:'Deep squat hold', dose:'45 s', secs:45, cue:'Hold a rack, heels down, chest up. +15 s when easy.' },
+  { name:'Dead hang', dose:'30 s', secs:30, cue:'Shoulders slightly active, breathe. +15 s when easy.' },
 ];
 // At home: same five slots, without the bench, rack and bar.
 const RESET_HOME = [
-  { name:'Couch stretch', dose:'45 s / side', cue:'Back foot up on the sofa, squeeze that glute, ribs down.' },
+  { name:'Couch stretch', dose:'45 s / side', secs:45, sides:true, cue:'Back foot up on the sofa, squeeze that glute, ribs down.' },
   RESET[1], RESET[2],
-  { name:'Deep squat hold', dose:'45 s', cue:'Arms forward (or hold the sofa), heels down, chest up. +15 s when easy.' },
-  { name:'Foam roll upper back', dose:'60 s', cue:'Roller across the shoulder blades, hands behind the head. Not on the lower back.' },
+  { name:'Deep squat hold', dose:'45 s', secs:45, cue:'Arms forward (or hold the sofa), heels down, chest up. +15 s when easy.' },
+  { name:'Foam roll upper back', dose:'60 s', secs:60, cue:'Roller across the shoulder blades, hands behind the head. Not on the lower back.' },
 ];
 const resetFor = day => day === 'home' ? RESET_HOME : RESET;
 const resetDone = s => (s.reset || []).filter(Boolean).length;
 
 // Cool-down after the home workout (fitness.md §2d "Home"). Ticks are saved with the workout as `cool`.
 const COOL = [
-  { name:'Knees-to-chest stretch', dose:'2 × 30 s', cue:'On your back, pull both knees in, lower back relaxed on the mat.' },
-  { name:'Lying hamstring stretch', dose:'2 × 30 s / leg', cue:'On your back, a tube round the foot, leg straight up until a gentle stretch. No bouncing.' },
+  { name:'Knees-to-chest stretch', dose:'2 × 30 s', secs:30, rounds:2, cue:'On your back, pull both knees in, lower back relaxed on the mat.' },
+  { name:'Lying hamstring stretch', dose:'2 × 30 s / leg', secs:30, rounds:2, sides:true, cue:'On your back, a tube round the foot, leg straight up until a gentle stretch. No bouncing.' },
 ];
 
 // Muscle group per exercise slot (swaps count for the same group). Used by the weekly report.
@@ -408,6 +434,15 @@ const BW_ONLY = new Set(['Ab wheel rollout','Barbell rollout','Swiss ball rollou
   'Nordic curl','Close-grip push-up','Push-up on handles','Feet-elevated push-up','Lying back raise','Lying arm-leg raise','Lying Y-raise']);
 const BW_PLUS = new Set(['Bulgarian split squat','Walking lunge','Step-up','Reverse lunge','Plank','Side plank',
   'Single-leg hip thrust','45° back extension','Weighted push-up']);
+// Timed exercises (2026-10-25): the slot says so (side plank), or the swap is a hold (fitness.md: plank 45–60 s).
+// Hollow hold has no target in the plan: 20–40 s is a default.
+const TIMED = { 'Plank':[45, 60], 'Hollow hold':[20, 40] };
+// {min, max, sides} for a timed exercise, else null; per-side holds are timed left, then right
+function timedOf(ex, name){
+  if(ex && ex.time) return { min:ex.min, max:ex.max, sides:!!ex.side };
+  const t = TIMED[name];
+  return t ? { min:t[0], max:t[1], sides:false } : null;
+}
 const bwOf = name => BW_ONLY.has(name) ? 'only' : BW_PLUS.has(name) ? 'plus' : null;
 const headOf = name => bandOf(name) ? (bandOf(name) === 'loop' ? 'band' : 'band kg') : bwOf(name) === 'only' ? 'body weight'
   : bwOf(name) === 'plus' ? '+' + LOAD_HEAD[loadOf(name)] : LOAD_HEAD[loadOf(name)];
@@ -1219,14 +1254,19 @@ function runDemos(){
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const range = ex => ex.min === ex.max ? ex.min : `${ex.min}–${ex.max}`;
 const rx = ex => `${ex.sets} × ${range(ex)}${ex.time ? ' s' : ''}${ex.side ? ' / ' + (ex.sideWord || 'side') : ''}`;
+const rxOf = (ex, name) => { const tm = timedOf(ex, name);
+  return tm && !ex.time ? `${ex.sets} × ${range(tm)} s` : rx(ex); };
+const topOf = (ex, name) => (timedOf(ex, name) || ex).max;
+// seconds of a timed set: per side "L 45s / R 38s", else "45s"
+const secTxt = s => s.l != null && s.l !== '' || s.r != null && s.r !== '' ? `L ${s.l || '–'}s / R ${s.r || '–'}s` : `${s.reps}s`;
 const restTxt = s => s >= 60 && s % 60 === 0 ? `${s/60} min` : s > 60 ? `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}` : `${s}s`;
 const mmss = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
 const round = (kg, step) => Math.round(kg / step) * step;
 const dateTxt = t => new Date(t).toLocaleDateString(undefined, { weekday:'short', day:'numeric', month:'short' });
 const setTxt = (s, ex, name, bw) => {
-  const amt = ex && ex.time ? `${s.reps}s` : s.reps;
+  const tm = timedOf(ex, name || (ex && ex.name)), amt = tm ? secTxt(s) : s.reps;
   if(s.band) return `${s.band.split('+').join(' + ')}${s.kg ? ` (${s.kg} kg)` : ''} × ${amt}`;
-  if(s.kg === '' || s.kg == null) return `${amt}${ex && ex.time ? '' : ' reps'}`;
+  if(s.kg === '' || s.kg == null) return `${amt}${tm ? '' : ' reps'}`;
   const load = loadOf(name || (ex && ex.name) || '');
   if(bwOf(name || (ex && ex.name) || '')) return `BW + ${s.kg} kg${load === 'hand' ? '/hand' : ''} × ${amt}`;
   if(load === 'assist'){ const l = lifted(s, name, bw); return `assist ${s.kg} kg${l != null ? ` (lift ${l})` : ''} × ${amt}`; }
@@ -1270,9 +1310,10 @@ function renderDay(day){
     h += `<button class="fold" data-unfold="reset"><span class="num">✓</span><span class="what"><b>Desk reset</b>
       <span class="small">${reset.length}/${reset.length} · tap to open</span></span></button>`;
   else h += `<div class="box reset"><h3>Desk reset (~5 min) <span class="small">${resetDone(d)}/${reset.length}</span></h3>
-    ${reset.map((r, k) => `<div class="rrow ${(d.reset || [])[k] ? 'done' : ''}">
+    ${reset.map((r, k) => `<div class="rrow ${(d.reset || [])[k] ? 'done' : ''} ${r.secs ? 'timed' : ''}">
       <button class="mv" data-demo="${esc(r.name)}" aria-expanded="${demoOpen === r.name}" title="Tap to see how">
-        <b>${esc(r.name)}</b> · ${esc(r.dose)} <span class="play">${demoOpen === r.name ? '▾' : '▸'}</span><span class="small">${esc(cueLine(r.name, r.cue))}</span></button>
+        <b>${esc(r.name)}</b> · ${esc(r.dose)} <span class="play">${demoOpen === r.name ? '▾' : '▸'}</span><span class="small">${esc(cueLine(r.name, r.cue))}</span>${heldTxt(d, 'reset', k, r)}</button>
+      ${r.secs ? `<button class="tmrs" data-hold="reset.${k}" aria-label="Time ${esc(r.name)}">▶</button>` : ''}
       <button class="tick" data-reset="${k}" aria-label="${esc(r.name)} done">✓</button>
       ${demoOpen === r.name ? howBox(r.name) : ''}</div>`).join('')}
     <div class="small">Hip flexors are the stretch that matters most. ${day === 'home' ? 'Start every set with the same band and distance as last time.' : 'Warm-up sets only for exercise 1.'}</div></div>`;
@@ -1282,8 +1323,9 @@ function renderDay(day){
     const doneCount = slot.sets.filter(s => s.done).length;
     const options = [ex.name, ...ex.alts].map(n => `<option ${n===slot.name?'selected':''}>${esc(n)}</option>`).join('');
     const load = loadOf(slot.name), bwk = bwOf(slot.name), band = bandOf(slot.name), picked = slot.band || [];
+    const tm = timedOf(ex, slot.name), next = slot.sets.findIndex(s => !s.done);
     let hint = '';
-    if(last && last.sets.length >= ex.sets && last.sets.every(s => +s.reps >= ex.max))
+    if(last && last.sets.length >= ex.sets && last.sets.every(s => +s.reps >= topOf(ex, slot.name)))
       hint = `Hit the top of the range on every set last time → ${nextStep(ex, slot.name, last.sets)}, restart at the bottom.`;
     let unit = bwk === 'plus' ? `Body weight. Holding weight? Enter ${load === 'hand' ? 'one dumbbell' : 'the extra kg'}; leave it empty if none.`
              : bwk === 'only' ? '' : load === 'hand' ? 'Dumbbells: enter the weight of one dumbbell.' : '';
@@ -1312,7 +1354,7 @@ function renderDay(day){
       <div class="ex-head"><div class="num">${i+1}</div>
         <div class="ex-title">
           <div class="pick"><select data-swap="${i}" aria-label="Exercise (tap to swap)">${options}</select></div>
-          <div class="rx">${rx(ex)} · rest ${restTxt(ex.rest)} ${slot.name !== ex.name ? '· <span class="swap">swapped</span>' : ''}</div>
+          <div class="rx">${rxOf(ex, slot.name)} · rest ${restTxt(ex.rest)} ${slot.name !== ex.name ? '· <span class="swap">swapped</span>' : ''}</div>
         </div>${HOW[slot.name] || DEMO[slot.name] ? `<button class="vid" data-demo="${esc(slot.name)}" aria-expanded="${demoOpen === slot.name}" aria-label="How to do ${esc(slot.name)}" title="How to do it"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="3.5"/><path d="M10 9.2v5.6l4.8-2.8z"/></svg></button>` : ''}</div>
       <p class="cue">${esc(cueLine(slot.name, ex.cue))}</p>
       ${demoOpen === slot.name ? howBox(slot.name) : ''}
@@ -1322,7 +1364,7 @@ function renderDay(day){
       ${band ? `<div class="bands">${BANDS[band].list.map(([c, col, kg]) =>
         `<button class="chip" data-band="${i}.${esc(c)}" aria-pressed="${picked.includes(c)}"><span class="sw" style="background:${col}"></span>${esc(c)}${kg ? ` <span class="kg">${kg}</span>` : ''}</button>`).join('')}</div>` : ''}
       <div class="sets">
-        <div class="row head"><span></span><span>${headOf(slot.name)}</span><span>${ex.time ? 'sec' : 'reps'}</span><span></span></div>
+        <div class="row head"><span></span><span>${headOf(slot.name)}</span><span>${tm ? (tm.sides ? 'sec L · R' : 'sec') : 'reps'}</span><span></span></div>
         ${slot.sets.map((s, j) => {
           const ref = last ? (last.sets[j] || last.sets[last.sets.length-1]) : null;
           const lastKg = ref && ref.kg !== '' && ref.kg != null ? ref.kg : '';
@@ -1331,10 +1373,12 @@ function renderDay(day){
             ${band ? `<span class="bwcell">${esc(s.done ? (band === 'loop' ? s.band || '–' : s.kg || '–') : (band === 'loop' ? picked[0] || '–' : bandKg(slot.name, picked) || '–'))}</span>`
               : bwk === 'only' ? '<span class="bwcell">BW</span>'
               : `<input inputmode="decimal" data-i="${i}" data-j="${j}" data-f="kg" data-last="${esc(lastKg)}" value="${esc(s.kg)}" placeholder="${lastKg !== '' ? esc(lastKg) : bwk ? 'BW' : '–'}" aria-label="Set ${j+1} ${headOf(slot.name)}">`}
-            <input inputmode="numeric" data-i="${i}" data-j="${j}" data-f="reps" value="${esc(s.reps)}" placeholder="${ref ? esc(ref.reps) : ex.max}" aria-label="Set ${j+1} ${ex.time ? 'seconds' : 'reps'}">
+            ${tm && tm.sides ? `<span class="lr">${['l', 'r'].map(f => `<input inputmode="numeric" data-i="${i}" data-j="${j}" data-f="${f}" value="${esc(s[f] || '')}" placeholder="${ref ? esc(ref[f] || ref.reps) : tm.max}" aria-label="Set ${j+1} ${f === 'l' ? 'left' : 'right'} seconds">`).join('')}</span>`
+              : `<input inputmode="numeric" data-i="${i}" data-j="${j}" data-f="reps" value="${esc(s.reps)}" placeholder="${ref ? esc(ref.reps) : tm ? tm.max : ex.max}" aria-label="Set ${j+1} ${tm ? 'seconds' : 'reps'}">`}
             <button class="tick" data-tick="${i}.${j}" aria-label="Set ${j+1} done">✓</button>
           </div>`;}).join('')}
       </div>
+      ${tm && next >= 0 ? `<button class="btn tmr" data-hold="set.${i}.${next}">▶ Timer · set ${next+1}${tm.sides ? ' · left, then right' : ''}</button>` : ''}
       <div class="setbtns"><button class="link" data-addset="${i}">+ set</button>
         ${slot.sets.length > 1 && !slot.sets[slot.sets.length-1].done ? `<button class="link" data-delset="${i}">− set</button>` : ''}</div>
     </article>`;
@@ -1346,9 +1390,10 @@ function renderDay(day){
       h += `<button class="fold" data-unfold="cool"><span class="num">✓</span><span class="what"><b>Cool-down: back care</b>
         <span class="small">${COOL.length}/${COOL.length} · tap to open</span></span></button>`;
     else h += `<div class="box reset"><h3>Cool-down: back care <span class="small">${cool.filter(Boolean).length}/${COOL.length}</span></h3>
-      ${COOL.map((r, k) => `<div class="rrow ${cool[k] ? 'done' : ''}">
+      ${COOL.map((r, k) => `<div class="rrow ${cool[k] ? 'done' : ''} ${r.secs ? 'timed' : ''}">
         <button class="mv" data-demo="${esc(r.name)}" aria-expanded="${demoOpen === r.name}" title="Tap to see how">
-          <b>${esc(r.name)}</b> · ${esc(r.dose)} <span class="play">${demoOpen === r.name ? '▾' : '▸'}</span><span class="small">${esc(cueLine(r.name, r.cue))}</span></button>
+          <b>${esc(r.name)}</b> · ${esc(r.dose)} <span class="play">${demoOpen === r.name ? '▾' : '▸'}</span><span class="small">${esc(cueLine(r.name, r.cue))}</span>${heldTxt(d, 'cool', k, r)}</button>
+        ${r.secs ? `<button class="tmrs" data-hold="cool.${k}" aria-label="Time ${esc(r.name)}">▶</button>` : ''}
         <button class="tick" data-cool="${k}" aria-label="${esc(r.name)} done">✓</button>
         ${demoOpen === r.name ? howBox(r.name) : ''}</div>`).join('')}</div>`;
   }
@@ -1437,7 +1482,7 @@ function renderReport(){
   const next = [], listed = new Set();   // ab wheel and split squat are in B and at home: list them once
   ALL.forEach(d => PLAN[d].ex.forEach(ex => {
     const last = [ex.name, ...ex.alts].map(n => ({ n, l:lastFor(n) })).filter(o => o.l).sort((a, b) => b.l.at - a.l.at)[0];
-    if(last && !listed.has(last.n) && listed.add(last.n) && last.l.sets.length >= ex.sets && last.l.sets.every(t => +t.reps >= ex.max))
+    if(last && !listed.has(last.n) && listed.add(last.n) && last.l.sets.length >= ex.sets && last.l.sets.every(t => +t.reps >= topOf(ex, last.n)))
       next.push(`<li><b>${esc(last.n)}</b> (${PLAN[d].title}) — ${nextStep(ex, last.n, last.l.sets)}</li>`);
   }));
   h += `<div class="box rep"><h3>Next time</h3>${next.length ? `<ul>${next.join('')}</ul>`
@@ -1479,21 +1524,13 @@ document.addEventListener('click', e => {
 
   if(t.dataset.tick){
     if(!begin(view, true)) return;
-    const [i, j] = t.dataset.tick.split('.').map(Number), d = draft(view, true), s = d.slots[i].sets[j];
-    const row = t.closest('.row'), kgIn = row.querySelector('[data-f="kg"]'), repIn = row.querySelector('[data-f="reps"]');
+    const [i, j] = t.dataset.tick.split('.').map(Number), s = draft(view, true).slots[i].sets[j];
     s.done = !s.done;
-    if(s.done){
-      // one tap if the numbers match last time: take the greyed-in values (body-weight exercises have none)
-      if(s.kg === '' && kgIn && kgIn.dataset.last) s.kg = kgIn.dataset.last;
-      if(s.reps === '') s.reps = repIn.placeholder;
-      // bands: the colours tapped for this exercise, and their kg
-      if(bandOf(d.slots[i].name)){ const c = d.slots[i].band || []; s.band = c.join('+'); s.kg = bandKg(d.slots[i].name, c); }
-      const ex = PLAN[view].ex[i];
-      const lastSet = d.slots[i].sets.every(x => x.done);
-      startRest(ex.rest, lastSet ? `Next: ${PLAN[view].ex[i+1]?.name || 'finish'}` : `${d.slots[i].name} · set ${j+2}`);
-    }
+    if(s.done) setDone(view, i, j);
     save(); render(); return;
   }
+  if(t.dataset.hold){ startHold(view, t.dataset.hold); return; }
+  if(t.dataset.holdAct){ holdAct(t.dataset.holdAct); return; }
   if(t.dataset.reset){
     if(!begin(view, true)) return;
     const d = draft(view, true), k = +t.dataset.reset;
@@ -1567,7 +1604,12 @@ document.addEventListener('click', e => {
 
 document.addEventListener('input', e => {
   const t = e.target;
-  if(t.dataset.f){ const d = draft(view, true); d.slots[+t.dataset.i].sets[+t.dataset.j][t.dataset.f] = t.value.replace(',', '.'); save(); tickClock(); }
+  if(t.dataset.f){
+    const d = draft(view, true), s = d.slots[+t.dataset.i].sets[+t.dataset.j];
+    s[t.dataset.f] = t.value.replace(',', '.');
+    if(t.dataset.f === 'l' || t.dataset.f === 'r') sideMin(s);
+    save(); tickClock();
+  }
   if(t.id === 'notes'){ draft(view, true).notes = t.value; save(); }
   if(t.id === 'bw'){ bodyweight = t.value.replace(',', '.').trim(); store.set('fb3.bw', bodyweight); }
 });
@@ -1585,6 +1627,112 @@ document.addEventListener('change', e => {
     t.value = '';
   }
 });
+
+// A set was just ticked (or timed): fill in what was left empty, then start the rest timer.
+function setDone(day, i, j){
+  const d = draft(day, true), slot = d.slots[i], s = slot.sets[j], ex = PLAN[day].ex[i];
+  const box = f => day === view ? document.querySelector(`[data-i="${i}"][data-j="${j}"][data-f="${f}"]`) : null;
+  // one tap if the numbers match last time: take the greyed-in values (body-weight exercises have none)
+  const kgIn = box('kg');
+  if(s.kg === '' && kgIn && kgIn.dataset.last) s.kg = kgIn.dataset.last;
+  const tm = timedOf(ex, slot.name);
+  if(tm && tm.sides){
+    ['l', 'r'].forEach(f => { if(!s[f] && box(f)) s[f] = box(f).placeholder; });
+    sideMin(s);
+  } else if(s.reps === '' && box('reps')) s.reps = box('reps').placeholder;
+  // bands: the colours tapped for this exercise, and their kg
+  if(bandOf(slot.name)){ const c = slot.band || []; s.band = c.join('+'); s.kg = bandKg(slot.name, c); }
+  const lastSet = slot.sets.every(x => x.done);
+  startRest(ex.rest, lastSet ? `Next: ${PLAN[day].ex[i+1]?.name || 'finish'}` : `${slot.name} · set ${j+2}`);
+}
+// a per-side hold counts as its weaker side for the range and progress ("every set at the top")
+function sideMin(s){
+  const n = [s.l, s.r].map(parseFloat).filter(x => !isNaN(x));
+  s.reps = n.length ? String(Math.min(...n)) : '';
+}
+
+// ---------- Hold timer (2026-10-25): time a hold without leaving the page ----------
+// ▶ → 3 s get ready → counts up; beeps + vibrates at the bottom of the range and again at the top,
+// keeps counting until Stop. Per side: left, 5 s to switch, right. The seconds go into the set
+// (then the rest timer starts) or, for the desk reset and cool-down, into `holds` and the ✓.
+const READY_S = 3, SWITCH_S = 5;
+let hold = null;
+const $hold = document.getElementById('hold');
+// what ▶ times: 'set.i.j' (an exercise set), 'reset.k' or 'cool.k'
+function holdPlan(day, key){
+  const [kind, a, b] = key.split('.'), sides = ['Left', 'Right'];
+  if(kind === 'set'){
+    const ex = PLAN[day].ex[+a], slot = draft(day, true).slots[+a], tm = timedOf(ex, slot.name);
+    return { title:`${slot.name} · set ${+b + 1}`, min:tm.min, max:tm.max, steps:tm.sides ? sides : [''] };
+  }
+  const r = (kind === 'reset' ? resetFor(day) : COOL)[+a], rounds = r.rounds || 1;
+  const steps = Array.from({ length:rounds }, (_, n) => (r.sides ? sides : ['']).map(x => [rounds > 1 ? `Round ${n + 1}` : '', x].filter(Boolean).join(' · '))).flat();
+  return { title:r.name, min:r.secs, max:r.secs, steps };
+}
+function startHold(day, key){
+  if(hold || !begin(day, true)) return;
+  primeAudio(); stopRest();
+  hold = { day, key, ...holdPlan(day, key), step:0, secs:[], phase:'ready', at:Date.now() + READY_S * 1000, sig:0, left:null };
+  save(); render(); tickHold();
+}
+function holdAct(a){
+  if(!hold) return;
+  if(a === 'cancel'){ hold = null; tickHold(); return; }
+  if(hold.phase !== 'run'){ hold.at = Date.now(); tickHold(); return; }   // "Start now" during a countdown
+  hold.secs.push(Math.floor((Date.now() - hold.at) / 1000));
+  if(++hold.step < hold.steps.length){ hold.phase = 'switch'; hold.at = Date.now() + SWITCH_S * 1000; hold.left = null; tickHold(); return; }
+  finishHold();
+}
+function finishHold(){
+  const { day, key, secs } = hold, [kind, a, b] = key.split('.'), d = draft(day, true);
+  hold = null;
+  if(kind === 'set'){
+    const s = d.slots[+a].sets[+b];
+    if(secs.length > 1){ s.l = String(secs[0]); s.r = String(secs[1]); sideMin(s); } else s.reps = String(secs[0]);
+    s.done = true; setDone(day, +a, +b);
+  } else {
+    const list = kind === 'reset' ? RESET : COOL;
+    d.holds = { ...(d.holds || {}), [`${kind}.${a}`]:secs };
+    d[kind] = list.map((_, n) => !!(d[kind] || [])[n]); d[kind][+a] = true;
+  }
+  save(); tickHold(); render();
+}
+// what a timed desk-reset / cool-down move held, e.g. "Held: L 45 · R 44 s"
+function heldTxt(d, kind, k, r){
+  const secs = (d.holds || {})[`${kind}.${k}`];
+  if(!secs || !secs.length) return '';
+  const lab = n => r.sides ? (n % 2 ? 'R ' : 'L ') : '';
+  return `<span class="small got">Held: ${secs.map((x, n) => lab(n) + x).join(' · ')} s</span>`;
+}
+function signal(n){ beep(n); try{ navigator.vibrate && navigator.vibrate(n > 1 ? [300, 150, 300] : 200); }catch(e){} }
+function tickHold(){
+  $hold.hidden = !hold;
+  if(!hold) return;
+  const now = Date.now(), $ = id => document.getElementById(id);
+  if(hold.phase !== 'run' && now >= hold.at){ hold.phase = 'run'; hold.at = now; hold.sig = 0; signal(1); }
+  const step = hold.steps[hold.step], done = hold.secs.map((x, n) => `${hold.steps[n] || 'Held'} ${x} s`).join(' · ');
+  $('holdL').textContent = hold.title;
+  $('holdP').textContent = step;
+  $('holdD').textContent = done;
+  if(hold.phase !== 'run'){
+    const left = Math.ceil((hold.at - now) / 1000);
+    if(left !== hold.left && hold.left !== null) beep(1, 660);   // a short tick each second of the countdown
+    hold.left = left;
+    $('holdT').textContent = left;
+    $('holdS').textContent = hold.phase === 'ready' ? 'Get ready' : `Switch: ${step.toLowerCase()} next`;
+    $('holdGo').textContent = 'Start now';
+    $hold.className = 'wait';
+    return;
+  }
+  const el = Math.floor((now - hold.at) / 1000);
+  if(el >= hold.min && hold.sig < 1){ hold.sig = 1; signal(2); }
+  if(hold.max > hold.min && el >= hold.max && hold.sig < 2){ hold.sig = 2; signal(3); }
+  $('holdT').textContent = el >= 60 ? mmss(el) : el;
+  $('holdS').textContent = el >= hold.max ? '✓ Top of the range — stop when you like'
+    : el >= hold.min ? `✓ Target reached — keep going to ${hold.max} s or stop` : `Target ${hold.min === hold.max ? hold.min : range(hold)} s`;
+  $('holdGo').textContent = hold.step < hold.steps.length - 1 ? `Stop ${step.toLowerCase()}` : 'Stop';
+  $hold.className = el >= hold.min ? 'reached' : '';
+}
 
 // ---------- Export ----------
 async function download(name, text, type){
@@ -1629,12 +1777,12 @@ function tickRest(){
 function primeAudio(){
   try{ audio = audio || new (window.AudioContext || window.webkitAudioContext)(); if(audio.state === 'suspended') audio.resume(); }catch(e){}
 }
-function beep(){
+function beep(n = 3, freq = 880){
   if(!audio) return;
   try{
-    [0, .25, .5].forEach(t => {
+    [0, .25, .5].slice(0, n).forEach(t => {
       const o = audio.createOscillator(), g = audio.createGain();
-      o.frequency.value = 880; o.connect(g); g.connect(audio.destination);
+      o.frequency.value = freq; o.connect(g); g.connect(audio.destination);
       g.gain.setValueAtTime(.25, audio.currentTime + t); g.gain.exponentialRampToValueAtTime(.001, audio.currentTime + t + .18);
       o.start(audio.currentTime + t); o.stop(audio.currentTime + t + .2);
     });
@@ -1660,7 +1808,7 @@ function tickClock(){
   const s = Math.floor((Date.now() - d.startedAt) / 1000);
   el.textContent = s >= 3600 ? `${Math.floor(s/3600)}:${mmss(s % 3600).padStart(5, '0')}` : mmss(s);
 }
-setInterval(() => { tickRest(); tickClock(); }, 250);
+setInterval(() => { tickRest(); tickHold(); tickClock(); }, 250);
 
 // No button (user, 2026-10-18): the screen stays on while any workout is running and is let go
 // when none is. The phone's own lock still works; coming back to the app turns it on again.
@@ -1673,6 +1821,8 @@ let lastTouch = Date.now(), restUntil = 0;
 const touchedRecently = () => Date.now() - Math.max(lastTouch, restUntil) < IDLE_MS;
 async function keepAwake(){
   if(restEnd) restUntil = restEnd;
+  if(hold) restUntil = Date.now();   // holding a plank is not "left on a bench"
+
   const want = ALL.some(d => drafts[d]?.startedAt) && document.visibilityState === 'visible' && touchedRecently();
   if(want && !wakeLock && !wakeAsking && !wakeRefused){
     wakeAsking = true;
