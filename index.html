@@ -317,6 +317,7 @@ nav button .lb{font-size:11px;font-weight:650;line-height:1;font-variant-numeric
 .gline svg{width:34px;height:20px;fill:#8a5a32;stroke:#8a5a32}
 .gline .tg{margin-left:auto;font-size:17px;letter-spacing:2px}
 .gline.on{background:var(--input);border-radius:9px}
+.gnote{display:block;width:100%;margin-top:8px;border:1px solid var(--line);background:var(--input);border-radius:9px;padding:8px;font:inherit;font-size:15px;color:var(--ink);resize:vertical}
 
 .pick{display:flex;align-items:center;gap:6px}
 .pick select{flex:1;min-width:0}
@@ -685,8 +686,9 @@ function mergeDay(a = {}, b = {}){
 // ---------- Gut (user, 2026-10-26): a simple log to show the doctor ----------
 // One tap logs a poo at the time now (on a past day: noon); then, if wanted, its Bristol type
 // (1–7, the scale doctors use) and a few icons. Bloating and gas are one tap per day.
-// Days: data/gut/days/<date>.json, {entries:[{id, t, at, type, tags, del}], flags:{bloat:{t, on}, gas:{t, on}}} —
-// entries merge like protein (latest t wins, a removed one stays as del), flags like supplement ticks.
+// A note for the day (user, 2026-10-26): food, stress, travel… anything for the doctor.
+// Days: data/gut/days/<date>.json, {entries:[{id, t, at, type, tags, del}], flags:{bloat:{t, on}, gas:{t, on}}, note:{t, text}} —
+// entries merge like protein (latest t wins, a removed one stays as del), flags like supplement ticks, the note: latest wins.
 const GUT_DIR = 'data/gut';
 const GTAGS = [['strain', '😣', 'Strained'], ['empty', '⏳', 'Not empty'], ['pain', '😖', 'Pain'], ['blood', '🩸', 'Blood']];
 const GFLAGS = [['bloat', '🎈', 'Bloated'], ['gas', '💨', 'Gas']];
@@ -715,6 +717,8 @@ function gutTouch(day, fn){
 }
 const gutChange = (day, e) => gutTouch(day, g => { g.entries = [...g.entries.filter(x => x.id !== e.id), { ...e, t:Date.now() }]; });
 const gutSetFlag = (day, k, on) => gutTouch(day, g => { g.flags = { ...g.flags, [k]:{ t:Date.now(), on } }; });
+const gutNote = day => (gutLog[day] && gutLog[day].note && gutLog[day].note.text) || '';
+const laterNote = (a, b) => !a ? b : !b ? a : (b.t || 0) > (a.t || 0) ? b : a;
 
 const slug = s => s.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'item';
 
@@ -1786,7 +1790,18 @@ function gutCard(day, isToday){
       <span class="small">${hhmm(e.at)}</span>${e.type ? bIcon(e.type) + `<span>${e.type} · ${BTXT[e.type]}</span>` : '<span class="small">💩 tap to add the type</span>'}
       <span class="tg">${GTAGS.filter(([k]) => (e.tags || []).includes(k)).map(([, ic]) => ic).join('')}</span></button>`).join('');
   if(!list.length && !isToday) h += `<p class="small">None logged that day.</p>`;
-  return h + '</div>';
+  return h + `<textarea class="gnote" data-gnote="1" rows="2" placeholder="📝 Note for ${isToday ? 'today' : 'that day'}: food, stress, travel…" aria-label="Gut note">${esc(gutNote(day))}</textarea></div>`;
+}
+
+function reminderBox(){
+  const st = pushState();
+  return `<div class="box card"><h3>Reminders <span class="st ${st === 'on' ? 'ok' : ''}">${{ on:'on ✓', off:'off', blocked:'blocked', unsupported:'' }[st]}</span></h3>
+    <p class="small">💊 supplements at their reminder times · 🥩 protein at 19:00 (until the target is reached) ·
+      💩 gut at 20:00 (until something is logged that day). They can come a few minutes late. Tap one to open the Daily tab.</p>
+    ${st === 'unsupported' ? '<p class="small">This browser can’t get notifications here. Open the installed app (home screen icon) instead.</p>'
+      : st === 'blocked' ? '<p class="small">Notifications are blocked for this app: phone Settings → Apps → this app → Notifications → allow, then come back.</p>' : ''}
+    <div class="actions">${st === 'off' ? '<button class="btn" data-act="pushon">Turn on reminders</button>'
+      : st === 'on' ? '<button class="btn ghost" data-act="pushtest">Test on this phone</button><button class="btn ghost" data-act="pushoff">Turn off</button>' : ''}</div></div>`;
 }
 
 function renderSettings(){
@@ -1818,6 +1833,7 @@ function renderSettings(){
         <div class="sdays">${WEEK.map((w, d) => `<button class="chip" data-sday="${n}.${d + 1}" aria-pressed="${(x.days || []).includes(d + 1)}" aria-label="${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d]}">${w}</button>`).join('')}</div></div>`).join('')}
       <button class="link" data-sadd="1">+ add a supplement</button>
       <div class="actions"><button class="btn" data-act="suppsave">Save supplements</button></div></details>` : ''}
+    ${reminderBox()}
     <div class="box"><h3>Backup</h3><p class="small">Export a backup now and then — it can be imported into the app later.</p>
       <div class="actions"><button class="btn ghost" data-act="backup">Backup</button>
       <button class="btn ghost" data-act="restore">Restore</button></div></div>`;
@@ -2223,6 +2239,9 @@ document.addEventListener('click', e => {
   if(act === 'ghforget' && confirm('Remove the GitHub token from this phone?')){ gh.token = ''; store.set('fb3.gh', gh); render(); }
   if(act === 'ghpull') pullFromGitHub();
   if(act === 'print') window.print();
+  if(act === 'pushon') pushOn().catch(pushErr);
+  if(act === 'pushoff') pushOff().catch(pushErr);
+  if(act === 'pushtest') pushTest().catch(pushErr);
   if(act === 'backup') download(`fitness-backup-${new Date().toISOString().slice(0,10)}.json`,
     JSON.stringify({ version:1, history, drafts }, null, 2), 'application/json');
   if(act === 'restore') document.getElementById('importFile').click();
@@ -2251,6 +2270,10 @@ document.addEventListener('change', e => {
   }
   if(t.id === 'sDate' && /^\d{4}-\d\d-\d\d$/.test(t.value)){
     suppView = t.value >= dayKey() ? null : t.value; protEdit = null; gutEdit = null; render(); if(suppView) sync();
+  }
+  if(t.dataset.gnote){
+    const day = sDay(), text = t.value.trim();
+    if(text !== gutNote(day)){ gutTouch(day, g => { g.note = { t:Date.now(), text }; }); sync(); }
   }
   if(t.dataset.gutat && /^\d\d:\d\d$/.test(t.value)){
     const day = sDay(), e = gutDay(day).find(x => x.id === t.dataset.gutat), at = atDay(day, t.value);
@@ -2546,7 +2569,7 @@ async function sync(){
     if(await syncProt()) renderSoon();
     if(await syncGut()) renderSoon();
     if(await pullPastDays(`${SUPP_DIR}`, suppLog, (d, j) => { suppLog[d] = j.taken || {}; }) + await pullPastDays(`${PROT_DIR}`, protLog, (d, j) => { protLog[d] = j.entries || []; })
-      + await pullPastDays(GUT_DIR, gutLog, (d, j) => { gutLog[d] = { entries:j.entries || [], flags:j.flags || {} }; })){
+      + await pullPastDays(GUT_DIR, gutLog, (d, j) => { gutLog[d] = { entries:j.entries || [], flags:j.flags || {}, ...(j.note ? { note:j.note } : {}) }; })){
       saveSupp(); saveProt(); saveGut(); if(view === 'report') renderSoon();
     }
   }catch(e){ syncError = e.message.startsWith('GitHub') ? e.message : 'no connection — will retry.'; }
@@ -2622,9 +2645,10 @@ async function syncGut(){
   for(const day of [...new Set([dayKey(), ...gutDirty.days, ...(suppView ? [suppView] : [])])]){
     const path = `${GUT_DIR}/days/${day}.json`, f = await api(path + `?ref=${gh.branch}`);
     const remote = f ? JSON.parse(b64dec(f.content)) : {}, mine = gutLog[day] || {};
-    const merged = { entries:mergeEntries(remote.entries, mine.entries), flags:mergeDay(remote.flags, mine.flags) };
-    if(JSON.stringify(merged) !== JSON.stringify({ entries:mine.entries || [], flags:mine.flags || {} })){ gutLog[day] = merged; changed = true; }
-    if(gutDirty.days.includes(day) && JSON.stringify(merged) !== JSON.stringify({ entries:mergeEntries(remote.entries), flags:remote.flags || {} }))
+    const note = laterNote(remote.note, mine.note);
+    const merged = { entries:mergeEntries(remote.entries, mine.entries), flags:mergeDay(remote.flags, mine.flags), ...(note ? { note } : {}) };
+    if(JSON.stringify(merged) !== JSON.stringify({ entries:mine.entries || [], flags:mine.flags || {}, ...(mine.note ? { note:mine.note } : {}) })){ gutLog[day] = merged; changed = true; }
+    if(gutDirty.days.includes(day) && JSON.stringify(merged) !== JSON.stringify({ entries:mergeEntries(remote.entries), flags:remote.flags || {}, ...(remote.note ? { note:remote.note } : {}) }))
       await api(path, { method:'PUT', body:JSON.stringify({ message:`Gut ${day}`,
         content:b64enc(JSON.stringify({ date:day, ...merged }, null, 2) + '\n'), branch:gh.branch, ...(f ? { sha:f.sha } : {}) }) });
     gutDirty.days = gutDirty.days.filter(d => d !== day); saveGut();
@@ -2660,6 +2684,56 @@ let toastT;
 function toast(msg){ const t = document.getElementById('toast'); undoFn = null; t.classList.remove('undo'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2000); }
 // Act at once and offer Undo for a few seconds, instead of asking "are you sure?" (user, 2026-10-25)
 let undoFn = null;
+// ---------- Reminders (user, 2026-10-26) ----------
+// Sent by the Reminders job in the private repo (.github/reminders/remind.mjs): supplements at their
+// reminder times, protein 19:00, gut 20:00. This phone subscribes in ⋯ → Settings; its subscription
+// is saved as data/push/subs/<id>.json in the private repo (never in this page). The key below is
+// the public half; the private half is only a GitHub secret.
+const VAPID_PUBLIC = 'BLcyBaauDJlEdGIvIkCLmbpP3rwBOgqeLb3VjKNHqLTQoRF8fiqiQmxtPZYLnRWAOEtY3Ta-ez8Gycr5jMIWLJA';
+let pushId = store.get('fb3.pushid', null);          // this phone's subscription file, once saved
+let pushEp = store.get('fb3.pushep', '');            // …and the endpoint saved in it
+const pushOk = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+const pushState = () => !pushOk() ? 'unsupported' : Notification.permission === 'denied' ? 'blocked'
+  : pushId && Notification.permission === 'granted' ? 'on' : 'off';
+const b64url = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - s.length % 4) % 4)), c => c.charCodeAt(0));
+async function pushSave(sub){
+  const id = pushId || Date.now().toString(36) + Math.random().toString(36).slice(2, 6), path = `data/push/subs/${id}.json`;
+  const f = await api(path + `?ref=${gh.branch}`), j = sub.toJSON();
+  await api(path, { method:'PUT', body:JSON.stringify({ message:'Reminders: this phone', branch:gh.branch, ...(f ? { sha:f.sha } : {}),
+    content:b64enc(JSON.stringify({ endpoint:j.endpoint, keys:j.keys, added:dayKey() }, null, 2) + '\n') }) });
+  pushId = id; pushEp = j.endpoint; store.set('fb3.pushid', id); store.set('fb3.pushep', pushEp);
+}
+async function pushOn(){
+  if(!ghReady()){ toast('Add the GitHub token first'); return; }
+  if(await Notification.requestPermission() !== 'granted'){ toast('Notifications are blocked for this app'); render(); return; }
+  const reg = await navigator.serviceWorker.ready;
+  const sub = await reg.pushManager.getSubscription() || await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:b64url(VAPID_PUBLIC) });
+  await pushSave(sub); toast('Reminders on ✓'); render();
+}
+async function pushOff(){
+  const reg = await navigator.serviceWorker.ready, sub = await reg.pushManager.getSubscription();
+  if(sub) await sub.unsubscribe().catch(() => {});
+  if(pushId && ghReady()){
+    const path = `data/push/subs/${pushId}.json`, f = await api(path + `?ref=${gh.branch}`);
+    if(f) await api(path, { method:'DELETE', body:JSON.stringify({ message:'Reminders: remove this phone', sha:f.sha, branch:gh.branch }) });
+  }
+  pushId = null; pushEp = ''; store.set('fb3.pushid', null); store.set('fb3.pushep', ''); toast('Reminders off'); render();
+}
+async function pushTest(){
+  const reg = await navigator.serviceWorker.ready;
+  await reg.showNotification('✅ Test notification', { body:'This is how reminders look on this phone.', tag:'test', icon:'icon-192.png', badge:'icon-192.png', data:{ tab:'fuel' } });
+}
+// on each open: the browser may have renewed the subscription — save the new one
+async function pushCheck(){
+  if(pushState() !== 'on' || !ghReady() || !navigator.onLine) return;
+  try{
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription() || await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:b64url(VAPID_PUBLIC) });
+    if(sub.endpoint !== pushEp) await pushSave(sub);
+  }catch(e){}
+}
+const pushErr = e => toast(e && e.message && e.message.startsWith('GitHub') ? e.message : 'Couldn’t change reminders — try again with signal');
+
 function undoToast(msg, fn){
   const t = document.getElementById('toast');
   t.innerHTML = `<span>${esc(msg)}</span><button data-undo="1">Undo</button>`;
@@ -2667,11 +2741,20 @@ function undoToast(msg, fn){
   clearTimeout(toastT); toastT = setTimeout(() => { t.classList.remove('show', 'undo'); undoFn = null; }, 5000);
 }
 
+// a tapped reminder opens the app at #fuel: show the Daily tab (today), then drop the #
+function fromHash(){
+  if(location.hash !== '#fuel') return false;
+  view = 'fuel'; suppView = null; store.set('fb3.view', view);
+  window.history.replaceState(null, '', location.pathname + location.search);   // (history = the workouts here)
+  return true;
+}
+window.addEventListener('hashchange', () => { if(fromHash()){ render(); scrollTo(0, 0); } });
+fromHash();
 render();
 
-// Offline helper: lets the installed app open with no signal (see sw.js).
+// Offline helper: lets the installed app open with no signal (see sw.js); it also shows the reminders.
 if('serviceWorker' in navigator && location.protocol !== 'file:'){
-  navigator.serviceWorker.register('sw.js').catch(() => {});
+  navigator.serviceWorker.register('sw.js').then(() => pushCheck()).catch(() => {});
 }
 </script>
 </body>

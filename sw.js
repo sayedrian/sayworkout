@@ -30,3 +30,21 @@ self.addEventListener('fetch', e => {
       .catch(() => caches.match(e.request, { ignoreSearch: true }).then(r => r || caches.match('./index.html')))
   );
 });
+
+// Reminders (user, 2026-10-26): the push comes from the Reminders job in the private repo
+// (supplements, protein 19:00, gut 20:00). Tapping it opens the app on the Daily tab.
+self.addEventListener('push', e => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (err) { d = { body: e.data ? e.data.text() : '' }; }
+  e.waitUntil(self.registration.showNotification(d.title || 'Workout', {
+    body: d.body || '', tag: d.tag || 'reminder', icon: 'icon-192.png', badge: 'icon-192.png', data: { tab: d.tab || 'fuel' } }));
+});
+
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const url = new URL('./#' + ((e.notification.data && e.notification.data.tab) || 'fuel'), self.registration.scope).href;
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+    const c = list.find(w => w.url.startsWith(self.registration.scope));
+    return c ? c.focus().then(w => (w || c).navigate(url)).catch(() => self.clients.openWindow(url)) : self.clients.openWindow(url);
+  }));
+});
