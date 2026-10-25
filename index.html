@@ -206,6 +206,11 @@ details.sess summary span{font-weight:400;color:var(--muted);font-size:13px}
 .sline .tick{height:40px}
 .sline input[type=time]{width:100%;min-width:0;border:1px solid var(--line);background:var(--input);border-radius:9px;padding:8px 4px;font-size:15px;color:var(--ink)}
 .sline.done input[type=time]{background:var(--done-bg)}
+.dnav{display:flex;align-items:center;gap:6px;margin:12px 0 4px}
+.dnav input{flex:1;min-width:0;border:1px solid var(--line);background:var(--input);border-radius:9px;padding:8px;font-size:15px;color:var(--ink)}
+.dnav button{border:1px solid var(--line);background:var(--card);border-radius:9px;padding:7px 12px;font-size:16px}
+.dnav button:disabled{opacity:.35}
+.dnav .link{border:0;background:none;padding:4px}
 .shead{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:10px 0 2px}
 .supped{display:grid;grid-template-columns:1fr 90px 36px;gap:6px;align-items:center;margin:4px 0}
 .supped input,.slotTime{width:100%;min-width:0;border:1px solid var(--line);background:var(--input);border-radius:9px;padding:8px;font-size:15px;color:var(--ink)}
@@ -523,6 +528,11 @@ const dayKey = (t = Date.now()) => { const d = new Date(t); return `${d.getFullY
 const hhmm = t => { const d = new Date(t); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
 const isoDay = (t = Date.now()) => (new Date(t).getDay() + 6) % 7 + 1;
 const atToday = hm => { const [h, m] = hm.split(':').map(Number), d = new Date(); d.setHours(h, m, 0, 0); return d.getTime(); };
+// a time on a given day ('2026-10-24', '08:00'); noon of that day without a time
+const atDay = (day, hm = '12:00') => { const [y, mo, d] = day.split('-').map(Number), [h, m] = hm.split(':').map(Number); return new Date(y, mo - 1, d, h, m).getTime(); };
+// the day S shows (user, 2026-10-25: to log a past day too); null = today
+let suppView = null;
+const sDay = () => suppView || dayKey();
 const taken = (day, id) => !!(suppLog[day] && suppLog[day][id] && suppLog[day][id].on);
 const takenAt = (day, id) => { const v = suppLog[day]?.[id]; return v ? v.at || v.t : null; };
 const todayItems = (now = Date.now()) => supp ? supp.items.filter(x => (x.days || []).includes(isoDay(now))) : [];
@@ -531,8 +541,10 @@ const itemDue = (x, now = Date.now()) => !!x.time && !taken(dayKey(now), x.id) &
 const suppDue = () => todayItems().some(x => itemDue(x));
 // what the time box shows before ticking: the reminder time, unless it hasn't come yet (then now)
 const suggestAt = (x, now = Date.now()) => x.time && atToday(x.time) <= now ? atToday(x.time) : now;
-function setTaken(id, on, at = Date.now()){
-  const day = dayKey(), it = supp.items.find(x => x.id === id);
+// on a past day: the reminder time, or noon without one
+const suggestPast = (x, day) => atDay(day, x.time || '12:00');
+function setTaken(id, on, at = Date.now(), day = dayKey()){
+  const it = supp.items.find(x => x.id === id);
   suppLog[day] = { ...(suppLog[day] || {}), [id]:{ t:Date.now(), on, ...(on ? { at, ...(it ? { dose:it.dose } : {}) } : {}) } };
   if(!suppDirty.days.includes(day)) suppDirty.days.push(day);
   saveSupp();
@@ -1544,20 +1556,25 @@ function renderSupp(){
       <p class="small">Your list is kept in your private repo. ${ghReady() ? 'It loads by itself when there is signal.' : 'Add the GitHub token in ⋯ → Settings and it loads by itself.'}</p>`;
     return;
   }
-  const day = dayKey(), now = Date.now();
+  const day = sDay(), now = Date.now(), isToday = day === dayKey(), noon = atDay(day);
   // one timeline: taken → when taken; not yet → its reminder time; no reminder and not taken → at the end
-  const rows = todayItems(now).map(x => ({ x, on:taken(day, x.id), key:taken(day, x.id) ? takenAt(day, x.id) : x.time ? atToday(x.time) : Infinity }))
+  const rows = todayItems(noon).map(x => ({ x, on:taken(day, x.id), key:taken(day, x.id) ? takenAt(day, x.id) : x.time ? atDay(day, x.time) : Infinity }))
     .sort((a, b) => a.key - b.key);
   const line = ({ x, on }) => `<div class="sline ${on ? 'done' : ''}">
       <span><b>${esc(x.name)}</b> · ${esc(x.dose)}${x.optional ? ' <span class="small" style="display:inline">· optional</span>' : ''}
-        <span class="small">${on ? 'taken' : itemDue(x, now) ? `<span class="due">due</span> · reminder ${x.time}` : x.time ? `reminder ${x.time}` : 'no reminder'}${x.note ? ' · ' + esc(x.note) : ''}</span></span>
-      <input type="time" data-suppat="${esc(x.id)}" value="${hhmm(on ? takenAt(day, x.id) : suggestAt(x, now))}" aria-label="${esc(x.name)}: time taken">
+        <span class="small">${on ? 'taken' : isToday && itemDue(x, now) ? `<span class="due">due</span> · reminder ${x.time}` : x.time ? `reminder ${x.time}` : 'no reminder'}${x.note ? ' · ' + esc(x.note) : ''}</span></span>
+      <input type="time" data-suppat="${esc(x.id)}" value="${hhmm(on ? takenAt(day, x.id) : isToday ? suggestAt(x, now) : suggestPast(x, day))}" aria-label="${esc(x.name)}: time taken">
       <button class="tick" data-supp="${esc(x.id)}" aria-label="${esc(x.name)} taken">✓</button></div>`;
   const timed = rows.filter(r => r.key !== Infinity), any = rows.filter(r => r.key === Infinity);
-  let h = `<p class="focus">${dateTxt(now)}</p><div class="box">`;
+  // the day: ‹ › or the date box; never after today
+  let h = `<div class="dnav"><button data-sdayn="-1" aria-label="Day before">‹</button>
+    <input type="date" id="sDate" value="${day}" max="${dayKey()}" aria-label="Day">
+    <button data-sdayn="1" aria-label="Next day" ${isToday ? 'disabled' : ''}>›</button>
+    ${isToday ? '' : '<button class="link" data-sdayn="0">Today</button>'}</div>
+    <p class="focus">${isToday ? 'Today · ' : ''}${dateTxt(noon)}</p><div class="box">`;
   h += timed.map(line).join('');
   if(any.length) h += `<div class="shead">Any time</div>` + any.map(line).join('');
-  if(!rows.length) h += `<p class="small">Nothing scheduled today.</p>`;
+  if(!rows.length) h += `<p class="small">Nothing scheduled ${isToday ? 'today' : 'that day'}.</p>`;
   h += `</div><p class="small">Set the time you took it, then ✓. Doses and reminders are changed in ⋯ → Settings → Supplements. ${syncText()}</p>`;
   $main.innerHTML = h;
 }
@@ -1734,7 +1751,7 @@ document.addEventListener('click', e => {
   const t = e.target.closest('button'); if(!t){ showMenu(false); return; }
   if(t.id === 'more'){ showMenu(document.getElementById('menu').hidden); return; }
   showMenu(false);
-  if(t.dataset.tab){ if(t.dataset.tab !== view) opened.clear(); view = t.dataset.tab; store.set('fb3.view', view); render(); scrollTo(0, 0); return; }
+  if(t.dataset.tab){ if(t.dataset.tab !== view){ opened.clear(); suppView = null; } view = t.dataset.tab; store.set('fb3.view', view); render(); scrollTo(0, 0); return; }
   if(t.id === 'back'){ view = lastDay; render(); scrollTo(0, 0); return; }
   if(t.dataset.unfold){ const k = t.dataset.unfold; opened.add(/^\d+$/.test(k) ? +k : k); render(); return; }
   if(t.dataset.rest){ adjustRest(t.dataset.rest); return; }
@@ -1753,10 +1770,15 @@ document.addEventListener('click', e => {
     return;
   }
   if(t.dataset.supp){
-    const id = t.dataset.supp, on = !taken(dayKey(), id), box = document.querySelector(`[data-suppat="${id}"]`);
-    const at = on && box && /^\d\d:\d\d$/.test(box.value) ? atToday(box.value) : Date.now();
+    const id = t.dataset.supp, day = sDay(), on = !taken(day, id), box = document.querySelector(`[data-suppat="${id}"]`);
+    const at = on && box && /^\d\d:\d\d$/.test(box.value) ? atDay(day, box.value) : day === dayKey() ? Date.now() : atDay(day);
     if(on && at > Date.now()){ toast('That time hasn’t come yet'); return; }
-    setTaken(id, on, at); render(); sync(); return;
+    setTaken(id, on, at, day); render(); sync(); return;
+  }
+  if(t.dataset.sdayn){
+    const n = +t.dataset.sdayn, d = new Date(atDay(sDay())); d.setDate(d.getDate() + n);
+    const k = n === 0 || dayKey(d.getTime()) >= dayKey() ? null : dayKey(d.getTime());
+    suppView = k; render(); if(k) sync(); return;
   }
   if(t.dataset.sadd || t.dataset.sdel || t.dataset.sday){
     readSuppEdit();
@@ -1877,10 +1899,13 @@ document.addEventListener('change', e => {
   if(t.id === 'repSel'){ reportId = t.value; render(); }
   if(t.id === 'pSrc'){ protSrc = t.value; saveProt(); render(); }
   // the time box of a taken supplement: correct when it was taken
-  if(t.dataset.suppat && /^\d\d:\d\d$/.test(t.value) && taken(dayKey(), t.dataset.suppat)){
-    const at = atToday(t.value);
+  if(t.dataset.suppat && /^\d\d:\d\d$/.test(t.value) && taken(sDay(), t.dataset.suppat)){
+    const day = sDay(), at = atDay(day, t.value);
     if(at > Date.now()){ toast('That time hasn’t come yet'); render(); return; }
-    setTaken(t.dataset.suppat, true, at); render(); sync();
+    setTaken(t.dataset.suppat, true, at, day); render(); sync();
+  }
+  if(t.id === 'sDate' && /^\d{4}-\d\d-\d\d$/.test(t.value)){
+    suppView = t.value >= dayKey() ? null : t.value; render(); if(suppView) sync();
   }
   if(t.dataset.swap){ draft(view, true).slots[+t.dataset.swap].name = t.value; save(); render(); }
   if(t.id === 'importFile' && t.files[0]){
@@ -2182,7 +2207,7 @@ async function syncSupp(){
     const p = JSON.parse(b64dec(pf.content));
     if(JSON.stringify(p) !== JSON.stringify(supp)){ supp = normPlan(p); saveSupp(); changed = true; }
   }
-  for(const day of [...new Set([dayKey(), ...suppDirty.days])]){
+  for(const day of [...new Set([dayKey(), ...suppDirty.days, ...(suppView ? [suppView] : [])])]){
     const path = `${SUPP_DIR}/days/${day}.json`, f = await api(path + `?ref=${gh.branch}`);
     const remote = f ? JSON.parse(b64dec(f.content)).taken || {} : {};
     const merged = mergeDay(remote, suppLog[day]);
