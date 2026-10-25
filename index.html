@@ -233,6 +233,32 @@ details.sess summary span{font-weight:400;color:var(--muted);font-size:13px}
 button.pline{width:100%;border:0;border-top:1px solid var(--line);background:none;text-align:left;color:var(--ink);font-size:15px}
 button.pline:first-child{border-top:0}
 .pline.on{background:var(--input);border-radius:9px}
+/* report: rings, wins, strength sparklines */
+.rings{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:center}
+.ring svg{width:76px;height:76px;display:block;margin:0 auto}
+.ring .tr{fill:none;stroke:var(--input);stroke-width:7}
+.ring .pr{fill:none;stroke:var(--accent);stroke-width:7;stroke-linecap:round}
+.ring.full .pr{stroke:var(--done)}
+.ring .v{font-size:15px;font-weight:750;fill:var(--ink);text-anchor:middle;font-variant-numeric:tabular-nums}
+.ring .lab{font-size:13px;font-weight:600;margin-top:2px}
+.ring .sub{font-size:12px;color:var(--muted)}
+.streak{margin:10px 0 0;font-size:14px}
+.wins{list-style:none;margin:4px 0 0;padding:0}
+.wins li{padding:6px 0;border-top:1px solid var(--line);font-size:14px}
+.wins li:first-child{border-top:0}
+.wins .ic{display:inline-block;width:22px}
+.lift{display:grid;grid-template-columns:1fr 110px 62px;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--line)}
+.lift:first-of-type{border-top:0}
+.lift .nm{font-size:14px;font-weight:600}
+.lift .nm .small{display:block;font-weight:400}
+.lift svg{width:110px;height:34px;display:block;overflow:visible}
+.lift .ln{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.lift .pt{fill:var(--accent);stroke:var(--card);stroke-width:2}
+.lift .hit{fill:transparent}
+.lift .ch{text-align:right;font-weight:700;font-size:14px;font-variant-numeric:tabular-nums}
+.lift .ch.up{color:var(--done)}
+.lift .ch.flat{color:var(--muted)}
+.lift .ch .small{display:block;font-weight:400}
 #toast{position:fixed;left:50%;top:70px;transform:translateX(-50%);background:var(--ink);color:var(--bg);
   padding:8px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20}
 #toast.show{opacity:1}
@@ -583,6 +609,16 @@ function protChange(day, e){
   protLog[day] = [...(protLog[day] || []).filter(x => x.id !== e.id), { ...e, t:Date.now() }];
   if(!protDirty.days.includes(day)) protDirty.days.push(day);
   saveProt();
+}
+// the protein streak worth celebrating (user, 2026-10-25: editable, 7 days to start with)
+const streakGoal = () => (prot && +prot.streak) || 7;
+// days in a row at the protein target, ending today (or yesterday while today isn't there yet)
+function protStreak(){
+  const target = prot && +prot.target; if(!target) return 0;
+  let n = 0, d = Date.now();
+  if(protTotal(dayKey(d)) < target) d = addDays(d, -1);
+  while(protTotal(dayKey(d)) >= target){ n++; d = addDays(d, -1); }
+  return n;
 }
 function mergeEntries(a = [], b = []){
   const m = new Map();
@@ -1645,7 +1681,8 @@ function renderSettings(){
       ${gh.token ? '<button class="btn ghost" data-act="ghforget">Forget token</button>' : ''}</div></details>
     <div class="box gh"><h3>Protein</h3>
       <label>Daily target, g of protein <input id="pTarget" inputmode="numeric" value="${esc(prot && prot.target || '')}" placeholder="g"></label>
-      <div class="actions"><button class="btn ghost" data-act="ptarget">Save target</button></div></div>
+      <label>Celebrate a streak of … days at the target <input id="pStreak" inputmode="numeric" value="${esc(streakGoal())}" placeholder="7"></label>
+      <div class="actions"><button class="btn ghost" data-act="ptarget">Save</button></div></div>
     ${supp ? `<details class="sess" id="suppEdit"><summary>Supplements <span>· ${supp.items.length} on the list</span></summary>
       <p class="small">Each one has its own reminder time and days (no time = no reminder, tick it whenever).
         Those due at the same time come in one notification. Doses stay until you change them here.</p>
@@ -1679,6 +1716,111 @@ function renderHistory(){
   $main.innerHTML = h;
 }
 
+// ---------- Report, top part (user, 2026-10-25): how you're doing, what improved, what's next ----------
+// Consistency first (two weeks of history: showing up is what counts now), then wins, then strength.
+const ringSvg = (frac, txt) => { const r = 30, c = 2 * Math.PI * r, f = Math.max(0, Math.min(1, frac));
+  return `<svg viewBox="0 0 76 76" aria-hidden="true"><circle class="tr" cx="38" cy="38" r="${r}"/>
+    ${f > 0 ? `<circle class="pr" cx="38" cy="38" r="${r}" stroke-dasharray="${(c * f).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 38 38)"/>` : ''}
+    <text class="v" x="38" y="43">${txt}</text></svg>`; };
+// supplements this week: ticks / what was scheduled (today only what is due or already taken)
+// the first day anything was logged — days before it are "not tracked yet", never "missed"
+const firstDay = log => Object.keys(log).filter(k => Object.keys(log[k] || {}).length).sort()[0] || dayKey();
+function suppWeek(){
+  if(!supp) return null;
+  let due = 0, got = 0, now = Date.now(), from = firstDay(suppLog);
+  for(let d = weekStart(now); dayKey(d) <= dayKey(now); d = addDays(d, 1)){
+    const k = dayKey(d), isToday = k === dayKey(now);
+    if(k < from) continue;
+    supp.items.filter(x => !x.optional && (x.days || []).includes(isoDay(d)))
+      .filter(x => !isToday || taken(k, x.id) || itemDue(x, now))
+      .forEach(x => { due++; if(taken(k, x.id)) got++; });
+  }
+  return due ? { due, got } : null;
+}
+// weeks in a row with all 3 workouts (a home workout counts), not counting a week still under way
+function workoutStreak(){
+  let n = 0, w = weekStart(Date.now());
+  const count = w => history.filter(s => s.startedAt >= w && s.startedAt < addDays(w, 7)).length;
+  if(count(w) < 3) w = addDays(w, -7);
+  while(count(w) >= 3){ n++; w = addDays(w, -7); }
+  return n;
+}
+// main lifts: exercises done in at least 2 sessions, most sessions first; best set per session
+function strengthLines(){
+  const by = {};
+  history.forEach(s => s.slots.forEach(x => {
+    const sets = x.sets.filter(t => t.done && t.reps !== '');
+    if(!sets.length || bwOf(x.name) === 'only') return;
+    const b = best(sets, x.name, s.bw);
+    (by[x.name] = by[x.name] || []).push({ at:s.startedAt, set:b, sc:score(b, x.name, s.bw), bw:s.bw });
+  }));
+  return Object.entries(by).filter(([, v]) => v.length >= 2).sort((a, b) => b[1].length - a[1].length || b[1].at - a[1].at).slice(0, 6);
+}
+function reportTop(){
+  const now = Date.now(), wk = weekStart(now), target = prot && +prot.target;
+  const wDone = history.filter(s => s.startedAt >= wk).length;
+  // protein: days at target this week, out of the days so far (today counts once it is reached)
+  let pDays = 0, pHit = 0;
+  const pFrom = firstDay(Object.fromEntries(Object.entries(protLog).map(([k, v]) => [k, (v || []).filter(e => !e.del)])));
+  for(let d = wk; dayKey(d) <= dayKey(now); d = addDays(d, 1)){
+    const k = dayKey(d), tot = protTotal(k);
+    if(k < pFrom) continue;
+    if(k !== dayKey(now) || (target && tot >= target)){ pDays++; if(target && tot >= target) pHit++; }
+  }
+  const sw = suppWeek(), pToday = protTotal();
+  let h = `<div class="box rep"><h3>This week</h3><div class="rings">
+    <div class="ring ${wDone >= 3 ? 'full' : ''}">${ringSvg(wDone / 3, `${wDone}/3`)}<div class="lab">Workouts</div><div class="sub">${wDone >= 3 ? 'all done ✓' : `${3 - wDone} to go`}</div></div>
+    <div class="ring ${target && pToday >= target ? 'full' : ''}">${ringSvg(target ? pToday / target : 0, target ? `${pToday}` : '–')}<div class="lab">Protein today</div><div class="sub">${target ? `of ${target} g${pDays ? ` · target hit ${pHit}/${pDays} days` : ''}` : 'no target set'}</div></div>
+    <div class="ring ${sw && sw.got === sw.due ? 'full' : ''}">${ringSvg(sw ? sw.got / sw.due : 0, sw ? `${Math.round(sw.got / sw.due * 100)}%` : '–')}<div class="lab">Supplements</div><div class="sub">${sw ? `${sw.got} of ${sw.due} taken` : 'none due yet'}</div></div>
+  </div>`;
+  const ws = workoutStreak(), ps = protStreak(), goal = streakGoal();
+  const streaks = [];
+  if(ws) streaks.push(`🔥 <b>${ws} week${ws === 1 ? '' : 's'} in a row</b> with every workout done`);
+  if(target) streaks.push(ps >= goal ? `🔥 <b>${ps} days in a row</b> at ${target} g protein` : ps ? `Protein: <b>${ps} of ${goal} days</b> in a row at ${target} g` : '');
+  h += streaks.filter(Boolean).map(x => `<p class="streak">${x}</p>`).join('') + '</div>';
+
+  // Wins: the last 7 days, from the data only — no made-up praise
+  const wins = [], since = addDays(now, -7);
+  history.filter(s => s.startedAt >= since).forEach(s => s.slots.forEach(x => {
+    const sets = x.sets.filter(t => t.done); if(!sets.length) return;
+    const b = best(sets, x.name, s.bw), sc = score(b, x.name, s.bw);
+    const before = history.filter(o => o.startedAt < s.startedAt).flatMap(o => o.slots.filter(y => y.name === x.name)
+      .flatMap(y => y.sets.filter(t => t.done).map(t => score(t, x.name, o.bw))));
+    if(before.length && sc > Math.max(...before) * 1.005)
+      wins.push(`<span class="ic">★</span><b>${esc(x.name)}</b>: new best — ${esc(setTxt(b, exFor(x.name), x.name, s.bw))} <span class="small" style="display:inline">(${dateTxt(s.startedAt)})</span>`);
+  }));
+  if(target && ps >= goal) wins.push(`<span class="ic">🔥</span>Protein target <b>${ps} days in a row</b>`);
+  if(ws >= 2) wins.push(`<span class="ic">🔥</span><b>${ws} full weeks</b> of training in a row`);
+  h += `<div class="box rep"><h3>Wins · last 7 days</h3>${wins.length ? `<ul class="wins">${wins.slice(0, 8).map(w => `<li>${w}</li>`).join('')}</ul>`
+    : `<p class="small">No new bests this week yet. ${wDone < 3 ? `${3 - wDone} workout${3 - wDone === 1 ? '' : 's'} left this week — each one is a chance.` : 'Next time: one more rep or the next weight step.'}</p>`}</div>`;
+
+  // Strength: best set per session, one small line per main lift
+  const lines = strengthLines();
+  if(lines.length){
+    h += `<div class="box rep"><h3>Strength</h3><p class="small">Best set of each session (estimated strength), first session → last.</p>`;
+    lines.forEach(([name, v]) => {
+      const lo = Math.min(...v.map(o => o.sc)), hi = Math.max(...v.map(o => o.sc)), W = 120, H = 34, pad = 4;
+      const x = i => v.length === 1 ? W / 2 : pad + i * (W - 2 * pad) / (v.length - 1);
+      const y = sc => hi === lo ? H / 2 : H - pad - (sc - lo) / (hi - lo) * (H - 2 * pad);
+      const pts = v.map((o, i) => `${x(i).toFixed(1)},${y(o.sc).toFixed(1)}`).join(' ');
+      const assistNoBw = loadOf(name) === 'assist' && !bodyweight;
+      const first = v[0], last = v[v.length - 1], pct = Math.round((last.sc / first.sc - 1) * 100);
+      const change = assistNoBw ? `${first.set.kg}→${last.set.kg}` : `${pct > 0 ? '+' : ''}${pct}%`;   // assist: lower is better
+      const tip = o => `${dateTxt(o.at)}: ${setTxt(o.set, exFor(name), name, o.bw)}`;
+      h += `<div class="lift"><span class="nm">${esc(name)}<span class="small">${v.length} sessions · ${esc(setTxt(last.set, exFor(name), name, last.bw))}</span></span>
+        <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(name)}: ${esc(v.map(tip).join('; '))}">
+          <polyline class="ln" points="${pts}"/>
+          <circle class="pt" cx="${x(v.length - 1).toFixed(1)}" cy="${y(last.sc).toFixed(1)}" r="4"/>
+          ${v.map((o, i) => `<circle class="hit" cx="${x(i).toFixed(1)}" cy="${y(o.sc).toFixed(1)}" r="9"><title>${esc(tip(o))}</title></circle>`).join('')}
+        </svg>
+        <span class="ch ${assistNoBw ? 'flat' : pct > 0 ? 'up' : 'flat'}">${esc(change)}${assistNoBw ? '<span class="small">assist kg</span>' : ''}</span></div>`;
+    });
+    h += `<details class="sess"><summary>As a table</summary><ul>${lines.map(([name, v]) =>
+      `<li><b>${esc(name)}</b>: ${v.map(o => esc(`${dateTxt(o.at)} ${setTxt(o.set, exFor(name), name, o.bw)}`)).join(' · ')}</li>`).join('')}</ul></details></div>`;
+  }
+  return h;
+}
+
 function renderReport(){
   if(!history.length){ $main.innerHTML = `<p class="empty">No finished workouts yet. The report appears after your first one.</p>`; return; }
   const s = history.find(x => x.id === reportId) || history[history.length - 1];
@@ -1686,7 +1828,8 @@ function renderReport(){
   const mins = s.finishedAt && s.startedAt ? Math.round((s.finishedAt - s.startedAt) / 60000) : null;
   const all = s.slots.flatMap(x => x.sets), done = all.filter(t => t.done).length;
 
-  let h = `<div class="box noprint rep"><select id="repSel" aria-label="Workout">${[...history].reverse().map(x =>
+  let h = reportTop();
+  h += `<div class="box noprint rep"><h3>Last workout</h3><select id="repSel" aria-label="Workout">${[...history].reverse().map(x =>
     `<option value="${esc(x.id)}" ${x.id === s.id ? 'selected' : ''}>${dateTxt(x.startedAt)} · ${PLAN[x.day] ? PLAN[x.day].title : esc(x.day)}</option>`).join('')}</select></div>`;
 
   // 1. The workout, exercise by exercise, against the time before
@@ -1913,9 +2056,10 @@ document.addEventListener('click', e => {
   }
   if(act === 'pcancel'){ protEdit = null; render(); }
   if(act === 'ptarget'){
-    const g = parseInt(document.getElementById('pTarget').value, 10);
+    const g = parseInt(document.getElementById('pTarget').value, 10), n = parseInt(document.getElementById('pStreak').value, 10);
     if(!(g > 0)){ toast('Enter the target in grams'); return; }
-    prot = { ...(prot || {}), target:g }; protDirty.plan = true; saveProt(); toast('Protein target saved'); render(); sync();
+    if(!(n >= 2)){ toast('A streak is at least 2 days'); return; }
+    prot = { ...(prot || {}), target:g, streak:n }; protDirty.plan = true; saveProt(); toast('Protein saved'); render(); sync();
   }
   if(act === 'suppsave'){
     readSuppEdit();
@@ -2236,9 +2380,12 @@ async function sync(){
     if(added){ toast(`Loaded ${added} workout${added === 1 ? '' : 's'} from GitHub`); render(); }
     if(await syncSupp()) render();
     if(await syncProt()) render();
+    if(await pullPastDays(`${SUPP_DIR}`, suppLog, (d, j) => { suppLog[d] = j.taken || {}; }) + await pullPastDays(`${PROT_DIR}`, protLog, (d, j) => { protLog[d] = j.entries || []; })){
+      saveSupp(); saveProt(); if(view === 'report') render();
+    }
   }catch(e){ syncError = e.message.startsWith('GitHub') ? e.message : 'no connection — will retry.'; }
   syncing = false;
-  if(view === 'history' || view === 'settings' || view === 'supp' || view === 'prot') render(); else tickClock();
+  if(view === 'history' || view === 'settings' || view === 'supp' || view === 'prot' || view === 'report') render(); else tickClock();
   // ticked while this sync was running: go again
   if(!syncError && (suppDirty.plan || suppDirty.days.length || protDirty.plan || protDirty.days.length)) setTimeout(sync, 1500);
 }
@@ -2266,6 +2413,18 @@ async function syncSupp(){
     suppDirty.days = suppDirty.days.filter(d => d !== day); saveSupp();
   }
   return changed;
+}
+// Days in GitHub that this phone has never seen (the last 60), for the report.
+async function pullPastDays(dir, have, put){
+  const list = await api(`${dir}/days?ref=${gh.branch}`) || [], from = dayKey(addDays(Date.now(), -60));
+  let n = 0;
+  for(const f of list.filter(f => /^\d{4}-\d\d-\d\d\.json$/.test(f.name))){
+    const day = f.name.slice(0, 10);
+    if(day < from || day in have) continue;
+    const file = await api(f.path + `?ref=${gh.branch}`);
+    if(file){ put(day, JSON.parse(b64dec(file.content))); n++; }
+  }
+  return n;
 }
 // Protein: the target (as for the supplement list) and the entries of today and of any day changed here.
 async function syncProt(){
