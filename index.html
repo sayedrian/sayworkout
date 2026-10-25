@@ -212,6 +212,20 @@ details.sess summary span{font-weight:400;color:var(--muted);font-size:13px}
 .sdays{display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin:2px 0 4px}
 .sdays .chip{padding:5px 8px;min-width:30px;justify-content:center}
 .supped .x{border:0;background:none;color:var(--bad);font-size:18px}
+/* protein tab */
+.ptot{font-size:34px;font-weight:750;font-variant-numeric:tabular-nums}
+.ptot .of{font-size:18px;color:var(--muted);font-weight:600}
+.pbar{height:12px;border-radius:6px;background:var(--input);overflow:hidden;margin:8px 0 4px}
+.pbar i{display:block;height:100%;background:var(--accent);border-radius:6px}
+.pbar.full i{background:var(--done)}
+.padd{display:grid;grid-template-columns:1fr 78px;gap:8px;margin-top:6px}
+.padd select,.padd input{width:100%;min-width:0;border:1px solid var(--line);background:var(--input);border-radius:9px;padding:9px;font-size:16px;color:var(--ink)}
+.padd .full{grid-column:1 / -1}
+.pline{display:grid;grid-template-columns:52px 1fr auto 30px;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:15px}
+.pline:first-child{border-top:0}
+.pline span .small{display:block}
+.pline .g{font-weight:700;font-variant-numeric:tabular-nums}
+.pline .x{border:0;background:none;color:var(--bad);font-size:18px;padding:0}
 #toast{position:fixed;left:50%;top:70px;transform:translateX(-50%);background:var(--ink);color:var(--bg);
   padding:8px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20}
 #toast.show{opacity:1}
@@ -523,6 +537,34 @@ function setTaken(id, on, at = Date.now()){
   if(!suppDirty.days.includes(day)) suppDirty.days.push(day);
   saveSupp();
 }
+// ---------- Protein (user, 2026-10-25; target and reasons: fitness.md §10) ----------
+// Every entry is grams of protein (not of food), typed by the user; the app remembers the
+// last amount per source, so a usual one is just "Add". The daily target is personal, so it
+// lives in the private repo (data/protein/plan.json) like the supplement list.
+// Days: data/protein/days/<date>.json, {entries:[{id, t, at, src, g, text, del}]} — per entry the
+// latest change (t) wins; a removed entry stays as {del:true} so the removal syncs too.
+const PROT_DIR = 'data/protein';
+const PSRC = ['Powder', 'Greek yogurt', 'Meal', 'Snack', 'Other'];
+let prot = store.get('fb3.prot', null);               // {target:<g>}
+let protLog = store.get('fb3.protlog', {});           // {'2026-10-26': [{id, t, at, src, g, text}]}
+let protLast = store.get('fb3.protlast', {});         // last grams per source
+let protDirty = store.get('fb3.protdirty', { plan:false, days:[] });
+let protSrc = store.get('fb3.protsrc', 'Powder');     // the source picked last
+const saveProt = () => { ['prot', 'protlog', 'protlast', 'protdirty', 'protsrc'].forEach(k => store.set('fb3.' + k,
+  { prot, protlog:protLog, protlast:protLast, protdirty:protDirty, protsrc:protSrc }[k])); };
+const protDay = (day = dayKey()) => (protLog[day] || []).filter(e => !e.del);
+const protTotal = (day = dayKey()) => protDay(day).reduce((n, e) => n + (+e.g || 0), 0);
+function protChange(day, e){
+  protLog[day] = [...(protLog[day] || []).filter(x => x.id !== e.id), { ...e, t:Date.now() }];
+  if(!protDirty.days.includes(day)) protDirty.days.push(day);
+  saveProt();
+}
+function mergeEntries(a = [], b = []){
+  const m = new Map();
+  [...a, ...b].forEach(e => { const o = m.get(e.id); if(!o || (e.t || 0) > (o.t || 0)) m.set(e.id, e); });
+  return [...m.values()].sort((x, y) => x.at - y.at);
+}
+
 // two copies of a day's ticks → per item, the later change wins
 function mergeDay(a = {}, b = {}){
   const out = { ...a };
@@ -1369,12 +1411,13 @@ function render(){
   if(!page) lastDay = view;
   document.getElementById('tabs').hidden = !!page;
   document.getElementById('back').hidden = !page;
-  document.getElementById('title').textContent = page || (view === 'supp' ? 'Supplements' : PLAN[view].title);
+  document.getElementById('title').textContent = page || (view === 'supp' ? 'Supplements' : view === 'prot' ? 'Protein' : PLAN[view].title);
   document.getElementById('tabs').innerHTML =
     ALL.map(d => `<button data-tab="${d}" aria-current="${view===d}">${PLAN[d].tab}${drafts[d]?.startedAt ? '<span class="dot"></span>' : ''}</button>`).join('')
-    + `<button data-tab="supp" aria-current="${view==='supp'}" aria-label="Supplements">S${suppDue() ? '<span class="dot" style="background:var(--hint)"></span>' : ''}</button>`;
+    + `<button data-tab="supp" aria-current="${view==='supp'}" aria-label="Supplements">S${suppDue() ? '<span class="dot" style="background:var(--hint)"></span>' : ''}</button>`
+    + `<button data-tab="prot" aria-current="${view==='prot'}" aria-label="Protein">P</button>`;
   document.querySelectorAll('#menu [data-tab]').forEach(b => b.setAttribute('aria-current', b.dataset.tab === view));
-  view === 'history' ? renderHistory() : view === 'settings' ? renderSettings() : view === 'report' ? renderReport() : view === 'supp' ? renderSupp() : renderDay(view);
+  view === 'history' ? renderHistory() : view === 'settings' ? renderSettings() : view === 'report' ? renderReport() : view === 'supp' ? renderSupp() : view === 'prot' ? renderProt() : renderDay(view);
   tickClock(); runDemos();
 }
 function showMenu(on){
@@ -1519,6 +1562,35 @@ function renderSupp(){
   $main.innerHTML = h;
 }
 
+function renderProt(){
+  const day = dayKey(), now = Date.now(), total = protTotal(day), target = prot && +prot.target;
+  const pct = target ? Math.min(100, Math.round(total / target * 100)) : 0;
+  let h = `<p class="focus">${dateTxt(now)}</p><div class="box">
+    <div class="ptot">${total} g${target ? ` <span class="of">of ${target} g</span>` : ''}</div>
+    ${target ? `<div class="pbar ${total >= target ? 'full' : ''}"><i style="width:${pct}%"></i></div>
+      <div class="small">${total >= target ? '✓ Target reached' : `${target - total} g to go`}</div>`
+      : `<div class="small">Set your daily target in ⋯ → Settings → Protein${ghReady() ? ' (or it loads from your repo)' : ''}.</div>`}
+    <div class="padd">
+      <select id="pSrc" aria-label="Source">${PSRC.map(x => `<option ${x === protSrc ? 'selected' : ''}>${x}</option>`).join('')}</select>
+      <input id="pG" inputmode="decimal" value="${esc(protLast[protSrc] || '')}" placeholder="g" aria-label="Protein grams">
+      <input id="pText" class="full" placeholder="${protSrc === 'Meal' || protSrc === 'Snack' || protSrc === 'Other' ? 'What was it? (optional)' : 'Note (optional)'}" aria-label="What was it">
+      <input id="pAt" type="time" value="${hhmm(now)}" aria-label="Time">
+      <button class="btn" data-act="padd" style="padding:9px">Add</button>
+    </div></div>`;
+  const list = protDay(day).sort((a, b) => a.at - b.at);
+  h += `<div class="box">${list.length ? list.map(e => `<div class="pline"><span class="small">${hhmm(e.at)}</span>
+      <span>${esc(e.src)}${e.text ? `<span class="small">${esc(e.text)}</span>` : ''}</span>
+      <span class="g">${esc(e.g)} g</span><button class="x" data-pdel="${esc(e.id)}" aria-label="Remove">×</button></div>`).join('')
+    : '<p class="small">Nothing yet today.</p>'}</div>
+    <details class="sess"><summary>Rough protein amounts</summary><ul>
+      <li>Chicken or turkey breast, 150 g cooked ≈ 45 g</li><li>Tuna, 1 can (drained) ≈ 25 g</li>
+      <li>Salmon or white fish, 150 g ≈ 30–35 g</li><li>Beef or pork, lean, 150 g ≈ 40 g</li>
+      <li>2 eggs ≈ 12 g</li><li>Cottage cheese, 200 g ≈ 22 g</li><li>Lentils or chickpeas, 200 g cooked ≈ 18 g</li>
+      <li>Milk, 250 ml ≈ 8 g</li><li>Bread, 2 slices ≈ 7 g</li></ul></details>
+    <p class="small">Every amount is grams of protein. The last amount per source is filled in for next time. ${syncText()}</p>`;
+  $main.innerHTML = h;
+}
+
 function renderSettings(){
   let h = `<p class="small">${syncText()}</p>
     <div class="box gh"><h3>Body weight</h3>
@@ -1535,6 +1607,9 @@ function renderSettings(){
     <div class="actions"><button class="btn" data-act="ghsave">Save</button>
       <button class="btn ghost" data-act="ghpull">Load from GitHub</button>
       ${gh.token ? '<button class="btn ghost" data-act="ghforget">Forget token</button>' : ''}</div></details>
+    <div class="box gh"><h3>Protein</h3>
+      <label>Daily target, g of protein <input id="pTarget" inputmode="numeric" value="${esc(prot && prot.target || '')}" placeholder="g"></label>
+      <div class="actions"><button class="btn ghost" data-act="ptarget">Save target</button></div></div>
     ${supp ? `<details class="sess" id="suppEdit"><summary>Supplements <span>· ${supp.items.length} on the list</span></summary>
       <p class="small">Each one has its own reminder time and days (no time = no reminder, tick it whenever).
         Those due at the same time come in one notification. Doses stay until you change them here.</p>
@@ -1672,6 +1747,11 @@ document.addEventListener('click', e => {
     save(); render(); return;
   }
   if(t.dataset.hold){ startHold(view, t.dataset.hold); return; }
+  if(t.dataset.pdel){
+    const day = dayKey(), e = (protLog[day] || []).find(x => x.id === t.dataset.pdel);
+    if(e && confirm(`Remove ${e.g} g (${e.src})?`)){ protChange(day, { ...e, del:true }); render(); sync(); }
+    return;
+  }
   if(t.dataset.supp){
     const id = t.dataset.supp, on = !taken(dayKey(), id), box = document.querySelector(`[data-suppat="${id}"]`);
     const at = on && box && /^\d\d:\d\d$/.test(box.value) ? atToday(box.value) : Date.now();
@@ -1752,6 +1832,21 @@ document.addEventListener('click', e => {
     gh = next;
     store.set('fb3.gh', gh); toast('GitHub settings saved'); sync(); render();
   }
+  if(act === 'padd'){
+    const g = parseFloat(document.getElementById('pG').value.replace(',', '.')), hm = document.getElementById('pAt').value;
+    if(!(g > 0)){ toast('Enter the grams of protein'); return; }
+    const at = /^\d\d:\d\d$/.test(hm) ? atToday(hm) : Date.now();
+    if(at > Date.now()){ toast('That time hasn’t come yet'); return; }
+    const src = document.getElementById('pSrc').value, text = document.getElementById('pText').value.trim();
+    protLast[src] = String(g);
+    protChange(dayKey(), { id:Date.now().toString(36) + Math.random().toString(36).slice(2, 6), at, src, g, ...(text ? { text } : {}) });
+    toast(`+${g} g protein`); render(); sync();
+  }
+  if(act === 'ptarget'){
+    const g = parseInt(document.getElementById('pTarget').value, 10);
+    if(!(g > 0)){ toast('Enter the target in grams'); return; }
+    prot = { ...(prot || {}), target:g }; protDirty.plan = true; saveProt(); toast('Protein target saved'); render(); sync();
+  }
   if(act === 'suppsave'){
     readSuppEdit();
     if(supp.items.some(x => !x.name.trim() || !x.dose.trim())){ toast('Every supplement needs a name and a dose'); return; }
@@ -1780,6 +1875,7 @@ document.addEventListener('input', e => {
 document.addEventListener('change', e => {
   const t = e.target;
   if(t.id === 'repSel'){ reportId = t.value; render(); }
+  if(t.id === 'pSrc'){ protSrc = t.value; saveProt(); render(); }
   // the time box of a taken supplement: correct when it was taken
   if(t.dataset.suppat && /^\d\d:\d\d$/.test(t.value) && taken(dayKey(), t.dataset.suppat)){
     const at = atToday(t.value);
@@ -1979,7 +2075,7 @@ function beep(n = 3, freq = 880){
 function tickClock(){
   const d = drafts[view], el = document.getElementById('clock'), prog = document.getElementById('prog');
   // sync dot: green = everything is in GitHub, orange = waiting (no signal, or a GitHub problem)
-  const dot = document.getElementById('sdot'), waiting = !!syncError || history.some(s => !s.synced) || suppDirty.plan || suppDirty.days.length > 0;
+  const dot = document.getElementById('sdot'), waiting = !!syncError || history.some(s => !s.synced) || suppDirty.plan || suppDirty.days.length > 0 || protDirty.plan || protDirty.days.length > 0;
   dot.hidden = !ghReady(); dot.classList.toggle('wait', waiting); dot.title = syncText();
   const all = d && d.startedAt && !PAGES[view] ? d.slots.flatMap(x => x.sets) : [];
   prog.textContent = all.length ? `${all.filter(s => s.done).length}/${all.length} sets` : '';
@@ -2066,11 +2162,12 @@ async function sync(){
     const added = await pullNew();
     if(added){ toast(`Loaded ${added} workout${added === 1 ? '' : 's'} from GitHub`); render(); }
     if(await syncSupp()) render();
+    if(await syncProt()) render();
   }catch(e){ syncError = e.message.startsWith('GitHub') ? e.message : 'no connection — will retry.'; }
   syncing = false;
-  if(view === 'history' || view === 'settings' || view === 'supp') render(); else tickClock();
+  if(view === 'history' || view === 'settings' || view === 'supp' || view === 'prot') render(); else tickClock();
   // ticked while this sync was running: go again
-  if(!syncError && (suppDirty.plan || suppDirty.days.length)) setTimeout(sync, 1500);
+  if(!syncError && (suppDirty.plan || suppDirty.days.length || protDirty.plan || protDirty.days.length)) setTimeout(sync, 1500);
 }
 // Supplements: the list (this phone's edit goes up, otherwise GitHub's comes down) and the ticks
 // of today and of any day changed here, merged both ways. Returns true if anything on screen changed.
@@ -2094,6 +2191,30 @@ async function syncSupp(){
       await api(path, { method:'PUT', body:JSON.stringify({ message:`Supplements ${day}`,
         content:b64enc(JSON.stringify({ date:day, taken:merged }, null, 2) + '\n'), branch:gh.branch, ...(f ? { sha:f.sha } : {}) }) });
     suppDirty.days = suppDirty.days.filter(d => d !== day); saveSupp();
+  }
+  return changed;
+}
+// Protein: the target (as for the supplement list) and the entries of today and of any day changed here.
+async function syncProt(){
+  let changed = false;
+  const planPath = `${PROT_DIR}/plan.json`, pf = await api(planPath + `?ref=${gh.branch}`);
+  if(protDirty.plan && prot){
+    await api(planPath, { method:'PUT', body:JSON.stringify({ message:'Protein: update the target',
+      content:b64enc(JSON.stringify(prot, null, 2) + '\n'), branch:gh.branch, ...(pf ? { sha:pf.sha } : {}) }) });
+    protDirty.plan = false; saveProt();
+  } else if(pf){
+    const p = JSON.parse(b64dec(pf.content));
+    if(JSON.stringify(p) !== JSON.stringify(prot)){ prot = p; saveProt(); changed = true; }
+  }
+  for(const day of [...new Set([dayKey(), ...protDirty.days])]){
+    const path = `${PROT_DIR}/days/${day}.json`, f = await api(path + `?ref=${gh.branch}`);
+    const remote = f ? JSON.parse(b64dec(f.content)).entries || [] : [];
+    const merged = mergeEntries(remote, protLog[day]);
+    if(JSON.stringify(merged) !== JSON.stringify(protLog[day] || [])){ protLog[day] = merged; changed = true; }
+    if(protDirty.days.includes(day) && JSON.stringify(merged) !== JSON.stringify(mergeEntries(remote)))
+      await api(path, { method:'PUT', body:JSON.stringify({ message:`Protein ${day}`,
+        content:b64enc(JSON.stringify({ date:day, entries:merged }, null, 2) + '\n'), branch:gh.branch, ...(f ? { sha:f.sha } : {}) }) });
+    protDirty.days = protDirty.days.filter(d => d !== day); saveProt();
   }
   return changed;
 }
