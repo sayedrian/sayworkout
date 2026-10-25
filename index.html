@@ -236,6 +236,11 @@ button.pline:first-child{border-top:0}
 #toast{position:fixed;left:50%;top:70px;transform:translateX(-50%);background:var(--ink);color:var(--bg);
   padding:8px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20}
 #toast.show{opacity:1}
+#toast.undo{pointer-events:auto;display:flex;align-items:center;gap:12px}
+#toast button{border:0;background:none;color:var(--accent);font-weight:700;font-size:14px;padding:2px 4px}
+nav button .pg{font-size:11px;font-weight:600;opacity:.75;margin-left:3px}
+.pquick{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 2px}
+.pquick button{flex:1;min-width:120px;border:1px solid var(--accent);background:var(--card);color:var(--accent);border-radius:10px;padding:10px;font-weight:650;font-size:15px}
 
 .pick{display:flex;align-items:center;gap:6px}
 .pick select{flex:1;min-width:0}
@@ -563,6 +568,7 @@ function setTaken(id, on, at = Date.now(), day = dayKey()){
 // latest change (t) wins; a removed entry stays as {del:true} so the removal syncs too.
 const PROT_DIR = 'data/protein';
 const PSRC = ['Powder', 'Greek yogurt', 'Meal', 'Snack', 'Other'];
+const PQUICK = ['Powder', 'Greek yogurt'];             // one-tap buttons with their usual amount
 let prot = store.get('fb3.prot', null);               // {target:<g>}
 let protLog = store.get('fb3.protlog', {});           // {'2026-10-26': [{id, t, at, src, g, text}]}
 let protLast = store.get('fb3.protlast', {});         // last grams per source
@@ -1436,7 +1442,7 @@ function render(){
   document.getElementById('tabs').innerHTML =
     ALL.map(d => `<button data-tab="${d}" aria-current="${view===d}">${PLAN[d].tab}${drafts[d]?.startedAt ? '<span class="dot"></span>' : ''}</button>`).join('')
     + `<button data-tab="supp" aria-current="${view==='supp'}" aria-label="Supplements">S${suppDue() ? '<span class="dot" style="background:var(--hint)"></span>' : ''}</button>`
-    + `<button data-tab="prot" aria-current="${view==='prot'}" aria-label="Protein">P</button>`;
+    + `<button data-tab="prot" aria-current="${view==='prot'}" aria-label="Protein">P${protTotal() ? `<span class="pg">${protTotal()}</span>` : ''}</button>`;
   document.querySelectorAll('#menu [data-tab]').forEach(b => b.setAttribute('aria-current', b.dataset.tab === view));
   view === 'history' ? renderHistory() : view === 'settings' ? renderSettings() : view === 'report' ? renderReport() : view === 'supp' ? renderSupp() : view === 'prot' ? renderProt() : renderDay(view);
   tickClock(); runDemos();
@@ -1595,6 +1601,7 @@ function renderProt(){
     ${target ? `<div class="pbar ${total >= target ? 'full' : ''}"><i style="width:${pct}%"></i></div>
       <div class="small">${total >= target ? '✓ Target reached' : `${target - total} g to go`}</div>`
       : `<div class="small">Set your daily target in ⋯ → Settings → Protein${ghReady() ? ' (or it loads from your repo)' : ''}.</div>`}
+    ${ed ? '' : (q => q.length ? `<div class="pquick">${q.map(x => `<button data-pquick="${esc(x)}">+ ${esc(x)} ${esc(protLast[x])} g</button>`).join('')}</div>` : '')(PQUICK.filter(x => +protLast[x] > 0))}
     <div class="padd">
       ${ed ? '<div class="full small"><b>Changing an entry</b></div>' : ''}
       <select id="pSrc" aria-label="Source">${PSRC.map(x => `<option ${x === src ? 'selected' : ''}>${x}</option>`).join('')}</select>
@@ -1776,17 +1783,35 @@ document.addEventListener('click', e => {
     save(); render(); return;
   }
   if(t.dataset.hold){ startHold(view, t.dataset.hold); return; }
+  if(t.dataset.undo){
+    const fn = undoFn; undoFn = null; document.getElementById('toast').classList.remove('show', 'undo');
+    if(fn){ fn(); render(); sync(); }
+    return;
+  }
+  if(t.dataset.pquick){
+    const day = sDay(), src = t.dataset.pquick, g = +protLast[src], id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    const e = { id, at:day === dayKey() ? Date.now() : atDay(day), src, g };
+    protChange(day, e); render(); sync();
+    undoToast(`+${g} g ${src}`, () => protChange(day, { ...e, del:true }));
+    return;
+  }
   if(t.dataset.pedit){ protEdit = protEdit === t.dataset.pedit ? null : t.dataset.pedit; render(); scrollTo(0, 0); return; }
   if(t.dataset.pdel){
     const day = sDay(), e = (protLog[day] || []).find(x => x.id === t.dataset.pdel);
-    if(e && confirm(`Remove ${e.g} g (${e.src})?`)){ protChange(day, { ...e, del:true }); protEdit = null; render(); sync(); }
+    if(e){
+      protChange(day, { ...e, del:true }); protEdit = null; render(); sync();
+      undoToast(`Removed ${e.g} g (${e.src})`, () => protChange(day, { ...e, del:false }));
+    }
     return;
   }
   if(t.dataset.supp){
     const id = t.dataset.supp, day = sDay(), on = !taken(day, id), box = document.querySelector(`[data-suppat="${id}"]`);
     const at = on && box && /^\d\d:\d\d$/.test(box.value) ? atDay(day, box.value) : day === dayKey() ? Date.now() : atDay(day);
     if(on && at > Date.now()){ toast('That time hasn’t come yet'); return; }
-    setTaken(id, on, at, day); render(); sync(); return;
+    const was = takenAt(day, id);
+    setTaken(id, on, at, day); render(); sync();
+    if(!on){ const it = supp.items.find(x => x.id === id); undoToast(`${it ? it.name : 'Supplement'} un-ticked`, () => setTaken(id, true, was, day)); }
+    return;
   }
   if(t.dataset.sdayn){
     const n = +t.dataset.sdayn, d = new Date(atDay(sDay())); d.setDate(d.getDate() + n);
@@ -1856,7 +1881,11 @@ document.addEventListener('click', e => {
     delete drafts[view]; save(); stopRest(); render(); scrollTo(0, 0); toast('Workout saved ✓'); sync();
   }
   if(act === 'discard'){
-    if(drafts[view] && confirm('Clear everything entered for today? (Saved workouts are kept.)')){ delete drafts[view]; save(); render(); }
+    if(drafts[view]){
+      const day = view, copy = drafts[day];
+      delete drafts[day]; save(); render();
+      undoToast(`${PLAN[day].title} cleared`, () => { if(!running(day)) drafts[day] = copy; save(); });
+    }
   }
   if(act === 'ghsave'){
     const v = id => document.getElementById(id).value.trim();
@@ -2288,7 +2317,15 @@ document.addEventListener('visibilitychange', () => { if(document.visibilityStat
 sync();
 
 let toastT;
-function toast(msg){ const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2000); }
+function toast(msg){ const t = document.getElementById('toast'); undoFn = null; t.classList.remove('undo'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2000); }
+// Act at once and offer Undo for a few seconds, instead of asking "are you sure?" (user, 2026-10-25)
+let undoFn = null;
+function undoToast(msg, fn){
+  const t = document.getElementById('toast');
+  t.innerHTML = `<span>${esc(msg)}</span><button data-undo="1">Undo</button>`;
+  t.classList.add('show', 'undo'); undoFn = fn;
+  clearTimeout(toastT); toastT = setTimeout(() => { t.classList.remove('show', 'undo'); undoFn = null; }, 5000);
+}
 
 render();
 
