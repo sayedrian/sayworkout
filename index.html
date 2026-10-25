@@ -197,6 +197,19 @@ details.sess summary span{font-weight:400;color:var(--muted);font-size:13px}
 .lr{display:flex;gap:4px;min-width:0}
 .lr > *{flex:1 1 0;min-width:0}
 .lr input{padding:9px 2px;font-size:16px}
+/* supplements tab */
+.slot h3{display:flex;align-items:baseline;gap:8px}
+.slot h3 .st{margin-left:auto;font-size:13px;font-weight:600;color:var(--muted)}
+.slot h3 .st.due{color:var(--hint)}
+.slot h3 .st.ok{color:var(--done)}
+.slot.due{border-color:var(--hint)}
+.slot.ok{border-color:var(--done)}
+.srow{display:grid;grid-template-columns:1fr 56px;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--line);font-size:15px}
+.srow .small{display:block}
+.srow.done .tick{opacity:1;background:var(--done);border-color:var(--done);color:var(--card)}
+.supped{display:grid;grid-template-columns:1fr 90px 36px;gap:6px;align-items:center;margin:4px 0}
+.supped input,.slotTime{width:100%;min-width:0;border:1px solid var(--line);background:var(--input);border-radius:9px;padding:8px;font-size:15px;color:var(--ink)}
+.supped .x{border:0;background:none;color:var(--bad);font-size:18px}
 #toast{position:fixed;left:50%;top:70px;transform:translateX(-50%);background:var(--ink);color:var(--bg);
   padding:8px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20}
 #toast.show{opacity:1}
@@ -466,6 +479,43 @@ let view    = defaultDay();
 const save = () => { store.set('fb3.history', history); store.set('fb3.drafts', drafts); };
 let bodyweight = store.get('fb3.bw', '');   // typed in on the phone, never in this file
 let reportId = null;                        // which workout the Report tab shows (null = latest)
+
+// ---------- Supplements (user, 2026-10-25; the list: fitness.md "Supplements") ----------
+// The list is personal, so it is never in this file: it lives in the private repo
+// (data/supplements/plan.json), is loaded with the token and kept on the phone.
+// Slots with a time get a reminder (step 2); a slot without one is ticked whenever taken.
+// Each day's ticks: data/supplements/days/<date>.json, {taken:{id:{t, on, dose}}} —
+// per item the latest change (t) wins, so ticks from the phone and the reminder merge.
+const SUPP_DIR = 'data/supplements';
+let supp = store.get('fb3.supp', null);               // the plan: {version, slots:[{id, time, label, note, items:[{id, name, dose, optional}]}]}
+let suppLog = store.get('fb3.supplog', {});           // {'2026-10-26': {<item id>:{t, on:true, dose}}}
+let suppDirty = store.get('fb3.suppdirty', { plan:false, days:[] });
+const saveSupp = () => { store.set('fb3.supp', supp); store.set('fb3.supplog', suppLog); store.set('fb3.suppdirty', suppDirty); };
+const pad2 = n => String(n).padStart(2, '0');
+const dayKey = (t = Date.now()) => { const d = new Date(t); return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; };
+const hhmm = t => { const d = new Date(t); return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
+const taken = (day, id) => !!(suppLog[day] && suppLog[day][id] && suppLog[day][id].on);
+const slotDone = (day, sl) => sl.items.filter(x => !x.optional).every(x => taken(day, x.id));
+// a timed slot is due once its time has passed today and something in it is not taken
+function slotDue(sl, now = Date.now()){
+  if(!sl.time || slotDone(dayKey(now), sl)) return false;
+  const [h, m] = sl.time.split(':').map(Number), d = new Date(now);
+  return d.getHours() * 60 + d.getMinutes() >= h * 60 + m;
+}
+const suppDue = () => !!supp && supp.slots.some(sl => slotDue(sl));
+function setTaken(id, on){
+  const day = dayKey(), it = supp.slots.flatMap(sl => sl.items).find(x => x.id === id);
+  suppLog[day] = { ...(suppLog[day] || {}), [id]:{ t:Date.now(), on, ...(on && it ? { dose:it.dose } : {}) } };
+  if(!suppDirty.days.includes(day)) suppDirty.days.push(day);
+  saveSupp();
+}
+// two copies of a day's ticks → per item, the later change wins
+function mergeDay(a = {}, b = {}){
+  const out = { ...a };
+  Object.entries(b).forEach(([id, v]) => { if(!out[id] || (v.t || 0) > (out[id].t || 0)) out[id] = v; });
+  return out;
+}
+const slug = s => s.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'item';
 
 // Opens on the workout in progress, otherwise the next one in the rotation A → B → C → A.
 // A home workout stands in for the gym workout that was due, so the rotation moves on past it.
@@ -1305,11 +1355,12 @@ function render(){
   if(!page) lastDay = view;
   document.getElementById('tabs').hidden = !!page;
   document.getElementById('back').hidden = !page;
-  document.getElementById('title').textContent = page || PLAN[view].title;
+  document.getElementById('title').textContent = page || (view === 'supp' ? 'Supplements' : PLAN[view].title);
   document.getElementById('tabs').innerHTML =
-    ALL.map(d => `<button data-tab="${d}" aria-current="${view===d}">${PLAN[d].tab}${drafts[d]?.startedAt ? '<span class="dot"></span>' : ''}</button>`).join('');
+    ALL.map(d => `<button data-tab="${d}" aria-current="${view===d}">${PLAN[d].tab}${drafts[d]?.startedAt ? '<span class="dot"></span>' : ''}</button>`).join('')
+    + `<button data-tab="supp" aria-current="${view==='supp'}" aria-label="Supplements">S${suppDue() ? '<span class="dot" style="background:var(--hint)"></span>' : ''}</button>`;
   document.querySelectorAll('#menu [data-tab]').forEach(b => b.setAttribute('aria-current', b.dataset.tab === view));
-  view === 'history' ? renderHistory() : view === 'settings' ? renderSettings() : view === 'report' ? renderReport() : renderDay(view);
+  view === 'history' ? renderHistory() : view === 'settings' ? renderSettings() : view === 'report' ? renderReport() : view === 'supp' ? renderSupp() : renderDay(view);
   tickClock(); runDemos();
 }
 function showMenu(on){
@@ -1430,6 +1481,30 @@ function renderDay(day){
   $main.innerHTML = h;
 }
 
+function renderSupp(){
+  if(!supp){
+    $main.innerHTML = `<p class="empty">No supplement list on this phone yet.</p>
+      <p class="small">Your list is kept in your private repo. ${ghReady() ? 'It loads by itself when there is signal.' : 'Add the GitHub token in ⋯ → Settings and it loads by itself.'}</p>`;
+    return;
+  }
+  const day = dayKey(), now = Date.now();
+  let h = `<p class="focus">${dateTxt(now)}</p>`;
+  supp.slots.forEach(sl => {
+    const done = slotDone(day, sl), due = slotDue(sl, now);
+    const at = sl.items.map(x => suppLog[day]?.[x.id]).filter(v => v && v.on).map(v => v.t);
+    const st = done ? `✓ ${sl.time ? hhmm(Math.max(...at)) : 'taken'}` : due ? 'due' : sl.time ? `at ${sl.time}` : '';
+    h += `<div class="box slot ${done ? 'ok' : due ? 'due' : ''}"><h3>${esc(sl.time || sl.label || 'Any time')}<span class="st ${done ? 'ok' : due ? 'due' : ''}">${esc(st)}</span></h3>
+      ${sl.note ? `<div class="small">${esc(sl.note)}</div>` : ''}
+      ${sl.items.map(x => `<div class="srow ${taken(day, x.id) ? 'done' : ''}"><span><b>${esc(x.name)}</b> · ${esc(x.dose)}${x.optional ? ' <span class="small" style="display:inline">· optional</span>' : ''}
+          ${taken(day, x.id) ? `<span class="small">taken ${hhmm(suppLog[day][x.id].t)}</span>` : ''}</span>
+        <button class="tick" data-supp="${esc(x.id)}" aria-label="${esc(x.name)} taken">✓</button></div>`).join('')}
+      ${sl.time && !done && sl.items.length > 1 ? `<div class="actions" style="margin:8px 0 2px"><button class="btn ghost" data-suppall="${esc(sl.id)}">✓ All taken</button></div>` : ''}
+    </div>`;
+  });
+  h += `<p class="small">Doses stay the same every day; change them in ⋯ → Settings → Supplements. ${syncText()}</p>`;
+  $main.innerHTML = h;
+}
+
 function renderSettings(){
   let h = `<p class="small">${syncText()}</p>
     <div class="box gh"><h3>Body weight</h3>
@@ -1446,6 +1521,14 @@ function renderSettings(){
     <div class="actions"><button class="btn" data-act="ghsave">Save</button>
       <button class="btn ghost" data-act="ghpull">Load from GitHub</button>
       ${gh.token ? '<button class="btn ghost" data-act="ghforget">Forget token</button>' : ''}</div></details>
+    ${supp ? `<details class="sess" id="suppEdit"><summary>Supplements <span>· ${supp.slots.reduce((n, sl) => n + sl.items.length, 0)} on the list</span></summary>
+      <p class="small">Times are when the reminder comes (empty = no reminder, you tick it whenever). Doses stay until you change them here.</p>
+      ${supp.slots.map((sl, k) => `<div class="box"><label class="small">${sl.time ? 'Reminder at' : esc(sl.label || 'Any time')}
+          ${sl.time ? `<input class="slotTime" type="time" data-slottime="${k}" value="${esc(sl.time)}">` : ''}</label>
+        ${sl.items.map((x, n) => `<div class="supped"><input data-sname="${k}.${n}" value="${esc(x.name)}" aria-label="Name">
+          <input data-sdose="${k}.${n}" value="${esc(x.dose)}" aria-label="Dose"><button class="x" data-sdel="${k}.${n}" aria-label="Remove ${esc(x.name)}">×</button></div>`).join('')}
+        <button class="link" data-sadd="${k}">+ add to this time</button></div>`).join('')}
+      <div class="actions"><button class="btn" data-act="suppsave">Save supplements</button></div></details>` : ''}
     <div class="box"><h3>Backup</h3><p class="small">Export a backup now and then — it can be imported into the app later.</p>
       <div class="actions"><button class="btn ghost" data-act="backup">Backup</button>
       <button class="btn ghost" data-act="restore">Restore</button></div></div>`;
@@ -1574,6 +1657,17 @@ document.addEventListener('click', e => {
     save(); render(); return;
   }
   if(t.dataset.hold){ startHold(view, t.dataset.hold); return; }
+  if(t.dataset.supp){ const id = t.dataset.supp; setTaken(id, !taken(dayKey(), id)); render(); sync(); return; }
+  if(t.dataset.suppall){
+    supp.slots.find(sl => sl.id === t.dataset.suppall).items.forEach(x => { if(!taken(dayKey(), x.id)) setTaken(x.id, true); });
+    render(); sync(); return;
+  }
+  if(t.dataset.sadd || t.dataset.sdel){
+    readSuppEdit();
+    if(t.dataset.sadd) supp.slots[+t.dataset.sadd].items.push({ id:'', name:'', dose:'' });
+    else { const [k, n] = t.dataset.sdel.split('.').map(Number); supp.slots[k].items.splice(n, 1); }
+    render(); document.getElementById('suppEdit').open = true; return;
+  }
   if(t.dataset.holdAct){ holdAct(t.dataset.holdAct); return; }
   if(t.dataset.reset){
     if(!begin(view, true)) return;
@@ -1637,6 +1731,11 @@ document.addEventListener('click', e => {
     }
     gh = next;
     store.set('fb3.gh', gh); toast('GitHub settings saved'); sync(); render();
+  }
+  if(act === 'suppsave'){
+    readSuppEdit();
+    if(supp.slots.some(sl => sl.items.some(x => !x.name.trim() || !x.dose.trim()))){ toast('Every supplement needs a name and a dose'); return; }
+    suppDirty.plan = true; saveSupp(); toast('Supplements saved'); render(); sync();
   }
   if(act === 'ghforget' && confirm('Remove the GitHub token from this phone?')){ gh.token = ''; store.set('fb3.gh', gh); render(); }
   if(act === 'ghpull') pullFromGitHub();
@@ -1782,6 +1881,20 @@ function tickHold(){
   $hold.className = el >= hold.min ? 'reached' : '';
 }
 
+// The Settings editor's boxes → the plan (new items get an id from their name; ids never change after)
+function readSuppEdit(){
+  const v = sel => { const el = document.querySelector(sel); return el ? el.value.trim() : null; };
+  const ids = new Set(supp.slots.flatMap(sl => sl.items.map(x => x.id)).filter(Boolean));
+  supp = { ...supp, slots:supp.slots.map((sl, k) => ({ ...sl,
+    ...(sl.time ? { time:v(`[data-slottime="${k}"]`) || sl.time } : {}),
+    items:sl.items.map((x, n) => {
+      const name = v(`[data-sname="${k}.${n}"]`) ?? x.name, dose = v(`[data-sdose="${k}.${n}"]`) ?? x.dose;
+      let id = x.id;
+      if(!id && name){ id = slug(name); while(ids.has(id)) id += '-2'; ids.add(id); }
+      return { ...x, id, name, dose };
+    }) })) };
+}
+
 // ---------- Export ----------
 async function download(name, text, type){
   // Inside claude.ai the viewer hands out files; opened as a plain file, a normal link works.
@@ -1841,7 +1954,7 @@ function beep(n = 3, freq = 880){
 function tickClock(){
   const d = drafts[view], el = document.getElementById('clock'), prog = document.getElementById('prog');
   // sync dot: green = everything is in GitHub, orange = waiting (no signal, or a GitHub problem)
-  const dot = document.getElementById('sdot'), waiting = !!syncError || history.some(s => !s.synced);
+  const dot = document.getElementById('sdot'), waiting = !!syncError || history.some(s => !s.synced) || suppDirty.plan || suppDirty.days.length > 0;
   dot.hidden = !ghReady(); dot.classList.toggle('wait', waiting); dot.title = syncText();
   const all = d && d.startedAt && !PAGES[view] ? d.slots.flatMap(x => x.sets) : [];
   prog.textContent = all.length ? `${all.filter(s => s.done).length}/${all.length} sets` : '';
@@ -1927,9 +2040,37 @@ async function sync(){
     // and the other way: workouts saved from another phone (or a new phone) come in by themselves
     const added = await pullNew();
     if(added){ toast(`Loaded ${added} workout${added === 1 ? '' : 's'} from GitHub`); render(); }
+    if(await syncSupp()) render();
   }catch(e){ syncError = e.message.startsWith('GitHub') ? e.message : 'no connection — will retry.'; }
   syncing = false;
-  if(view === 'history' || view === 'settings') render(); else tickClock();
+  if(view === 'history' || view === 'settings' || view === 'supp') render(); else tickClock();
+  // ticked while this sync was running: go again
+  if(!syncError && (suppDirty.plan || suppDirty.days.length)) setTimeout(sync, 1500);
+}
+// Supplements: the list (this phone's edit goes up, otherwise GitHub's comes down) and the ticks
+// of today and of any day changed here, merged both ways. Returns true if anything on screen changed.
+async function syncSupp(){
+  let changed = false;
+  const planPath = `${SUPP_DIR}/plan.json`, pf = await api(planPath + `?ref=${gh.branch}`);
+  if(suppDirty.plan && supp){
+    await api(planPath, { method:'PUT', body:JSON.stringify({ message:'Supplements: update the list',
+      content:b64enc(JSON.stringify(supp, null, 2) + '\n'), branch:gh.branch, ...(pf ? { sha:pf.sha } : {}) }) });
+    suppDirty.plan = false; saveSupp();
+  } else if(pf){
+    const p = JSON.parse(b64dec(pf.content));
+    if(JSON.stringify(p) !== JSON.stringify(supp)){ supp = p; saveSupp(); changed = true; }
+  }
+  for(const day of [...new Set([dayKey(), ...suppDirty.days])]){
+    const path = `${SUPP_DIR}/days/${day}.json`, f = await api(path + `?ref=${gh.branch}`);
+    const remote = f ? JSON.parse(b64dec(f.content)).taken || {} : {};
+    const merged = mergeDay(remote, suppLog[day]);
+    if(JSON.stringify(merged) !== JSON.stringify(suppLog[day] || {})){ suppLog[day] = merged; changed = true; }
+    if(suppDirty.days.includes(day) && JSON.stringify(merged) !== JSON.stringify(remote))
+      await api(path, { method:'PUT', body:JSON.stringify({ message:`Supplements ${day}`,
+        content:b64enc(JSON.stringify({ date:day, taken:merged }, null, 2) + '\n'), branch:gh.branch, ...(f ? { sha:f.sha } : {}) }) });
+    suppDirty.days = suppDirty.days.filter(d => d !== day); saveSupp();
+  }
+  return changed;
 }
 // Fetches workouts that are in GitHub but not on this phone. Returns how many were added.
 async function pullNew(){
