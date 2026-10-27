@@ -2239,8 +2239,8 @@ document.addEventListener('click', e => {
   if(act === 'ghforget' && confirm('Remove the GitHub token from this phone?')){ gh.token = ''; store.set('fb3.gh', gh); render(); }
   if(act === 'ghpull') pullFromGitHub();
   if(act === 'print') window.print();
-  if(act === 'pushon') pushOn().catch(pushErr);
-  if(act === 'pushoff') pushOff().catch(pushErr);
+  // one tap at a time: a double tap saved this phone twice (2026-10-27)
+  if((act === 'pushon' || act === 'pushoff') && !pushBusy){ pushBusy = true; (act === 'pushon' ? pushOn() : pushOff()).catch(pushErr).finally(() => pushBusy = false); }
   if(act === 'pushtest') pushTest().catch(pushErr);
   if(act === 'backup') download(`fitness-backup-${new Date().toISOString().slice(0,10)}.json`,
     JSON.stringify({ version:1, history, drafts }, null, 2), 'application/json');
@@ -2692,6 +2692,7 @@ let undoFn = null;
 const VAPID_PUBLIC = 'BL3J-rsruiBzTRBniD5tqyPor9bEaFIeBS_px5ZdsNnDxCyyFVANUGg389dNMA17BoD4aCXxiDGw_4G9Lf3c_aQ';
 let pushId = store.get('fb3.pushid', null);          // this phone's subscription file, once saved
 let pushEp = store.get('fb3.pushep', '');            // …and the endpoint saved in it
+let pushBusy = false;                                // a save is on its way
 const pushOk = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 const pushState = () => !pushOk() ? 'unsupported' : Notification.permission === 'denied' ? 'blocked'
   : pushId && Notification.permission === 'granted' ? 'on' : 'off';
