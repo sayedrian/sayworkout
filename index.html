@@ -239,7 +239,24 @@ button.pline{width:100%;border:0;border-top:1px solid var(--line);background:non
 button.pline:first-child{border-top:0}
 .pline.on{background:var(--input);border-radius:9px}
 /* report: rings, wins, strength sparklines */
-.rings{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:center}
+.rings{display:grid;grid-template-columns:repeat(auto-fit,minmax(64px,1fr));gap:6px;text-align:center}
+.rings.n4 .ring svg{width:64px;height:64px}
+.kind{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin:2px 0 8px}
+/* ranges (user, 2026-10-27): a band to stay inside, not a ring to fill */
+.frow{padding:10px 0 4px;border-top:1px solid var(--line)}.kind+.frow{border-top:0}
+.rhead{display:flex;align-items:baseline;gap:8px;font-size:14px}.rhead .rv{margin-left:auto;font-weight:750;font-variant-numeric:tabular-nums}
+.rbar{position:relative;height:14px;margin:12px 0 4px;border-radius:7px;background:var(--input)}
+.rbar .band{position:absolute;top:0;bottom:0;background:var(--done-bg);border-left:2px solid var(--done);border-right:2px solid var(--done)}
+.rbar .dt{position:absolute;top:-4px;bottom:-4px;width:2px;margin-left:-1px;background:var(--done)}
+.rbar .mk{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 2px var(--card)}
+.rbar .mk.ok{background:var(--done)}.rbar .mk.over{background:var(--bad)}
+.rscale{position:relative;height:16px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.rscale span{position:absolute;transform:translateX(-50%)}
+.wk{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:6px;text-align:center;font-size:12px}
+.wk div{border-radius:8px;padding:3px 0;background:var(--input);color:var(--muted)}
+.wk b{display:block;font-size:15px}
+.wk .ok{background:var(--done-bg);color:var(--done)}.wk .over{color:var(--bad)}.wk .today{box-shadow:inset 0 0 0 2px var(--line)}
+.wk .later{background:none}
 .ring svg{width:76px;height:76px;display:block;margin:0 auto}
 .ring .tr{fill:none;stroke:var(--input);stroke-width:7}
 .ring .pr{fill:none;stroke:var(--accent);stroke-width:7;stroke-linecap:round}
@@ -1988,28 +2005,59 @@ function strengthLines(){
   }));
   return Object.entries(by).filter(([, v]) => v.length >= 2).sort((a, b) => b[1].length - a[1].length || b[1].at - a[1].at).slice(0, 6);
 }
+// A range: a band to stay inside (green), "done at" as a tick, today as a dot, then the week as
+// one cell per day: ✓ in range · ↓ under · ↑ over (symbols, so it never relies on colour alone).
+function rangeRow({ icon, name, unit, lo, hi, done, value, approx, dayVal, from }){
+  const fmt = n => n.toLocaleString('en'), now = Date.now(), wk = weekStart(now);
+  const okAt = done || lo, state = v => v > hi ? 'over' : v >= okAt ? 'ok' : 'under';
+  const min = Math.max(0, Math.floor(lo * 0.6)), max = Math.ceil(hi * 1.2), pos = v => Math.max(0, Math.min(100, (v - min) / (max - min) * 100));
+  const st = state(value), word = { ok:'✓ in range', under:`↓ ${fmt(okAt - value)} ${unit} to go`, over:`↑ ${fmt(value - hi)} ${unit} over` }[st];
+  let cells = '', inR = 0, n = 0;
+  for(let i = 0; i < 7; i++){
+    const d = addDays(wk, i), k = dayKey(d), isToday = k === dayKey(now), wd = new Date(d).toLocaleDateString('en', { weekday:'narrow' });
+    if(k > dayKey(now)){ cells += `<div class="later">${wd}<b>&nbsp;</b></div>`; continue; }
+    if(k < from){ cells += `<div title="${dateTxt(d)}: not tracked yet">${wd}<b>·</b></div>`; continue; }
+    const v = dayVal(k), s2 = state(v), sym = { ok:'✓', under:'↓', over:'↑' }[s2];
+    if(!isToday || s2 !== 'under'){ n++; if(s2 === 'ok') inR++; }   // today counts once it's in range or over
+    cells += `<div class="${s2 === 'ok' ? 'ok' : s2 === 'over' ? 'over' : ''} ${isToday ? 'today' : ''}" title="${dateTxt(d)}: ${fmt(v)} ${unit}">${wd}<b>${sym}</b></div>`;
+  }
+  return `<div class="frow"><div class="rhead"><b>${icon} ${name} today</b><span class="small">${word}</span><span class="rv">${approx}${fmt(value)} ${unit}</span></div>
+    <div class="rbar" role="img" aria-label="${name} today ${fmt(value)} ${unit}; range ${fmt(lo)} to ${fmt(hi)}${done ? `, done at ${fmt(done)}` : ''}">
+      <i class="band" style="left:${pos(lo)}%;width:${pos(hi) - pos(lo)}%"></i>${done && done > lo ? `<i class="dt" style="left:${pos(done)}%"></i>` : ''}
+      <i class="mk ${st}" style="left:${pos(value)}%"></i></div>
+    <div class="rscale"><span style="left:${pos(lo)}%">${fmt(lo)}</span><span style="left:${pos(hi)}%">${fmt(hi)}</span></div>
+    <div class="small">${done && done > lo ? `Done at ${fmt(done)} ${unit} (the tick); fine up to ${fmt(hi)}.` : `Stay between ${fmt(lo)} and ${fmt(hi)}.`}${n ? ` This week: <b>${inR} of ${n} day${n === 1 ? '' : 's'}</b> in range.` : ''}</div>
+    <div class="wk">${cells}</div></div>`;
+}
+function rangeBox(pFrom){
+  const range = prot && prot.range, kc = prot && prot.kcal, target = prot && +prot.target;
+  if(!(range && range[1]) && !(kc && kc[1])) return '';
+  const today = dayKey(), approx = k => protDay(today).some(e => nut(e, k) == null || isEst(e, k)) ? '~' : '';
+  const kFrom = firstDay(Object.fromEntries(Object.entries(protLog).map(([k, v]) => [k, (v || []).filter(e => !e.del && nut(e, 'kcal') != null)])));
+  return `<div class="box rep"><h3>Food ranges</h3><p class="kind">Ranges · stay inside</p>
+    ${range && range[1] ? rangeRow({ icon:'🥩', name:'Protein', unit:'g', lo:+range[0], hi:+range[1], done:target, value:protTotal(today), approx:approx('g'), dayVal:protTotal, from:pFrom }) : ''}
+    ${kc && kc[1] ? rangeRow({ icon:'🔥', name:'kcal', unit:'kcal', lo:+kc[0], hi:+kc[1], value:foodSum(today, 'kcal'), approx:approx('kcal'), dayVal:k => foodSum(k, 'kcal'), from:kFrom }) : ''}</div>`;
+}
 function reportTop(){
   const now = Date.now(), wk = weekStart(now), target = prot && +prot.target;
   const wDone = history.filter(s => s.startedAt >= wk).length;
-  // protein: days at target this week, out of the days so far (today counts once it is reached)
-  let pDays = 0, pHit = 0;
+  // the first day food was logged: days before it are "not tracked yet", never "missed"
   const pFrom = firstDay(Object.fromEntries(Object.entries(protLog).map(([k, v]) => [k, (v || []).filter(e => !e.del)])));
-  for(let d = wk; dayKey(d) <= dayKey(now); d = addDays(d, 1)){
-    const k = dayKey(d), tot = protTotal(k);
-    if(k < pFrom) continue;
-    if(k !== dayKey(now) || (target && tot >= target)){ pDays++; if(target && tot >= target) pHit++; }
-  }
-  const sw = suppWeek(), pToday = protTotal();
-  let h = `<div class="box rep"><h3>This week</h3><div class="rings">
-    <div class="ring ${wDone >= 3 ? 'full' : ''}">${ringSvg(wDone / 3, `${wDone}/3`)}<div class="lab">Workouts</div><div class="sub">${wDone >= 3 ? 'all done ✓' : `${3 - wDone} to go`}</div></div>
-    <div class="ring ${target && pToday >= target ? 'full' : ''}">${ringSvg(target ? pToday / target : 0, target ? `${pToday}` : '–')}<div class="lab">Protein today</div><div class="sub">${target ? `of ${target} g${pDays ? ` · target hit ${pHit}/${pDays} days` : ''}` : 'no target set'}</div></div>
-    <div class="ring ${sw && sw.got === sw.due ? 'full' : ''}">${ringSvg(sw ? sw.got / sw.due : 0, sw ? `${Math.round(sw.got / sw.due * 100)}%` : '–')}<div class="lab">Supplements</div><div class="sub">${sw ? `${sw.got} of ${sw.due} taken` : 'none due yet'}</div></div>
-  </div>`;
+  const sw = suppWeek();
+  // Targets (reach at least this) are rings that fill up; ranges (stay between) are bands, below (user, 2026-10-27)
+  const water = prot && +prot.water, wToday = waterTotal(), fatMin = prot && +prot.fat, fToday = foodSum(dayKey(), 'fat');
+  const rings = [
+    `<div class="ring ${wDone >= 3 ? 'full' : ''}">${ringSvg(wDone / 3, `${wDone}/3`)}<div class="lab">Workouts</div><div class="sub">${wDone >= 3 ? 'all done ✓' : `${3 - wDone} to go`}</div></div>`,
+    `<div class="ring ${sw && sw.got === sw.due ? 'full' : ''}">${ringSvg(sw ? sw.got / sw.due : 0, sw ? `${Math.round(sw.got / sw.due * 100)}%` : '–')}<div class="lab">Supplements</div><div class="sub">${sw ? `${sw.got} of ${sw.due} taken` : 'none due yet'}</div></div>`,
+    water ? `<div class="ring ${wToday >= water ? 'full' : ''}">${ringSvg(wToday / water, litres(wToday))}<div class="lab">Water today</div><div class="sub">${wToday >= water ? 'reached ✓' : `of ${litres(water)} L`}</div></div>` : '',
+    fatMin ? `<div class="ring ${fToday >= fatMin ? 'full' : ''}">${ringSvg(fToday / fatMin, `${fToday}`)}<div class="lab">Fat today</div><div class="sub">${fToday >= fatMin ? 'minimum ✓' : `at least ${fatMin} g`}</div></div>` : ''].filter(Boolean);
+  let h = `<div class="box rep"><h3>This week</h3><p class="kind">Targets · reach them</p><div class="rings n${rings.length}">${rings.join('')}</div>`;
   const ws = workoutStreak(), ps = protStreak(), goal = streakGoal();
   const streaks = [];
   if(ws) streaks.push(`🔥 <b>${ws} week${ws === 1 ? '' : 's'} in a row</b> with every workout done`);
   if(target) streaks.push(ps >= goal ? `🔥 <b>${ps} days in a row</b> at ${target} g protein` : ps ? `Protein: <b>${ps} of ${goal} days</b> in a row at ${target} g` : '');
   h += streaks.filter(Boolean).map(x => `<p class="streak">${x}</p>`).join('') + '</div>';
+  h += rangeBox(pFrom);
 
   // Wins: the last 7 days, from the data only — no made-up praise
   const wins = [], since = addDays(now, -7);
