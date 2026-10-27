@@ -32,12 +32,13 @@ self.addEventListener('fetch', e => {
 });
 
 // Reminders (user, 2026-10-26): the push comes from the Reminders job in the private repo
-// (supplements, protein 19:00, gut 20:00). Tapping it opens the app on the Daily tab.
+// (supplements, protein 19:00, gut 20:00, morning recap). Tapping it opens the app on the Daily tab.
+// A repeat has the same tag, so it replaces the last one, and `renotify` makes it buzz again.
 self.addEventListener('push', e => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (err) { d = { body: e.data ? e.data.text() : '' }; }
   e.waitUntil(self.registration.showNotification(d.title || 'Workout', {
-    body: d.body || '', tag: d.tag || 'reminder', icon: 'icon-192.png', badge: 'icon-192.png', data: { tab: d.tab || 'fuel' } }));
+    body: d.body || '', tag: d.tag || 'reminder', renotify: !!d.renotify, icon: 'icon-192.png', badge: 'icon-192.png', data: { tab: d.tab || 'fuel' } }));
 });
 
 self.addEventListener('notificationclick', e => {

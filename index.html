@@ -317,6 +317,9 @@ nav button .lb{font-size:11px;font-weight:650;line-height:1;font-variant-numeric
 .gline svg{width:34px;height:20px;fill:#8a5a32;stroke:#8a5a32}
 .gline .tg{margin-left:auto;font-size:17px;letter-spacing:2px}
 .gline.on{background:var(--input);border-radius:9px}
+.nline{display:flex;align-items:baseline;gap:10px;border-top:1px solid var(--line);padding:8px 2px;font-size:15px}
+.nline .nt{flex:1;white-space:pre-wrap;overflow-wrap:anywhere}
+.nadd{display:flex;gap:8px;align-items:flex-end;margin-top:8px}.nadd .gnote{margin-top:0;flex:1}.nadd .btn{flex:0 0 auto;width:auto;padding-left:16px;padding-right:16px}
 .gnote{display:block;width:100%;margin-top:8px;border:1px solid var(--line);background:var(--input);border-radius:9px;padding:8px;font:inherit;font-size:15px;color:var(--ink);resize:vertical}
 
 .pick{display:flex;align-items:center;gap:6px}
@@ -686,9 +689,11 @@ function mergeDay(a = {}, b = {}){
 // ---------- Gut (user, 2026-10-26): a simple log to show the doctor ----------
 // One tap logs a poo at the time now (on a past day: noon); then, if wanted, its Bristol type
 // (1–7, the scale doctors use) and a few icons. Bloating and gas are one tap per day.
-// A note for the day (user, 2026-10-26): food, stress, travel… anything for the doctor.
-// Days: data/gut/days/<date>.json, {entries:[{id, t, at, type, tags, del}], flags:{bloat:{t, on}, gas:{t, on}}, note:{t, text}} —
-// entries merge like protein (latest t wins, a removed one stays as del), flags like supplement ticks, the note: latest wins.
+// Notes (user, 2026-10-27): as many as you like through the day — food, stress, travel… anything for
+// the doctor — each sent with its time by Add (it was one box per day, saved on leaving it).
+// Days: data/gut/days/<date>.json, {entries:[{id, t, at, type, tags, del}], flags:{bloat:{t, on}, gas:{t, on}},
+// notes:[{id, t, at, text, del}], note:{t, text}} — entries and notes merge like protein (latest t wins, a removed one
+// stays as del), flags like supplement ticks. `note` is the old one-per-day note: shown as the first note (id 'note').
 const GUT_DIR = 'data/gut';
 const GTAGS = [['strain', '😣', 'Strained'], ['empty', '⏳', 'Not empty'], ['pain', '😖', 'Pain'], ['blood', '🩸', 'Blood']];
 const GFLAGS = [['bloat', '🎈', 'Bloated'], ['gas', '💨', 'Gas']];
@@ -717,7 +722,16 @@ function gutTouch(day, fn){
 }
 const gutChange = (day, e) => gutTouch(day, g => { g.entries = [...g.entries.filter(x => x.id !== e.id), { ...e, t:Date.now() }]; });
 const gutSetFlag = (day, k, on) => gutTouch(day, g => { g.flags = { ...g.flags, [k]:{ t:Date.now(), on } }; });
-const gutNote = day => (gutLog[day] && gutLog[day].note && gutLog[day].note.text) || '';
+function gutNotes(day){
+  const g = gutLog[day] || {}, list = g.notes || [];
+  const old = g.note && g.note.text && !list.some(n => n.id === 'note') ? [{ id:'note', t:g.note.t, at:g.note.t, text:g.note.text }] : [];
+  return [...old, ...list].filter(n => !n.del).sort((a, b) => a.at - b.at);
+}
+const gutNoteChange = (day, n) => gutTouch(day, g => { g.notes = [...(g.notes || []).filter(x => x.id !== n.id), { ...n, t:Date.now() }]; });
+let noteDraft = store.get('fb3.notedraft', {});        // {day: text typed but not added yet}
+// a day as saved: notes and the old note only when there are any
+const gutShape = (g = {}) => ({ entries:mergeEntries(g.entries), flags:g.flags || {},
+  ...(g.notes && g.notes.length ? { notes:mergeEntries(g.notes) } : {}), ...(g.note ? { note:g.note } : {}) });
 const laterNote = (a, b) => !a ? b : !b ? a : (b.t || 0) > (a.t || 0) ? b : a;
 
 const slug = s => s.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'item';
@@ -1790,14 +1804,19 @@ function gutCard(day, isToday){
       <span class="small">${hhmm(e.at)}</span>${e.type ? bIcon(e.type) + `<span>${e.type} · ${BTXT[e.type]}</span>` : '<span class="small">💩 tap to add the type</span>'}
       <span class="tg">${GTAGS.filter(([k]) => (e.tags || []).includes(k)).map(([, ic]) => ic).join('')}</span></button>`).join('');
   if(!list.length && !isToday) h += `<p class="small">None logged that day.</p>`;
-  return h + `<textarea class="gnote" data-gnote="1" rows="2" placeholder="📝 Note for ${isToday ? 'today' : 'that day'}: food, stress, travel…" aria-label="Gut note">${esc(gutNote(day))}</textarea></div>`;
+  h += gutNotes(day).map(n => `<div class="nline"><span class="small">${hhmm(n.at)}</span><span class="nt">📝 ${esc(n.text)}</span>
+      <button class="link" data-ndel="${esc(n.id)}" aria-label="Remove the note at ${hhmm(n.at)}">✕</button></div>`).join('');
+  return h + `<div class="nadd"><textarea class="gnote" data-gnote="1" rows="2" placeholder="📝 Note ${isToday ? '' : 'for that day '}— food, stress, travel… whenever it comes to mind" aria-label="New note">${esc(noteDraft[day] || '')}</textarea>
+    <button class="btn" data-act="nadd">Add</button></div></div>`;
 }
 
 function reminderBox(){
   const st = pushState();
   return `<div class="box card"><h3>Reminders <span class="st ${st === 'on' ? 'ok' : ''}">${{ on:'on ✓', off:'off', blocked:'blocked', unsupported:'' }[st]}</span></h3>
-    <p class="small">💊 supplements at their reminder times · 🥩 protein at 19:00 (until the target is reached) ·
-      💩 gut at 20:00 (until something is logged that day). They can come a few minutes late. Tap one to open the Daily tab.</p>
+    <p class="small">💊 supplements at their reminder times, again every 30 min until ticked (last call after 2 h) ·
+      🥩 protein at 19:00 if below the target, again hourly (last call 22:00) · 💩 gut at 20:00 if nothing is logged,
+      again hourly (last call 23:00) · 📋 07:30 what was missed yesterday. Each stops as soon as it's done; a repeat
+      replaces the last one. Times on :00 or :30 come on time. Tap one to open the Daily tab.</p>
     ${st === 'unsupported' ? '<p class="small">This browser can’t get notifications here. Open the installed app (home screen icon) instead.</p>'
       : st === 'blocked' ? '<p class="small">Notifications are blocked for this app: phone Settings → Apps → this app → Notifications → allow, then come back.</p>' : ''}
     <div class="actions">${st === 'off' ? '<button class="btn" data-act="pushon">Turn on reminders</button>'
@@ -2088,6 +2107,19 @@ document.addEventListener('click', e => {
     undoToast(`💩 logged ${hhmm(e.at)}`, () => { gutChange(day, { ...e, del:true }); gutEdit = null; });
     return;
   }
+  if(t.dataset.act === 'nadd'){
+    const day = sDay(), box = document.querySelector('[data-gnote]'), text = (box ? box.value : '').trim();
+    if(!text){ toast('Write the note first'); return; }
+    const n = { id:Date.now().toString(36) + Math.random().toString(36).slice(2, 6), at:day === dayKey() ? Date.now() : atDay(day), text };
+    gutNoteChange(day, n); delete noteDraft[day]; store.set('fb3.notedraft', noteDraft); render(); sync();
+    undoToast(`📝 Note added ${hhmm(n.at)}`, () => gutNoteChange(day, { ...n, del:true }));
+    return;
+  }
+  if(t.dataset.ndel){
+    const day = sDay(), n = gutNotes(day).find(x => x.id === t.dataset.ndel);
+    if(n){ gutNoteChange(day, { ...n, del:true }); render(); sync(); undoToast(`📝 Note ${hhmm(n.at)} removed`, () => gutNoteChange(day, { ...n, del:false })); }
+    return;
+  }
   if(t.dataset.act === 'gdone'){ gutEdit = null; render(); return; }
   if(t.dataset.gedit){ gutEdit = t.dataset.gedit; render(); return; }
   if(t.dataset.gflag){ const day = sDay(), k = t.dataset.gflag; gutSetFlag(day, k, !gutFlag(day, k)); render(); sync(); return; }
@@ -2257,6 +2289,7 @@ document.addEventListener('input', e => {
   }
   if(t.id === 'notes'){ draft(view, true).notes = t.value; save(); }
   if(t.id === 'bw'){ bodyweight = t.value.replace(',', '.').trim(); store.set('fb3.bw', bodyweight); }
+  if(t.dataset.gnote){ noteDraft[sDay()] = t.value; store.set('fb3.notedraft', noteDraft); }   // kept until Add
 });
 document.addEventListener('change', e => {
   const t = e.target;
@@ -2270,10 +2303,6 @@ document.addEventListener('change', e => {
   }
   if(t.id === 'sDate' && /^\d{4}-\d\d-\d\d$/.test(t.value)){
     suppView = t.value >= dayKey() ? null : t.value; protEdit = null; gutEdit = null; render(); if(suppView) sync();
-  }
-  if(t.dataset.gnote){
-    const day = sDay(), text = t.value.trim();
-    if(text !== gutNote(day)){ gutTouch(day, g => { g.note = { t:Date.now(), text }; }); sync(); }
   }
   if(t.dataset.gutat && /^\d\d:\d\d$/.test(t.value)){
     const day = sDay(), e = gutDay(day).find(x => x.id === t.dataset.gutat), at = atDay(day, t.value);
@@ -2569,7 +2598,7 @@ async function sync(){
     if(await syncProt()) renderSoon();
     if(await syncGut()) renderSoon();
     if(await pullPastDays(`${SUPP_DIR}`, suppLog, (d, j) => { suppLog[d] = j.taken || {}; }) + await pullPastDays(`${PROT_DIR}`, protLog, (d, j) => { protLog[d] = j.entries || []; })
-      + await pullPastDays(GUT_DIR, gutLog, (d, j) => { gutLog[d] = { entries:j.entries || [], flags:j.flags || {}, ...(j.note ? { note:j.note } : {}) }; })){
+      + await pullPastDays(GUT_DIR, gutLog, (d, j) => { gutLog[d] = gutShape(j); })){
       saveSupp(); saveProt(); saveGut(); if(view === 'report') renderSoon();
     }
   }catch(e){ syncError = e.message.startsWith('GitHub') ? e.message : 'no connection — will retry.'; }
@@ -2645,10 +2674,10 @@ async function syncGut(){
   for(const day of [...new Set([dayKey(), ...gutDirty.days, ...(suppView ? [suppView] : [])])]){
     const path = `${GUT_DIR}/days/${day}.json`, f = await api(path + `?ref=${gh.branch}`);
     const remote = f ? JSON.parse(b64dec(f.content)) : {}, mine = gutLog[day] || {};
-    const note = laterNote(remote.note, mine.note);
-    const merged = { entries:mergeEntries(remote.entries, mine.entries), flags:mergeDay(remote.flags, mine.flags), ...(note ? { note } : {}) };
-    if(JSON.stringify(merged) !== JSON.stringify({ entries:mine.entries || [], flags:mine.flags || {}, ...(mine.note ? { note:mine.note } : {}) })){ gutLog[day] = merged; changed = true; }
-    if(gutDirty.days.includes(day) && JSON.stringify(merged) !== JSON.stringify({ entries:mergeEntries(remote.entries), flags:remote.flags || {}, ...(remote.note ? { note:remote.note } : {}) }))
+    const merged = gutShape({ entries:mergeEntries(remote.entries, mine.entries), flags:mergeDay(remote.flags, mine.flags),
+      notes:mergeEntries(remote.notes, mine.notes), note:laterNote(remote.note, mine.note) });
+    if(JSON.stringify(merged) !== JSON.stringify(gutShape(mine))){ gutLog[day] = merged; changed = true; }
+    if(gutDirty.days.includes(day) && JSON.stringify(merged) !== JSON.stringify(gutShape(remote)))
       await api(path, { method:'PUT', body:JSON.stringify({ message:`Gut ${day}`,
         content:b64enc(JSON.stringify({ date:day, ...merged }, null, 2) + '\n'), branch:gh.branch, ...(f ? { sha:f.sha } : {}) }) });
     gutDirty.days = gutDirty.days.filter(d => d !== day); saveGut();
