@@ -2689,7 +2689,7 @@ let undoFn = null;
 // reminder times, protein 19:00, gut 20:00. This phone subscribes in ⋯ → Settings; its subscription
 // is saved as data/push/subs/<id>.json in the private repo (never in this page). The key below is
 // the public half; the private half is only a GitHub secret.
-const VAPID_PUBLIC = 'BLcyBaauDJlEdGIvIkCLmbpP3rwBOgqeLb3VjKNHqLTQoRF8fiqiQmxtPZYLnRWAOEtY3Ta-ez8Gycr5jMIWLJA';
+const VAPID_PUBLIC = 'BL3J-rsruiBzTRBniD5tqyPor9bEaFIeBS_px5ZdsNnDxCyyFVANUGg389dNMA17BoD4aCXxiDGw_4G9Lf3c_aQ';
 let pushId = store.get('fb3.pushid', null);          // this phone's subscription file, once saved
 let pushEp = store.get('fb3.pushep', '');            // …and the endpoint saved in it
 const pushOk = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
