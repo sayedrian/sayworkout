@@ -223,7 +223,12 @@ details.sess summary span{font-weight:400;color:var(--muted);font-size:13px}
 .pbar{height:12px;border-radius:6px;background:var(--input);overflow:hidden;margin:8px 0 4px}
 .pbar i{display:block;height:100%;background:var(--accent);border-radius:6px}
 .pbar.full i{background:var(--done)}
-.padd{display:grid;grid-template-columns:1fr 78px;gap:8px;margin-top:6px}
+.padd{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.pnums{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pnums label{font-size:12px;color:var(--muted)}.pnums input{margin-top:3px}
+.ftot{margin-top:2px}.ftot b{color:var(--ink)}.ftot b.ok{color:var(--done)}.ftot b.over{color:var(--bad)}
+.tgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.tgrid .full{grid-column:1 / -1}
+.tgrid label{font-size:13px}
 .padd select,.padd input{width:100%;min-width:0;border:1px solid var(--line);background:var(--input);border-radius:9px;padding:9px;font-size:16px;color:var(--ink)}
 .padd .full{grid-column:1 / -1}
 .pline{display:grid;grid-template-columns:52px 1fr auto 30px;gap:8px;align-items:center;padding:8px 0;border-top:1px solid var(--line);font-size:15px}
@@ -655,14 +660,42 @@ let protLast = store.get('fb3.protlast', {});         // last grams per source
 let protDirty = store.get('fb3.protdirty', { plan:false, days:[] });
 let protSrc = store.get('fb3.protsrc', 'Powder');     // the source picked last
 let protEdit = null;                                   // id of the entry being changed (tap it in the list)
-const saveProt = () => { ['prot', 'protlog', 'protlast', 'protdirty', 'protsrc'].forEach(k => store.set('fb3.' + k,
-  { prot, protlog:protLog, protlast:protLast, protdirty:protDirty, protsrc:protSrc }[k])); };
+const saveProt = () => { ['prot', 'protlog', 'protlast', 'protdirty', 'protsrc', 'foodlast'].forEach(k => store.set('fb3.' + k,
+  { prot, protlog:protLog, protlast:protLast, protdirty:protDirty, protsrc:protSrc, foodlast:foodLast }[k])); };
 const protDay = (day = dayKey()) => (protLog[day] || []).filter(e => !e.del);
-const protTotal = (day = dayKey()) => protDay(day).reduce((n, e) => n + (+e.g || 0), 0);
+// Food (user, 2026-10-27): the protein card became Food. An entry is what you ate (text) and, when known,
+// grams of protein (g), kcal and grams of fat — each optional, but one is needed. What's missing Claude
+// estimates later in a review and saves as est:{g, kcal, fat, fibre}, never over the user's own numbers.
+// Targets (data/protein/plan.json): {target:<g protein, counts as done>, range:[min, max], kcal:[min, max],
+// fat:<min g>, water:<ml>, cups:[{n, ml}], streak}. The folder keeps its old name, so no data moves.
+const typed = (e, k) => e[k] != null && e[k] !== '';
+const nut = (e, k) => typed(e, k) ? +e[k] : e.est && e.est[k] != null ? +e.est[k] : null;
+const isEst = (e, k) => !typed(e, k) && nut(e, k) != null;
+const protTotal = (day = dayKey()) => protDay(day).reduce((n, e) => n + (nut(e, 'g') || 0), 0);
+const foodSum = (day, k) => protDay(day).reduce((n, e) => n + (nut(e, k) || 0), 0);
+let foodLast = store.get('fb3.foodlast', {});         // last kcal and fat per source, like protLast
 function protChange(day, e){
   protLog[day] = [...(protLog[day] || []).filter(x => x.id !== e.id), { ...e, t:Date.now() }];
   if(!protDirty.days.includes(day)) protDirty.days.push(day);
   saveProt();
+}
+// ---------- Water (user, 2026-10-27) ----------
+// One tap per drink in the usual sizes (editable in ⋯ → Settings → Food), or an exact amount.
+// Days: data/water/days/<date>.json, {entries:[{id, t, at, ml, del}]} — merged like protein.
+const WATER_DIR = 'data/water';
+const CUPS = [{ n:'Glass', ml:250 }, { n:'Can', ml:330 }, { n:'Bottle', ml:500 }];
+let waterLog = store.get('fb3.waterlog', {});
+let waterDirty = store.get('fb3.waterdirty', { days:[] });
+let waterOther = false;                                // the exact-amount box is open
+const saveWater = () => { store.set('fb3.waterlog', waterLog); store.set('fb3.waterdirty', waterDirty); };
+const waterDay = (day = dayKey()) => (waterLog[day] || []).filter(e => !e.del);
+const waterTotal = (day = dayKey()) => waterDay(day).reduce((n, e) => n + (+e.ml || 0), 0);
+const cups = () => prot && prot.cups && prot.cups.length ? prot.cups : CUPS;
+const litres = ml => (ml / 1000).toLocaleString('en', { maximumFractionDigits:2 });
+function waterChange(day, e){
+  waterLog[day] = [...(waterLog[day] || []).filter(x => x.id !== e.id), { ...e, t:Date.now() }];
+  if(!waterDirty.days.includes(day)) waterDirty.days.push(day);
+  saveWater();
 }
 // the protein streak worth celebrating (user, 2026-10-25: editable, 7 days to start with)
 const streakGoal = () => (prot && +prot.streak) || 7;
@@ -1583,11 +1616,11 @@ function render(){
   if(!page) lastDay = view;
   document.getElementById('tabs').hidden = !!page;
   document.getElementById('back').hidden = !page;
-  document.getElementById('title').textContent = page || (view === 'fuel' ? 'Supplements & protein' : PLAN[view].title);
+  document.getElementById('title').textContent = page || (view === 'fuel' ? 'Daily' : PLAN[view].title);
   const run = d => drafts[d]?.startedAt ? '<span class="dot"></span>' : '';
   document.getElementById('tabs').innerHTML =
     ALL.map(d => `<button data-tab="${d}" aria-current="${view===d}" aria-label="${PLAN[d].title}"><span class="big">${PLAN[d].tab}</span>${d === 'home' ? ICON.band : ICON.dumbbell}${run(d)}</button>`).join('')
-    + `<button data-tab="fuel" aria-current="${view==='fuel'}" aria-label="Supplements and protein">${ICON.broccoli}<span class="lb${protTotal() ? ' pg' : ''}">${protTotal() ? `${protTotal()} g` : 'Daily'}</span>${suppDue() ? '<span class="dot" style="background:var(--hint)"></span>' : ''}</button>`;
+    + `<button data-tab="fuel" aria-current="${view==='fuel'}" aria-label="Daily">${ICON.broccoli}<span class="lb${protTotal() ? ' pg' : ''}">${protTotal() ? `${protTotal()} g` : 'Daily'}</span>${suppDue() ? '<span class="dot" style="background:var(--hint)"></span>' : ''}</button>`;
   document.querySelectorAll('#menu [data-tab]').forEach(b => b.setAttribute('aria-current', b.dataset.tab === view));
   view === 'history' ? renderHistory() : view === 'settings' ? renderSettings() : view === 'report' ? renderReport() : view === 'fuel' ? renderFuel() : renderDay(view);
   tickClock(); runDemos();
@@ -1710,15 +1743,15 @@ function renderDay(day){
   $main.innerHTML = h;
 }
 
-// Supplements & protein (user, 2026-10-25): one tab for the daily habits. Fixed order —
-// supplements, then protein — so nothing jumps; what needs you is at the top of each card and
+// Daily (user, 2026-10-25; Food and Water 2026-10-27): one tab for the daily habits. Fixed order —
+// supplements, food, water, gut — so nothing jumps; what needs you is at the top of each card and
 // what is done folds away (like a finished exercise), so the tab gets shorter as the day goes well.
 let protForm = false;                                   // the protein form is open ("+ Meal or other…")
 function renderFuel(){
   const day = sDay(), now = Date.now(), isToday = day === dayKey(), noon = atDay(day);
   $main.innerHTML = `${dayNav(day, isToday)}<p class="focus">${isToday ? 'Today · ' : ''}${dateTxt(noon)}</p>
-    ${suppCard(day, now, isToday, noon)}${protCard(day, now, isToday)}${gutCard(day, isToday)}
-    <p class="small">Doses, reminders and the protein target are in ⋯ → Settings. ${syncText()}</p>`;
+    ${suppCard(day, now, isToday, noon)}${protCard(day, now, isToday)}${waterCard(day, isToday)}${gutCard(day, isToday)}
+    <p class="small">Doses, reminders, food targets and drink sizes are in ⋯ → Settings. ${syncText()}</p>`;
 }
 function suppCard(day, now, isToday, noon){
   if(!supp) return `<div class="box card"><h3>Supplements</h3><p class="small">No list on this phone yet. It is kept in your private repo
@@ -1751,38 +1784,66 @@ function suppCard(day, now, isToday, noon){
   return h + '</div>';
 }
 function protCard(day, now, isToday){
-  const total = protTotal(day), target = prot && +prot.target;
+  const total = protTotal(day), target = prot && +prot.target, range = prot && prot.range;
   const pct = target ? Math.min(100, Math.round(total / target * 100)) : 0;
-  // the form adds a meal or anything else, or changes the entry tapped in the list
+  const kc = prot && prot.kcal, fatMin = prot && +prot.fat, kcal = foodSum(day, 'kcal'), fat = foodSum(day, 'fat');
+  const approx = k => protDay(day).some(e => nut(e, k) == null || isEst(e, k)) ? '~' : '';   // some of it still to estimate
+  // the form adds food, or changes the entry tapped in the list
   const ed = protEdit && protDay(day).find(e => e.id === protEdit), src = ed ? ed.src : protSrc, form = protForm || !!ed;
-  let h = `<div class="box card"><h3>Protein <span class="st ${target && total >= target ? 'ok' : ''}">${total}${target ? ` / ${target}` : ''} g</span></h3>
+  const last = ed || { g:protLast[src], ...(foodLast[src] || {}) };
+  let h = `<div class="box card"><h3>Food <span class="st ${target && total >= target ? 'ok' : ''}">${total}${target ? ` / ${target}` : ''} g</span></h3>
     ${target ? `<div class="pbar ${total >= target ? 'full' : ''}"><i style="width:${pct}%"></i></div>
-      <div class="small">${total >= target ? '✓ Target reached' : `${target - total} g to go`}</div>`
-      : `<div class="small">Set your daily target in ⋯ → Settings → Protein${ghReady() ? ' (or it loads from your repo)' : ''}.</div>`}`;
+      <div class="small">🥩 ${total >= target ? `✓ Protein target reached${range && range[1] ? ` · fine up to ${range[1]} g` : ''}` : `${target - total} g to go`}</div>`
+      : `<div class="small">Set your daily targets in ⋯ → Settings → Food${ghReady() ? ' (or they load from your repo)' : ''}.</div>`}
+    <div class="ftot small">🔥 <b class="${kc && kcal > kc[1] ? 'over' : kc && kcal >= kc[0] ? 'ok' : ''}">${approx('kcal')}${kcal.toLocaleString('en')}</b>${kc ? ` / ${kc[0].toLocaleString('en')}–${kc[1].toLocaleString('en')}` : ''} kcal
+      · 🧈 <b class="${fatMin && fat >= fatMin ? 'ok' : ''}">${approx('fat')}${fat}</b>${fatMin ? ` / ${fatMin}+` : ''} g fat</div>`;
   if(!form) h += `<div class="pquick">${PQUICK.filter(x => +protLast[x] > 0).map(x => `<button data-pquick="${esc(x)}">+ ${esc(x === 'Greek yogurt' ? 'Yogurt' : x)} ${esc(protLast[x])} g</button>`).join('')}
-      <button class="other" data-act="pform">+ Meal or other…</button></div>`;
+      <button class="other" data-act="pform">+ Meal or snack…</button></div>`;
   else h += `<div class="padd">
-      <div class="full small"><b>${ed ? 'Changing an entry' : 'Add protein'}</b> · grams of protein, not of food</div>
+      <div class="full small"><b>${ed ? 'Changing an entry' : 'Add food'}</b> · what you ate; the numbers you know (the rest is estimated later)</div>
       <select id="pSrc" aria-label="Source">${PSRC.map(x => `<option ${x === src ? 'selected' : ''}>${x}</option>`).join('')}</select>
-      <input id="pG" inputmode="decimal" value="${esc(ed ? ed.g : protLast[src] || '')}" placeholder="g" aria-label="Protein grams">
-      <input id="pText" class="full" value="${esc(ed && ed.text || '')}" placeholder="${src === 'Meal' || src === 'Snack' || src === 'Other' ? 'What was it? (optional)' : 'Note (optional)'}" aria-label="What was it">
       <input id="pAt" type="time" value="${hhmm(ed ? ed.at : isToday ? now : atDay(day))}" aria-label="Time">
+      <input id="pText" class="full" value="${esc(ed && ed.text || '')}" placeholder="What was it? e.g. lentils with chicken, 1 plate" aria-label="What was it">
+      <div class="full pnums">
+        <label>🥩 protein g<input id="pG" inputmode="decimal" value="${esc(last.g ?? '')}" aria-label="Protein grams"></label>
+        <label>🔥 kcal<input id="pK" inputmode="decimal" value="${esc(last.kcal ?? '')}" aria-label="kcal"></label>
+        <label>🧈 fat g<input id="pF" inputmode="decimal" value="${esc(last.fat ?? '')}" aria-label="Fat grams"></label></div>
       <button class="btn" data-act="padd" style="padding:9px">${ed ? 'Save' : 'Add'}</button>
       <button class="btn ghost" data-act="pcancel" style="padding:9px">Cancel</button>
-      ${ed ? `<button class="btn ghost" data-pdel="${esc(ed.id)}" style="padding:9px;color:var(--bad)">Remove</button>` : ''}
+      ${ed ? `<button class="btn ghost full" data-pdel="${esc(ed.id)}" style="padding:9px;color:var(--bad)">Remove</button>` : ''}
       <details class="sess full"><summary>Rough protein amounts</summary><ul>
         <li>Chicken or turkey breast, 150 g cooked ≈ 45 g</li><li>Tuna, 1 can (drained) ≈ 25 g</li>
         <li>Salmon or white fish, 150 g ≈ 30–35 g</li><li>Beef or pork, lean, 150 g ≈ 40 g</li>
         <li>2 eggs ≈ 12 g</li><li>Cottage cheese, 200 g ≈ 22 g</li><li>Lentils or chickpeas, 200 g cooked ≈ 18 g</li>
         <li>Milk, 250 ml ≈ 8 g</li><li>Bread, 2 slices ≈ 7 g</li></ul></details></div>`;
   const list = protDay(day).sort((a, b) => a.at - b.at);
+  const num = (e, k, unit) => nut(e, k) == null ? '' : `${isEst(e, k) ? '~' : ''}${nut(e, k)}${unit}`;
   if(list.length) h += opened.has('pent') || ed || !isToday
     ? `<button class="foldline plain" data-fold="pent">${list.length} entr${list.length === 1 ? 'y' : 'ies'} · tap one to change it <span class="more">hide ▴</span></button>`
-      + list.map(e => `<button class="pline ${e.id === protEdit ? 'on' : ''}" data-pedit="${esc(e.id)}" aria-label="Change ${esc(e.src)} ${esc(e.g)} g">
+      + list.map(e => { const more = [num(e, 'kcal', ' kcal'), num(e, 'fat', ' g fat')].filter(Boolean).join(' · ');
+        return `<button class="pline ${e.id === protEdit ? 'on' : ''}" data-pedit="${esc(e.id)}" aria-label="Change ${esc(e.src)} ${esc(e.text || '')}">
         <span class="small">${hhmm(e.at)}</span>
-        <span>${esc(e.src)}${e.text ? `<span class="small">${esc(e.text)}</span>` : ''}</span>
-        <span class="g">${esc(e.g)} g</span><span class="small">✎</span></button>`).join('')
+        <span>${esc(e.src)}${e.text ? `<span class="small">${esc(e.text)}</span>` : ''}${more ? `<span class="small">${more}</span>` : ''}</span>
+        <span class="g">${num(e, 'g', ' g') || '~'}</span><span class="small">✎</span></button>`; }).join('')
     : `<button class="foldline plain" data-unfold="pent">${list.length} entr${list.length === 1 ? 'y' : 'ies'} ${isToday ? 'today' : 'that day'} <span class="more">show ▾</span></button>`;
+  return h + '</div>';
+}
+
+// Water: one tap per drink; Other… for an exact amount; the drinks fold away like food entries.
+function waterCard(day, isToday){
+  const tot = waterTotal(day), target = prot && +prot.water, pct = target ? Math.min(100, Math.round(tot / target * 100)) : 0;
+  let h = `<div class="box card"><h3>Water <span class="st ${target && tot >= target ? 'ok' : ''}">${litres(tot)}${target ? ` / ${litres(target)}` : ''} L</span></h3>
+    ${target ? `<div class="pbar ${tot >= target ? 'full' : ''}"><i style="width:${pct}%"></i></div>` : ''}
+    <div class="pquick">${cups().map((c, i) => `<button data-cup="${i}">💧 ${esc(c.n)} ${esc(c.ml)}</button>`).join('')}
+      <button class="other" data-act="wother">Other…</button></div>`;
+  if(waterOther) h += `<div class="nadd"><input id="wMl" class="gnote" inputmode="numeric" placeholder="ml" aria-label="Millilitres">
+      <button class="btn" data-act="wadd">Add</button></div>`;
+  const list = waterDay(day).sort((a, b) => a.at - b.at);
+  if(list.length) h += opened.has('went') || !isToday
+    ? `<button class="foldline plain" data-fold="went">${list.length} drink${list.length === 1 ? '' : 's'} <span class="more">hide ▴</span></button>`
+      + list.map(e => `<div class="nline"><span class="small">${hhmm(e.at)}</span><span class="nt">💧 ${esc(e.ml)} ml</span>
+        <button class="link" data-wdel="${esc(e.id)}" aria-label="Remove the drink at ${hhmm(e.at)}">✕</button></div>`).join('')
+    : `<button class="foldline plain" data-unfold="went">${list.length} drink${list.length === 1 ? '' : 's'} ${isToday ? 'today' : 'that day'} <span class="more">show ▾</span></button>`;
   return h + '</div>';
 }
 
@@ -1839,9 +1900,19 @@ function renderSettings(){
     <div class="actions"><button class="btn" data-act="ghsave">Save</button>
       <button class="btn ghost" data-act="ghpull">Load from GitHub</button>
       ${gh.token ? '<button class="btn ghost" data-act="ghforget">Forget token</button>' : ''}</div></details>
-    <div class="box gh"><h3>Protein</h3>
-      <label>Daily target, g of protein <input id="pTarget" inputmode="numeric" value="${esc(prot && prot.target || '')}" placeholder="g"></label>
-      <label>Celebrate a streak of … days at the target <input id="pStreak" inputmode="numeric" value="${esc(streakGoal())}" placeholder="7"></label>
+    <div class="box gh"><h3>Food</h3>
+      <p class="small">Daily targets. Protein counts as done at "done at"; kcal is a range; fat is a minimum.</p>
+      <div class="tgrid">
+        <label>🥩 protein from, g <input id="pMin" inputmode="numeric" value="${esc(prot && prot.range ? prot.range[0] : '')}"></label>
+        <label>to, g <input id="pMax" inputmode="numeric" value="${esc(prot && prot.range ? prot.range[1] : '')}"></label>
+        <label>done at, g <input id="pTarget" inputmode="numeric" value="${esc(prot && prot.target || '')}" placeholder="g"></label>
+        <label>🔥 kcal from <input id="kMin" inputmode="numeric" value="${esc(prot && prot.kcal ? prot.kcal[0] : '')}"></label>
+        <label>to <input id="kMax" inputmode="numeric" value="${esc(prot && prot.kcal ? prot.kcal[1] : '')}"></label>
+        <label>🧈 fat at least, g <input id="fMin" inputmode="numeric" value="${esc(prot && prot.fat || '')}"></label>
+        <label class="full">💧 water a day, ml <input id="wTarget" inputmode="numeric" value="${esc(prot && prot.water || '')}"></label>
+        ${cups().map((c, i) => `<label>drink ${i + 1} <input data-cupn="${i}" value="${esc(c.n)}" aria-label="Drink ${i + 1} name"></label>`).join('')}
+        ${cups().map((c, i) => `<label>ml <input data-cupml="${i}" inputmode="numeric" value="${esc(c.ml)}" aria-label="Drink ${i + 1} ml"></label>`).join('')}
+        <label class="full">Celebrate a streak of … days at the protein target <input id="pStreak" inputmode="numeric" value="${esc(streakGoal())}" placeholder="7"></label></div>
       <div class="actions"><button class="btn ghost" data-act="ptarget">Save</button></div></div>
     ${supp ? `<details class="sess" id="suppEdit"><summary>Supplements <span>· ${supp.items.length} on the list</span></summary>
       <p class="small">Each one has its own reminder time and days (no time = no reminder, tick it whenever).
@@ -2096,9 +2167,31 @@ document.addEventListener('click', e => {
   }
   if(t.dataset.pquick){
     const day = sDay(), src = t.dataset.pquick, g = +protLast[src], id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    const e = { id, at:day === dayKey() ? Date.now() : atDay(day), src, g };
+    const fl = foodLast[src] || {}, e = { id, at:day === dayKey() ? Date.now() : atDay(day), src, g,
+      ...(fl.kcal != null ? { kcal:fl.kcal } : {}), ...(fl.fat != null ? { fat:fl.fat } : {}) };
     protChange(day, e); render(); sync();
     undoToast(`+${g} g ${src}`, () => protChange(day, { ...e, del:true }));
+    return;
+  }
+  if(t.dataset.cup){
+    const day = sDay(), c = cups()[+t.dataset.cup]; if(!c) return;
+    const e = { id:Date.now().toString(36) + Math.random().toString(36).slice(2, 6), at:day === dayKey() ? Date.now() : atDay(day), ml:+c.ml };
+    waterChange(day, e); render(); sync();
+    undoToast(`💧 +${e.ml} ml`, () => waterChange(day, { ...e, del:true }));
+    return;
+  }
+  if(t.dataset.act === 'wother'){ waterOther = !waterOther; render(); const w = document.getElementById('wMl'); if(w) w.focus(); return; }
+  if(t.dataset.act === 'wadd'){
+    const day = sDay(), ml = parseInt(document.getElementById('wMl').value, 10);
+    if(!(ml > 0 && ml <= 3000)){ toast('Enter the millilitres'); return; }
+    const e = { id:Date.now().toString(36) + Math.random().toString(36).slice(2, 6), at:day === dayKey() ? Date.now() : atDay(day), ml };
+    waterChange(day, e); waterOther = false; render(); sync();
+    undoToast(`💧 +${ml} ml`, () => waterChange(day, { ...e, del:true }));
+    return;
+  }
+  if(t.dataset.wdel){
+    const day = sDay(), e = waterDay(day).find(x => x.id === t.dataset.wdel);
+    if(e){ waterChange(day, { ...e, del:true }); render(); sync(); undoToast(`💧 ${e.ml} ml removed`, () => waterChange(day, { ...e, del:false })); }
     return;
   }
   if(t.dataset.act === 'gnew'){
@@ -2240,27 +2333,39 @@ document.addEventListener('click', e => {
     store.set('fb3.gh', gh); toast('GitHub settings saved'); sync(); render();
   }
   if(act === 'padd'){
-    const day = sDay(), g = parseFloat(document.getElementById('pG').value.replace(',', '.')), hm = document.getElementById('pAt').value;
-    if(!(g > 0)){ toast('Enter the grams of protein'); return; }
+    const day = sDay(), hm = document.getElementById('pAt').value;
+    const num = id => { const v = document.getElementById(id).value.replace(',', '.').trim(); return v === '' ? null : parseFloat(v); };
+    const g = num('pG'), kcal = num('pK'), fat = num('pF'), text = document.getElementById('pText').value.trim();
+    if([g, kcal, fat].some(v => v !== null && !(v >= 0))){ toast('Numbers only in the boxes'); return; }
+    if(!text && ![g, kcal, fat].some(v => v > 0)){ toast('Write what it was, or the grams of protein'); return; }
     const at = /^\d\d:\d\d$/.test(hm) ? atDay(day, hm) : day === dayKey() ? Date.now() : atDay(day);
     if(at > Date.now()){ toast('That time hasn’t come yet'); return; }
-    const src = document.getElementById('pSrc').value, text = document.getElementById('pText').value.trim();
+    const src = document.getElementById('pSrc').value;
+    const vals = { ...(g !== null ? { g } : {}), ...(kcal !== null ? { kcal } : {}), ...(fat !== null ? { fat } : {}), ...(text ? { text } : {}) };
     const ed = protEdit && protDay(day).find(e => e.id === protEdit);
-    if(ed){ const { text:_, ...rest } = ed; protChange(day, { ...rest, at, src, g, ...(text ? { text } : {}) }); protEdit = null; toast('Changed'); }
+    if(ed){ const { text:_t, g:_g, kcal:_k, fat:_f, ...rest } = ed; protChange(day, { ...rest, at, src, ...vals }); protEdit = null; toast('Changed'); }
     else {
-      protLast[src] = String(g);
-      protChange(day, { id:Date.now().toString(36) + Math.random().toString(36).slice(2, 6), at, src, g, ...(text ? { text } : {}) });
-      protForm = false; toast(`+${g} g protein`);
+      if(g !== null) protLast[src] = String(g);
+      foodLast[src] = { ...(kcal !== null ? { kcal } : {}), ...(fat !== null ? { fat } : {}) };
+      protChange(day, { id:Date.now().toString(36) + Math.random().toString(36).slice(2, 6), at, src, ...vals });
+      protForm = false; toast(g ? `+${g} g protein` : 'Added');
     }
     render(); sync();
   }
   if(act === 'pcancel'){ protEdit = null; protForm = false; render(); }
   if(act === 'pform'){ protForm = true; render(); const g = document.getElementById('pG'); if(g) g.focus(); }
   if(act === 'ptarget'){
-    const g = parseInt(document.getElementById('pTarget').value, 10), n = parseInt(document.getElementById('pStreak').value, 10);
-    if(!(g > 0)){ toast('Enter the target in grams'); return; }
+    const int = id => { const v = parseInt(document.getElementById(id).value, 10); return v > 0 ? v : undefined; };
+    const g = int('pTarget'), n = parseInt(document.getElementById('pStreak').value, 10);
+    const pair = (a, b) => a && b ? (a <= b ? [a, b] : null) : undefined;
+    const range = pair(int('pMin'), int('pMax')), kcal = pair(int('kMin'), int('kMax'));
+    if(!g){ toast('Enter the protein "done at" in grams'); return; }
     if(!(n >= 2)){ toast('A streak is at least 2 days'); return; }
-    prot = { ...(prot || {}), target:g, streak:n }; protDirty.plan = true; saveProt(); toast('Protein saved'); render(); sync();
+    if(range === null || kcal === null){ toast('"From" must be below "to"'); return; }
+    const cs = cups().map((c, i) => ({ n:document.querySelector(`[data-cupn="${i}"]`).value.trim(), ml:parseInt(document.querySelector(`[data-cupml="${i}"]`).value, 10) }));
+    if(cs.some(c => !c.n || !(c.ml > 0))){ toast('Every drink needs a name and its ml'); return; }
+    prot = { ...(prot || {}), target:g, streak:n, range, kcal, fat:int('fMin'), water:int('wTarget'), cups:cs };
+    protDirty.plan = true; saveProt(); toast('Food targets saved'); render(); sync();
   }
   if(act === 'suppsave'){
     readSuppEdit();
@@ -2502,7 +2607,7 @@ function beep(n = 3, freq = 880){
 function tickClock(){
   const d = drafts[view], el = document.getElementById('clock'), prog = document.getElementById('prog');
   // sync dot: green = everything is in GitHub, orange = waiting (no signal, or a GitHub problem)
-  const dot = document.getElementById('sdot'), waiting = !!syncError || history.some(s => !s.synced) || suppDirty.plan || suppDirty.days.length > 0 || protDirty.plan || protDirty.days.length > 0 || gutDirty.days.length > 0;
+  const dot = document.getElementById('sdot'), waiting = !!syncError || history.some(s => !s.synced) || suppDirty.plan || suppDirty.days.length > 0 || protDirty.plan || protDirty.days.length > 0 || gutDirty.days.length > 0 || waterDirty.days.length > 0;
   dot.hidden = !ghReady(); dot.classList.toggle('wait', waiting); dot.title = syncText();
   const all = d && d.startedAt && !PAGES[view] ? d.slots.flatMap(x => x.sets) : [];
   prog.textContent = all.length ? `${all.filter(s => s.done).length}/${all.length} sets` : '';
@@ -2597,15 +2702,17 @@ async function sync(){
     if(await syncSupp()) renderSoon();
     if(await syncProt()) renderSoon();
     if(await syncGut()) renderSoon();
+    if(await syncWater()) renderSoon();
     if(await pullPastDays(`${SUPP_DIR}`, suppLog, (d, j) => { suppLog[d] = j.taken || {}; }) + await pullPastDays(`${PROT_DIR}`, protLog, (d, j) => { protLog[d] = j.entries || []; })
-      + await pullPastDays(GUT_DIR, gutLog, (d, j) => { gutLog[d] = gutShape(j); })){
-      saveSupp(); saveProt(); saveGut(); if(view === 'report') renderSoon();
+      + await pullPastDays(GUT_DIR, gutLog, (d, j) => { gutLog[d] = gutShape(j); })
+      + await pullPastDays(WATER_DIR, waterLog, (d, j) => { waterLog[d] = j.entries || []; })){
+      saveSupp(); saveProt(); saveGut(); saveWater(); if(view === 'report') renderSoon();
     }
   }catch(e){ syncError = e.message.startsWith('GitHub') ? e.message : 'no connection — will retry.'; }
   syncing = false;
   if(view === 'history' || view === 'settings' || view === 'fuel' || view === 'report') renderSoon(); else tickClock();
   // ticked while this sync was running: go again
-  if(!syncError && (suppDirty.plan || suppDirty.days.length || protDirty.plan || protDirty.days.length || gutDirty.days.length)) setTimeout(sync, 1500);
+  if(!syncError && (suppDirty.plan || suppDirty.days.length || protDirty.plan || protDirty.days.length || gutDirty.days.length || waterDirty.days.length)) setTimeout(sync, 1500);
 }
 // Supplements: the list (this phone's edit goes up, otherwise GitHub's comes down) and the ticks
 // of today and of any day changed here, merged both ways. Returns true if anything on screen changed.
@@ -2665,6 +2772,21 @@ async function syncProt(){
       await api(path, { method:'PUT', body:JSON.stringify({ message:`Protein ${day}`,
         content:b64enc(JSON.stringify({ date:day, entries:merged }, null, 2) + '\n'), branch:gh.branch, ...(f ? { sha:f.sha } : {}) }) });
     protDirty.days = protDirty.days.filter(d => d !== day); saveProt();
+  }
+  return changed;
+}
+// Water: today and any day changed here, merged both ways like protein.
+async function syncWater(){
+  let changed = false;
+  for(const day of [...new Set([dayKey(), ...waterDirty.days, ...(suppView ? [suppView] : [])])]){
+    const path = `${WATER_DIR}/days/${day}.json`, f = await api(path + `?ref=${gh.branch}`);
+    const remote = f ? JSON.parse(b64dec(f.content)).entries || [] : [];
+    const merged = mergeEntries(remote, waterLog[day]);
+    if(JSON.stringify(merged) !== JSON.stringify(waterLog[day] || [])){ waterLog[day] = merged; changed = true; }
+    if(waterDirty.days.includes(day) && JSON.stringify(merged) !== JSON.stringify(mergeEntries(remote)))
+      await api(path, { method:'PUT', body:JSON.stringify({ message:`Water ${day}`,
+        content:b64enc(JSON.stringify({ date:day, entries:merged }, null, 2) + '\n'), branch:gh.branch, ...(f ? { sha:f.sha } : {}) }) });
+    waterDirty.days = waterDirty.days.filter(d => d !== day); saveWater();
   }
   return changed;
 }
