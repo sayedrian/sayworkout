@@ -15,8 +15,8 @@
 <link rel="icon" href="icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#f5f4f0" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#101317" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#0E1116" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E1116" media="(prefers-color-scheme: dark)">
 <style>
 :root{
   --bg:#f5f4f0; --card:#ffffff; --ink:#1b1d21; --muted:#686c73; --line:#e2e0da;
@@ -329,27 +329,6 @@ nav button .lb{font-size:11px;font-weight:650;line-height:1;font-variant-numeric
 .chead .more{color:var(--muted);font-size:14px;font-weight:400}
 .chead .due{font-size:13px;color:var(--hint);font-weight:600;white-space:nowrap}
 .chead .st{white-space:nowrap}
-/* dashboard: two big section buttons, then the day at a glance */
-.dbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
-.dbtn{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:4px;border:1px solid var(--line);background:var(--card);
-  border-radius:16px;padding:14px;text-align:left;color:var(--ink);min-height:112px}
-.dbtn b{font-size:19px}
-.dbtn .small{line-height:1.3}
-.dbtn .dot{position:absolute;top:12px;right:12px;width:9px;height:9px;border-radius:50%;background:var(--done)}
-.dbtn svg.dic{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.dbtn svg .fl{fill:#3a9d4f;stroke:none}.dbtn svg .st{stroke:#3a9d4f;stroke-width:2.6}
-.glance{list-style:none;margin:0;padding:0;font-size:15px}
-.glance li{padding:7px 0;border-top:1px solid var(--line)}.glance li:first-child{border-top:0}
-.glance .due{color:var(--hint);font-weight:650}
-/* About you: one KPI per row — icon, name with what it means, the number */
-.kpi{display:grid;grid-template-columns:26px 1fr auto;gap:8px;align-items:start;padding:9px 0;border-top:1px solid var(--line)}
-.kind + .kpi{border-top:0}
-.kpi .ki{font-size:18px;line-height:1.3}
-.kpi .kt .small{display:block;line-height:1.35;margin-top:1px}
-.kpi .kv{font-size:17px;font-weight:750;font-variant-numeric:tabular-nums;white-space:nowrap}
-.kpi .wait{color:var(--hint)}
-.kbar{display:flex;height:8px;border-radius:4px;overflow:hidden;margin:4px 0;background:var(--input)}
-.kbar i{display:block;height:100%}.kbar .morning{background:#e3b341}.kbar .afternoon{background:var(--accent)}.kbar .evening{background:#6e59c9}
 /* Food & supplements: what is due now in a tinted box on top; sub headings for the blocks */
 .nowbox{background:var(--hint-bg);border-radius:12px;padding:2px 10px 6px;margin:4px 0 10px}
 .nowbox .shead:first-child{color:var(--hint);font-weight:700}
@@ -428,6 +407,239 @@ nav button .lb{font-size:11px;font-weight:650;line-height:1;font-variant-numeric
 .up{color:var(--done);font-weight:700}
 .down{color:var(--bad);font-weight:700}
 .star{font-size:12px;color:var(--hint);white-space:nowrap}
+
+/* ================= App skin (user, 2026-10-28: "this is an app" — redesign on the Claude canvas) =================
+   One dark look, numbers big and words few, a bottom tab bar (Today · Train · Nutrition), one colour per area:
+   blue = training, green = food / done, amber = due, light blue = water, violet = fat. Overrides the older rules above. */
+:root,:root[data-theme="dark"],:root:not([data-theme="light"]){
+  --bg:#0E1116; --card:#171B22; --ink:#F2F4F7; --muted:#959DAA; --line:#232934; --input:#222834;
+  --accent:#3A7BFF; --accent-ink:#ffffff; --done:#3DD68C; --done-bg:#12241A; --done-ink:#0E1116;
+  --hint:#F5A524; --hint-bg:#2A2112; --bar:#F2F4F7; --bar-ink:#0E1116; --bad:#FF8A7A;
+  --water:#4FB3FF; --water-bg:#16263A; --fat:#B18CFF; --soft:#A3AAB6; --chip:#222834;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --bg:#0E1116; --card:#171B22 } }
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:calc(100px + env(safe-area-inset-bottom))}
+header{border-bottom:0}
+.top{padding:16px 0 8px}
+.top h1{font-size:28px;font-weight:800;letter-spacing:-.02em}
+.icon{width:44px;height:44px;border-radius:22px;background:var(--card);display:grid;place-items:center;padding:0;font-size:20px}
+.icon[hidden]{display:none}
+.menu{top:60px;border-radius:16px;background:#1C2129;border-color:var(--line)}
+/* workout tabs: a segmented control */
+nav#tabs{gap:4px;padding:4px;margin:2px 0 10px;background:var(--card);border-radius:14px}
+nav#tabs button{border:0;background:none;border-radius:10px;padding:0;min-height:40px;color:var(--muted);font-weight:700}
+nav#tabs button[aria-current="true"]{background:var(--accent);color:#fff}
+nav#tabs button .big{font-size:16px}
+nav#tabs button svg.mini{display:none}
+nav#tabs button .dot{top:6px;right:8px;background:var(--done)}
+/* bottom tab bar */
+#bnav{position:fixed;left:0;right:0;bottom:0;z-index:9;background:rgba(17,20,26,.97);border-top:1px solid var(--line);
+  padding:0 0 env(safe-area-inset-bottom);backdrop-filter:blur(10px)}
+#bnav .in{max-width:640px;margin:0 auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+#bnav button{position:relative;border:0;background:none;color:#7B8391;min-height:64px;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:3px;font-size:12px;font-weight:650}
+#bnav button[aria-current="true"]{color:var(--ink)}
+#bnav svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+#bnav .dot{position:absolute;top:10px;left:calc(50% + 10px);width:8px;height:8px;border-radius:4px;background:var(--hint)}
+#bnav .dot.run{background:var(--done)}
+/* the rest timer floats above the tab bar */
+#bar{left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));border-radius:20px;padding:10px 10px 10px 18px;
+  transform:translateY(calc(100% + 140px));box-shadow:0 10px 30px rgba(0,0,0,.45)}
+#bar .t{font-size:26px;font-weight:800}
+#bar .l{font-size:12px;font-weight:650;letter-spacing:.03em;opacity:.7}
+#bar button{border:0;background:#E1E4EA;color:#0E1116;border-radius:12px;min-height:44px;padding:0 14px;font-size:15px;font-weight:700}
+#bar button[data-rest="skip"]{background:#0E1116;color:#fff}
+#bar.over{background:var(--done);color:var(--done-ink)}
+/* cards and buttons */
+.box{background:var(--card);border:0;border-radius:20px;padding:14px 16px}
+.box h3{font-size:17px;font-weight:750}
+.btn{border-radius:16px;min-height:52px;font-weight:800;font-size:16px}
+.btn.ghost{background:var(--card);border:0;color:var(--ink)}
+.btn.start{background:var(--accent);color:#fff;border-radius:18px;min-height:56px}
+.small{color:var(--muted)}
+.focus{font-size:13px;font-weight:650;letter-spacing:.04em;text-transform:uppercase}
+.sec{display:flex;justify-content:space-between;align-items:baseline;margin:24px 4px 10px}
+.sec b{font-size:20px;font-weight:750}.sec span{font-size:14px;color:var(--muted)}
+.sec .link{font-size:14px;font-weight:650}
+input,select,textarea{color-scheme:dark}
+
+/* Today: hero card, due bar, rings, KPI tiles, strength lines */
+.hero{margin:6px 0 0;border-radius:24px;padding:20px;background:linear-gradient(135deg,#2457D6,#3A7BFF);color:#fff;display:flex;flex-direction:column;gap:14px}
+.hero.ok{background:linear-gradient(135deg,#1C7A4C,#2FB673)}
+.hero .ht{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.hero .ht>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.hero .eb,.duebar .eb{font-size:12px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;opacity:.8}
+.hero b{font-size:26px;font-weight:800;letter-spacing:-.01em}
+.hero .sub{font-size:14px;opacity:.88}
+.hero .hi{width:52px;height:52px;border-radius:16px;background:rgba(255,255,255,.16);display:grid;place-items:center;flex:none}
+.hero .hi svg{width:28px;height:28px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chips span{font-size:13px;font-weight:650;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.16)}
+.hero .hb{min-height:52px;border:0;border-radius:16px;background:#fff;color:#1D4ED8;font-size:17px;font-weight:800}
+.hero.ok .hb{color:#156B41}
+.duebar{margin:12px 0 0;border-radius:20px;padding:12px 12px 12px 14px;background:var(--hint-bg);border:1px solid #5A4316;display:flex;align-items:center;gap:12px}
+.duebar .di{width:40px;height:40px;border-radius:12px;background:var(--hint);color:#2A2112;display:grid;place-items:center;flex:none}
+.duebar .di svg{width:22px;height:22px}
+.duebar .dt{flex:1;display:flex;flex-direction:column;min-width:0}
+.duebar .eb{color:var(--hint);opacity:1}
+.duebar b{font-size:16px;font-weight:700}
+.take{min-height:44px;padding:0 18px;border:0;border-radius:14px;background:var(--hint);color:#1B1408;font-size:15px;font-weight:800}
+.rts,.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.rt{background:var(--card);border-radius:20px;padding:14px;display:flex;align-items:center;gap:12px;min-width:0;color:var(--ink)}
+.rt>span{display:flex;flex-direction:column;min-width:0}
+.rt b{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
+.rt b small,.kv small{font-size:14px;color:var(--muted);font-weight:650}
+.rg{flex:none}
+.kc{font-size:12.5px;color:var(--soft);line-height:1.3}
+.kpi{background:var(--card);border-radius:20px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-height:136px;min-width:0}
+.kpi .kl{font-size:13px;color:var(--soft);font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi .kv{font-size:28px;font-weight:800;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.1}
+.kpi .kv small{font-size:15px}
+.kpi .kv.good,.good{color:var(--done)}
+.kpi .kc{margin-top:auto}
+.wait{color:var(--hint)}
+.sp{width:100%;height:34px;display:block}
+.kbars{display:flex;align-items:flex-end;gap:6px;height:34px}
+.kbars i{flex:1;background:#2B3A59;border-radius:4px}.kbars i.on{background:var(--accent)}
+.kdays{display:flex;gap:4px}
+.kdays i{font-style:normal;font-size:11px;font-weight:750;padding:4px 0;width:34px;text-align:center;border-radius:8px;background:#2B3A59;color:var(--soft)}
+.kdays i.on{background:var(--accent);color:#fff}
+.kslots{display:flex;flex-direction:column;gap:4px}
+.kslots>span{display:flex;align-items:center;gap:6px}
+.kslots em{font-style:normal;font-size:11px;color:var(--muted);width:34px;font-variant-numeric:tabular-nums}
+.kslots .bad em{color:var(--bad);font-weight:750}
+.kslots i{flex:1;height:6px;border-radius:3px;background:#3A2E18;overflow:hidden}
+.kslots i b{display:block;height:6px;border-radius:3px;background:var(--hint)}
+.ksq{display:flex;gap:5px}
+.ksq i{width:24px;height:24px;border-radius:8px;background:#243A2F;display:grid;place-items:center;color:var(--done-ink)}
+.ksq i.on{background:var(--done)}.ksq svg{width:14px;height:14px}
+.kbristol{display:flex;gap:3px}
+.kbristol i{flex:1;height:8px;border-radius:2px;background:#3A2E25}.kbristol i.on{background:#C08457}
+.kwater{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--water-bg)}
+.kwater i{display:block}.kwater .morning{background:#9AD4FF}.kwater .afternoon{background:#4FB3FF}.kwater .evening{background:#2B7BD6}
+.lifts{padding:4px 16px}
+.lft{display:grid;grid-template-columns:minmax(0,1fr) 92px 56px;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.lft:first-child{border-top:0}
+.lft .ln{display:flex;flex-direction:column;min-width:0}
+.lft .ln b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lft .lc{text-align:right;font-weight:800;font-variant-numeric:tabular-nums;color:var(--soft)}.lft .lc.up{color:var(--done)}
+.sec .link{border:0;background:none;color:#7FB0FF;padding:0}
+
+/* Train: folded rows, the open exercise, big set rows with − / + */
+#bar:not(.show){visibility:hidden}
+.pill{border:0;background:var(--done-bg);color:var(--done);font-weight:750;padding:8px 12px}
+.pill.on{background:var(--done-bg);color:var(--done)}
+.wprog{display:grid;grid-template-columns:1fr auto;gap:6px 0;margin:4px 4px 14px;font-size:14px;color:var(--soft)}
+.wprog b{color:var(--ink)}
+.wprog i{grid-column:1 / -1;height:8px;border-radius:4px;background:#1E2A45;overflow:hidden}
+.wprog i b{display:block;height:8px;border-radius:4px;background:var(--accent)}
+button.fold{border:0;border-radius:18px;padding:12px 14px;gap:12px;margin:8px 0;background:var(--done-bg);color:var(--ink);min-height:60px}
+button.fold .num{width:34px;height:34px;border-radius:11px;background:var(--done);color:var(--done-ink);font-size:16px;font-weight:800}
+button.fold .what b{font-size:16px}
+button.fold .small{color:#7FCFA2}
+button.fold.todo{background:var(--card)}
+button.fold.todo .num{background:var(--chip);color:var(--soft)}
+button.fold.todo .small{color:var(--muted)}
+button.fold .more{display:grid;place-items:center;color:#6E7684}
+button.fold .more svg{width:18px;height:18px}
+.ex{border:1.5px solid var(--accent);border-radius:22px;background:var(--card);margin:8px 0}
+.ex.complete{border-color:var(--done)}
+.ex-head{padding:16px 16px 8px;gap:12px}
+.ex .num{width:34px;height:34px;border-radius:11px;background:var(--accent);color:#fff;font-size:15px;font-weight:800}
+.ex.complete .num{background:var(--done);color:var(--done-ink)}
+.ex-title select{font-size:19px;font-weight:800;color:var(--ink)}
+.rx{font-size:13px;color:var(--soft)}
+.foldup{width:40px;height:40px;border-radius:12px;background:var(--chip);color:var(--soft);display:grid;place-items:center;padding:0;font-size:14px}
+.ex .vid{width:40px;height:40px;border-radius:12px;background:var(--chip);border:0}
+.cue{padding:0 16px 10px;color:var(--soft)}
+.hint{margin:0 16px 10px;border-radius:12px;padding:10px 12px;background:#1E2A45;color:#B7CCFF;font-size:13px}
+.last{padding:0 16px 8px;font-size:13px;color:var(--soft)}
+.unitnote{padding:0 16px 6px}
+.sets{padding:4px 12px 12px}
+.row{grid-template-columns:24px minmax(0,1fr) minmax(0,1fr) 52px;gap:8px;padding:4px 0}
+.row.head{font-size:11px;font-weight:750;letter-spacing:.06em;color:#6E7684;text-transform:uppercase}
+.row.head span{text-align:center}
+.row .i{font-size:15px;font-weight:750;color:var(--soft)}
+.row.done .i{color:var(--done)}
+.stp{display:flex;align-items:center;height:52px;border-radius:14px;background:var(--input);min-width:0}
+.stp input,.row .stp input{flex:1;min-width:0;width:100%;height:52px;border:0;background:none;text-align:center;font-size:20px;font-weight:800;padding:0;color:var(--ink)}
+.stp input::placeholder{color:#6E7684;opacity:1}
+.stp .sb{flex:none;width:34px;height:44px;border:0;background:none;color:var(--muted);font-size:22px;font-weight:600;padding:0}
+.stp.done,.row.done .stp{background:var(--done-bg)}
+.row.done input{background:none}
+.tick{height:52px;border-radius:14px;border:2px solid var(--accent);background:none;color:var(--accent);opacity:1;font-size:22px;font-weight:800}
+.row.done .tick{background:var(--done);border-color:var(--done);color:var(--done-ink)}
+.row .bwcell{height:52px;display:grid;place-items:center;border-radius:14px;background:var(--input);font-weight:750}
+.row .rm{width:24px;height:24px;border:0;background:var(--chip);color:var(--soft)}
+.secbtn{height:52px;border-radius:14px}
+.setbtns{padding:2px 16px 14px}
+.setbtns .link{font-size:14px;font-weight:700;color:#7FB0FF}
+.box.reset{border-radius:22px;border:1.5px solid var(--accent)}
+.rrow .tick{height:44px}
+textarea{background:var(--input);border:0;border-radius:14px;color:var(--ink)}
+
+/* Nutrition: hero, quick-add tiles, supplement timeline, water glass, gut tiles */
+.dnav{background:var(--card);border-radius:14px;padding:4px;gap:4px;margin:8px 0 2px}
+.dnav button{border:0;background:none;min-width:40px;min-height:40px;border-radius:10px;color:var(--soft);font-size:18px}
+.dnav input{border:0;background:none;text-align:center;font-weight:700;color:var(--ink)}
+.dnav .link{color:#7FB0FF;font-size:14px;font-weight:700}
+.fhero{display:flex;gap:16px;align-items:center;padding:18px;border-radius:24px;margin-top:10px}
+.pring{position:relative;flex:none;width:128px;height:128px;color:var(--ink)}
+.pring .pc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.pring .pg{font-size:34px;font-weight:800;line-height:1}
+.pring .pc span{font-size:12px;color:var(--muted);font-weight:650;max-width:86px;margin-top:3px}
+.macros{flex:1;display:flex;flex-direction:column;gap:12px;min-width:0}
+.mac{display:flex;flex-direction:column;gap:5px}
+.mac .mt{display:flex;justify-content:space-between;font-size:13px}
+.mac .mt span{color:var(--soft);font-weight:650}.mac .mt b{font-weight:750}
+.mac .mt b.ok{color:var(--done)}.mac .mt b.over{color:var(--bad)}
+.mac i{height:8px;border-radius:4px;overflow:hidden}.mac i b{display:block;height:8px;border-radius:4px}
+.mac i.kcal{background:#2C2416}.mac i.kcal b{background:var(--hint)}
+.mac i.fat{background:#2A2333}.mac i.fat b{background:var(--fat)}
+.mac .ma{font-size:11px;color:var(--muted)}
+.pleft{font-size:13px;font-weight:700;color:var(--soft)}.pleft.ok{color:var(--done)}
+.qadd{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));grid-auto-flow:column;gap:8px;margin:12px 0}
+.qadd button,.cups button{min-height:64px;border:0;border-radius:18px;background:var(--done-bg);color:var(--done);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.qadd b,.cups b{font-size:15px;font-weight:800}.qadd span{font-size:12px;color:#7FCFA2}
+.qadd .main{background:var(--done);color:var(--done-ink)}.qadd .main span{color:#1F5C3C}
+.flog{padding:4px 16px}
+.supp{padding:6px 14px}
+.supp .sline{border-top:1px solid var(--line);padding:10px 0}
+.supp .shead.slot{padding:12px 0 2px}
+.supp .shead.slot b{font-size:14px}
+.nowbox{background:var(--hint-bg);margin:6px -6px 8px;padding:4px 10px 8px;border-radius:16px}
+.nowbox .sline{border-top:0}
+.nowbox .shead .due,.nowbox .shead.slot b{color:var(--hint)}
+.shead .all{min-height:40px;border:0;background:var(--hint);color:#1B1408;border-radius:12px;font-weight:800}
+.supp .shead:not(.nowbox *) .all{background:var(--chip);color:var(--ink)}
+.sline .tick{height:44px;border-radius:12px}
+.nowbox .sline .tick{border-color:var(--hint);color:var(--hint)}
+.sline.done .tick{background:var(--done);border-color:var(--done);color:var(--done-ink)}
+.sline input[type=time]{background:var(--input);border:0;border-radius:10px;color:var(--ink)}
+.allok{color:var(--done);font-weight:750;padding:10px 0 4px}
+.foldline{color:var(--done);font-weight:700}
+.foldline.plain{color:#7FB0FF}
+.water{padding:16px}
+.wrow{display:flex;gap:14px;align-items:center}
+.glass{position:relative;flex:none;width:64px;height:92px;border:2.5px solid var(--water);border-radius:10px 10px 18px 18px;overflow:hidden}
+.glass i{position:absolute;left:0;right:0;bottom:0;background:#2B7BD6}
+.glass b{position:absolute;inset:0;display:grid;place-items:center;font-size:16px;font-weight:800}
+.cups{flex:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.cups button{background:var(--water-bg);color:#9AD4FF;min-height:56px;border-radius:16px}
+.cups span{font-size:12px}
+.water .nadd,.water .foldline{margin-top:10px}
+.gut{padding:14px}
+.gnow{display:grid;grid-template-columns:1.4fr repeat(3,minmax(0,1fr));gap:8px;margin:0 0 8px}
+.gnow button{min-height:72px;border:0;border-radius:16px;background:var(--chip);color:#C9CED6;flex-direction:column;gap:4px;font-size:13px;font-weight:700;padding:6px 2px}
+.gnow .poo{background:#3A2A1E;color:#F0C9A6;font-size:15px;font-weight:800}
+.gnow .poo svg{width:24px;height:24px}
+.gnow .sym span{font-size:22px}
+.gline,.nline{border-top:1px solid var(--line)}
+.gedit{background:#1A1F27;border-radius:16px}
+.gnow svg{width:22px;height:22px}
+.addnote{width:100%;min-height:44px;margin-top:6px;border:1px dashed #3A414D;border-radius:12px;background:none;color:var(--soft);font-weight:650;font-size:14px}
+.addnote span{color:var(--muted);font-weight:400;margin-left:6px}
+.sline .tick.take{border:0;background:var(--hint);color:#1B1408;font-size:15px;opacity:1}
 @media print{
   header,#bar,#toast,.noprint{display:none!important}
   body{padding:0;background:#fff;color:#000}
@@ -440,7 +652,6 @@ nav button .lb{font-size:11px;font-weight:650;line-height:1;font-variant-numeric
   <div class="wrap">
     <div class="top">
       <button class="icon" id="back" aria-label="Back to the workout" hidden>←</button>
-      <button class="icon" id="dash" data-tab="dash" aria-label="Dashboard" hidden>⌂</button>
       <h1 id="title">Full Body 3</h1>
       <span class="prog" id="prog"></span>
       <span class="sdot" id="sdot" hidden></span>
@@ -457,6 +668,7 @@ nav button .lb{font-size:11px;font-weight:650;line-height:1;font-variant-numeric
   </div>
 </header>
 <main class="wrap" id="main"></main>
+<nav id="bnav" aria-label="Sections"><div class="in" id="bnavIn"></div></nav>
 <div id="bar"><div class="in">
   <span class="t" id="barT">0:00</span><span class="l" id="barL"></span>
   <button data-rest="-15">−15</button><button data-rest="15">+15</button><button data-rest="skip">Skip</button>
@@ -832,6 +1044,9 @@ const GUT_DIR = 'data/gut';
 const GTAGS = [['urgent', '🏃', 'Urgent'], ['strain', '😣', 'Strained'], ['empty', '⏳', 'Not empty'], ['pain', '😖', 'Pain'], ['blood', '🩸', 'Blood']];
 const GFLAGS = [['bloat', '🎈', 'Bloated'], ['gas', '💨', 'Gas']];
 const GSYM = [['gas', '💨', 'Gas'], ['bloat', '🎈', 'Bloated'], ['cramp', '🌀', 'Cramps']];
+// the same three as drawn icons for the buttons (no emoji on buttons, user 2026-10-28)
+const GSYMI = { gas:'<path d="M4 9h11a3 3 0 1 0-3-3M4 13h15a3 3 0 1 1-3 3M4 17h7"/>', bloat:'<circle cx="12" cy="11" r="7"/><path d="M12 18v3"/>',
+  cramp:'<path d="M12 12m-2 0a2 2 0 1 0 4 0a4 4 0 1 0-8 0a6 6 0 1 0 12 0"/>' };
 const GLVL = ['', 'a little', 'a lot', 'crazy'];
 const BTXT = ['', 'Hard lumps', 'Lumpy', 'Cracked', 'Smooth', 'Soft blobs', 'Mushy', 'Watery'];
 // the seven Bristol shapes, drawn small
@@ -1718,7 +1933,13 @@ const ICON = {
   band:'<svg class="mini" viewBox="0 0 24 24" aria-hidden="true"><rect x="1.8" y="8.6" width="4.2" height="6.8" rx="1.6"/><rect x="18" y="8.6" width="4.2" height="6.8" rx="1.6"/><path d="M6 12c2-3.6 4-3.6 6 0s4 3.6 6 0"/></svg>',
   broccoli:'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><g class="fl"><circle cx="6.6" cy="10.4" r="3.1"/><circle cx="9.6" cy="6.6" r="3.3"/><circle cx="14.4" cy="6.6" r="3.3"/><circle cx="17.4" cy="10.4" r="3.1"/><circle cx="12" cy="10" r="3.6"/></g><path class="st" d="M12 13v7.6M12 16.4l-3.2-3.2M12 16.4l3.2-3.2"/></svg>',
 };
+const NAVI = {
+  dash:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>',
+  train:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/></svg>',
+  fuel:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21c-4.5 0-8-3.4-8-8 0-4 3-7 6-7 1 0 1.5.4 2 .4S13 6 14 6c3 0 6 3 6 7 0 4.6-3.5 8-8 8z"/><path d="M12 6.4C12 4.5 13 3 15 2.5"/></svg>',
+};
 let lastDay = view;          // where ← goes back to
+let lastTrain = null;        // the workout tab last open (Train goes back to it)
 const opened = new Set();    // folded cards the user tapped open again (until the tab changes)
 // Sections (user, 2026-10-28): the dashboard opens first; Workout holds the A B C H tabs, Nutrition the
 // daily cards; ⌂ goes back to the dashboard from either. History, Report and Settings stay behind ⋯.
@@ -1727,7 +1948,13 @@ function render(){
   if(!page) lastDay = view;
   document.getElementById('tabs').hidden = !workout;
   document.getElementById('back').hidden = !page;
-  document.getElementById('dash').hidden = !!page || view === 'dash';
+  // the tab bar: Today, Train (the workout running, else the one you were on, else the next), Nutrition
+  const runD = ALL.find(d => drafts[d]?.startedAt), trainD = runD || (PLAN[view] ? view : PLAN[lastTrain] ? lastTrain : defaultDay());
+  document.getElementById('bnavIn').innerHTML =
+    `<button id="dash" data-tab="dash" aria-current="${view === 'dash'}">${NAVI.dash}Today</button>`
+    + `<button data-tab="${trainD}" aria-current="${workout}" aria-label="Train">${NAVI.train}Train${runD ? '<span class="dot run"></span>' : ''}</button>`
+    + `<button data-tab="fuel" aria-current="${view === 'fuel'}">${NAVI.fuel}Nutrition${suppDue() ? '<span class="dot"></span>' : ''}</button>`;
+  if(workout) lastTrain = view;
   document.getElementById('title').textContent = page || (view === 'fuel' ? 'Nutrition' : view === 'dash' ? 'Today' : PLAN[view].title);
   const run = d => drafts[d]?.startedAt ? '<span class="dot"></span>' : '';
   document.getElementById('tabs').innerHTML =
@@ -1743,11 +1970,19 @@ function showMenu(on){
 
 // a folded block: ✓ and green when done, else its number; one line under the name
 const foldBtn = (k, done, num, name, sub) => `<button class="fold ${done ? '' : 'todo'}" data-unfold="${k}"><span class="num">${done ? '✓' : num}</span>
-  <span class="what"><b>${esc(name)}</b><span class="small">${sub}</span></span><span class="more">▾</span></button>`;
-const foldUp = k => `<button class="foldup" data-fold="${k}" aria-label="Fold">▴</button>`;
+  <span class="what"><b>${esc(name)}</b><span class="small">${sub}</span></span><span class="more">${svgI('<path d="M9 6l6 6-6 6"/>', 2.4)}</span></button>`;
+// − / + on each side of a number box (user, 2026-10-28: the keyboard covered half the screen between sets);
+// the box still takes typing for unusual numbers. A done set shows just its number.
+const stepper = (i, j, f, done, box) => done ? `<span class="stp done">${box}</span>`
+  : `<span class="stp"><button class="sb" data-step="${i}.${j}.${f}.-1" aria-label="${f === 'kg' ? 'Less weight' : 'One rep less'}, set ${j + 1}">−</button>${box}<button class="sb" data-step="${i}.${j}.${f}.1" aria-label="${f === 'kg' ? 'More weight' : 'One rep more'}, set ${j + 1}">+</button></span>`;
+// the weight step: dumbbells 2 kg (per hand), machines, bars and the assist 2.5 kg
+const kgStep = name => loadOf(name) === 'hand' ? 2 : 2.5;
+const foldUp = k => `<button class="foldup" data-fold="${k}" aria-label="Fold">${svgI('<path d="M6 15l6-6 6 6"/>', 2.6)}</button>`;
 function renderDay(day){
   const p = PLAN[day], d = draft(day, false), reset = resetFor(day);
   let h = `<p class="focus">${p.focus}</p>`;
+  if(d.startedAt){ const all = d.slots.flatMap(x => x.sets), n = all.filter(x => x.done).length;
+    h += `<div class="wprog"><span>${n} of ${all.length} sets</span><b>${Math.round(n / all.length * 100)}%</b><i><b style="width:${(n / all.length * 100).toFixed(1)}%"></b></i></div>`; }
   if(!d.startedAt){
     const other = running(day);
     h += other ? `<div class="box"><b>${PLAN[other].title} is running.</b> Finish or clear it before starting this one.
@@ -1820,13 +2055,13 @@ function renderDay(day){
           const ref = last ? (last.sets[j] || last.sets[last.sets.length-1]) : null;
           const lastKg = ref && ref.kg !== '' && ref.kg != null ? ref.kg : '';
           return `<div class="row ${s.done ? 'done' : ''}">
-            ${!s.done && doneCount > 0 ? `<button class="i rm" data-rmset="${i}.${j}" aria-label="Remove set ${j+1} (not done)">−</button>` : `<span class="i">${j+1}</span>`}
+            ${!s.done && doneCount > 0 ? `<button class="i rm" data-rmset="${i}.${j}" aria-label="Remove set ${j+1} (not done)">✕</button>` : `<span class="i">${j+1}</span>`}
             ${band ? `<span class="bwcell">${esc(s.done ? (band === 'loop' ? s.band || '–' : s.kg || '–') : (band === 'loop' ? picked[0] || '–' : bandKg(slot.name, picked) || '–'))}</span>`
               : bwk === 'only' ? '<span class="bwcell">BW</span>'
-              : `<input inputmode="decimal" data-i="${i}" data-j="${j}" data-f="kg" data-last="${esc(lastKg)}" value="${esc(s.kg)}" placeholder="${lastKg !== '' ? esc(lastKg) : bwk ? 'BW' : '–'}" aria-label="Set ${j+1} ${headOf(slot.name)}">`}
+              : stepper(i, j, 'kg', s.done, `<input inputmode="decimal" data-i="${i}" data-j="${j}" data-f="kg" data-last="${esc(lastKg)}" value="${esc(s.kg)}" placeholder="${lastKg !== '' ? esc(lastKg) : bwk ? 'BW' : '–'}" aria-label="Set ${j+1} ${headOf(slot.name)}">`)}
             ${tm && tm.sides ? `<span class="lr">${['l', 'r'].map(f => secCell(i, j, s, f, ref ? ref[f] || ref.reps : tm.max)).join('')}</span>`
               : tm ? secCell(i, j, s, 'reps', ref ? ref.reps : tm.max)
-              : `<input inputmode="numeric" data-i="${i}" data-j="${j}" data-f="reps" value="${esc(s.reps)}" placeholder="${ref ? esc(ref.reps) : ex.max}" aria-label="Set ${j+1} reps">`}
+              : stepper(i, j, 'reps', s.done, `<input inputmode="numeric" data-i="${i}" data-j="${j}" data-f="reps" value="${esc(s.reps)}" placeholder="${ref ? esc(ref.reps) : ex.max}" aria-label="Set ${j+1} reps">`)}
             <button class="tick" data-tick="${i}.${j}" aria-label="Set ${j+1} done">✓</button>
           </div>`;}).join('')}
       </div>
@@ -1862,37 +2097,32 @@ function renderDay(day){
 // what is done folds away (like a finished exercise), so the tab gets shorter as the day goes well.
 let protForm = false;                                   // the protein form is open ("+ Meal or other…")
 let noteOpen = false;                                   // the gut note box is open ("📝 Note…")
-// each card folds to its heading (name and how the day stands); a tap opens it, another closes it;
-// all fold again when you leave the tab (user, 2026-10-28)
-const cardOpen = k => opened.has('c:' + k);
-const cardHead = (k, title, st, extra = '') => `<h3><button class="chead" data-${cardOpen(k) ? 'fold' : 'unfold'}="c:${k}" aria-expanded="${cardOpen(k)}">${title}${extra}${st}<span class="more">${cardOpen(k) ? '▴' : '▾'}</span></button></h3>`;
-const cardBox = (k, head, body) => cardOpen(k) ? `<div class="box card">${head}${body}</div>` : `<div class="box card folded">${head}</div>`;
 // Food & supplements (user, 2026-10-28: one card): what is due now on top, then protein with its
 // quick adds, then the supplements still to come and the day's food — each folded once done
-function nutriCard(day, now, isToday, noon){
-  const S = suppCard(day, now, isToday, noon), F = protCard(day, now, isToday);
-  const head = cardHead('nutri', 'Food & supplements', `<span class="st ${F.ok && S.ok ? 'ok' : ''}">${F.st} · ${S.st}</span>`, S.due ? ' <span class="due">· due</span>' : '');
-  return cardBox('nutri', head, (S.now ? `<div class="nowbox"><div class="shead">Now</div>${S.now}</div>` : '')
-    + F.top + `<div class="shead sub">💊 ${S.now ? 'Later' : 'Supplements'}</div>${S.later}` + (F.list ? `<div class="shead sub">🍽 Food</div>${F.list}` : ''));
-}
+// Nutrition (look: the approved canvas, 2026-10-28): protein as the hero with calories and fat, quick adds,
+// the day's food; then Supplements (what is due on top, with Take), Water and Gut — open sections.
+const secHead = (id, title, st, ok) => `<div class="sec" id="${id}"><b>${title}</b><span class="st ${ok ? 'ok' : ''}">${st}</span></div>`;
 function renderFuel(){
   const day = sDay(), now = Date.now(), isToday = day === dayKey(), noon = atDay(day);
+  const S = suppCard(day, now, isToday, noon), F = protCard(day, now, isToday);
   $main.innerHTML = `${dayNav(day, isToday)}<p class="focus">${isToday ? 'Today · ' : ''}${dateTxt(noon)}</p>
-    ${nutriCard(day, now, isToday, noon)}${waterCard(day, isToday)}${gutCard(day, isToday)}
+    ${F.hero}${F.add}${F.list ? `<div class="box flog">${F.list}</div>` : ''}
+    ${secHead('secS', 'Supplements', S.st, S.ok)}<div class="box card supp">${S.now ? `<div class="nowbox">${S.now}</div>` : ''}${S.later}</div>
+    ${waterCard(day, isToday)}${gutCard(day, isToday)}
     <p class="small">Doses, reminders, food targets and drink sizes are in ⋯ → Settings. ${syncText()}</p>`;
 }
 function suppCard(day, now, isToday, noon){
-  if(!supp) return { st:'💊 –', ok:true, due:false, now:'', later:`<p class="small">No supplement list on this phone yet. It is kept in your private repo
+  if(!supp) return { st:'', ok:false, due:false, now:'', later:`<p class="small">No supplement list on this phone yet. It is kept in your private repo
     and ${ghReady() ? 'loads by itself when there is signal.' : 'loads once the GitHub token is in ⋯ → Settings.'}</p>` };
   const items = todayItems(noon), req = items.filter(x => !x.optional);
   const got = req.filter(x => taken(day, x.id)).length;
-  const part = (now, later, due = false) => ({ st:`💊 ${got}/${req.length}`, ok:got === req.length, due, now, later });
+  const part = (now, later, due = false) => ({ st:`${got} of ${req.length}`, ok:got === req.length, due, now, later });
   // a line: name and dose; taken → when (a box to correct it), else just ✓ — the time shows only once ticked
   const line = x => { const on = taken(day, x.id); return `<div class="sline ${on ? 'done' : 'todo'}">
       <span><b>${esc(x.name)}</b> · ${esc(x.dose)}${x.optional ? ' <span class="small" style="display:inline">· optional</span>' : ''}
         <span class="small">${on ? `✓ taken ${hhmm(takenAt(day, x.id))}` : !isToday ? '<span class="miss">✗ not taken</span>' + (x.time ? ` · reminder ${x.time}` : '') : ''}${x.note ? (on || !isToday ? ' · ' : '') + esc(x.note) : ''}</span></span>
       ${on ? `<input type="time" data-suppat="${esc(x.id)}" value="${hhmm(takenAt(day, x.id))}" aria-label="${esc(x.name)}: time taken">` : ''}
-      <button class="tick" data-supp="${esc(x.id)}" aria-label="${esc(x.name)} taken">✓</button></div>`; };
+      <button class="tick ${!on && isToday && itemDue(x, now) ? 'take' : ''}" data-supp="${esc(x.id)}" aria-label="${esc(x.name)} taken">${!on && isToday && itemDue(x, now) ? 'Take' : '✓'}</button></div>`; };
   // a past day is a record, not a to-do list (user, 2026-10-25): everything listed in the day's order,
   // taken ✓ with its time, not taken ✗ — nothing folded away
   if(!isToday){
@@ -1927,13 +2157,21 @@ function protCard(day, now, isToday){
   // the form adds food, or changes the entry tapped in the list
   const ed = protEdit && protDay(day).find(e => e.id === protEdit), src = ed ? ed.src : pMeal ? pMeal.src : protSrc, form = protForm || !!ed;
   const last = ed || pMeal || { g:protLast[src], ...(foodLast[src] || {}) };
-  let h = `${target ? `<div class="pbar ${total >= target ? 'full' : ''}"><i style="width:${pct}%"></i></div>
-      <div class="small">🥩 ${total >= target ? `✓ Protein target reached${range && range[1] ? ` · fine up to ${range[1]} g` : ''}` : `${target - total} g to go`}</div>`
-      : `<div class="small">Set your daily targets in ⋯ → Settings → Food${ghReady() ? ' (or they load from your repo)' : ''}.</div>`}
-    <div class="ftot small">🔥 <b class="${kc && kcal > kc[1] ? 'over' : kc && kcal >= kc[0] ? 'ok' : ''}">${approx('kcal')}${kcal.toLocaleString('en')}</b>${kc ? ` / ${kc[0].toLocaleString('en')}–${kc[1].toLocaleString('en')}` : ''} kcal
-      · 🧈 <b class="${fatMin && fat >= fatMin ? 'ok' : ''}">${approx('fat')}${fat}</b>${fatMin ? ` / ${fatMin}+` : ''} g fat</div>`;
-  if(!form) h += `<div class="pquick">${PQUICK.filter(x => +protLast[x] > 0).map(x => `<button data-pquick="${esc(x)}">+ ${esc(x === 'Greek yogurt' ? 'Yogurt' : x)} ${esc(protLast[x])} g</button>`).join('')}
-      <button class="other" data-act="pform">+ Meal or snack…</button></div>`;
+  // the hero: protein as a big ring, calories and fat as bars against their aims
+  const kcPct = kc ? Math.min(100, kcal / kc[1] * 100) : 0, fatPct = fatMin ? Math.min(100, fat / fatMin * 100) : 0;
+  const hero = `<div class="box fhero">${target ? `<div class="pring">${ring(total / target, '#3DD68C', '', 128).replace(/<path[^>]*\/>|<text[^>]*>[^<]*<\/text>/, '')}
+      <span class="pc"><b class="pg">${total}</b><span>of ${target} g protein</span></span></div>` : ''}
+    <div class="macros">
+      ${target ? '' : `<div class="small">Set your daily targets in ⋯ → Settings → Food${ghReady() ? ' (or they load from your repo)' : ''}.</div>`}
+      <div class="mac"><span class="mt"><span>Calories</span><b class="${kc && kcal > kc[1] ? 'over' : kc && kcal >= kc[0] ? 'ok' : ''}">${approx('kcal')}${kcal.toLocaleString('en')}</b></span>
+        <i class="kcal"><b style="width:${kcPct.toFixed(1)}%"></b></i><span class="ma">${kc ? `aim ${kc[0].toLocaleString('en')}–${kc[1].toLocaleString('en')} kcal` : 'kcal'}</span></div>
+      <div class="mac"><span class="mt"><span>Fat</span><b class="${fatMin && fat >= fatMin ? 'ok' : ''}">${approx('fat')}${fat} g</b></span>
+        <i class="fat"><b style="width:${fatPct.toFixed(1)}%"></b></i><span class="ma">${fatMin ? `at least ${fatMin} g fat` : 'g fat'}</span></div>
+      ${target ? `<div class="pleft ${total >= target ? 'ok' : ''}">${total >= target ? `✓ Protein target reached${range && range[1] ? ` · fine up to ${range[1]} g` : ''}` : `${target - total} g to go`}</div>` : ''}
+    </div></div>`;
+  let h = '';
+  if(!form) h += `<div class="qadd">${PQUICK.filter(x => +protLast[x] > 0).map(x => `<button data-pquick="${esc(x)}"><b>+ ${esc(x === 'Greek yogurt' ? 'Yogurt' : x)}</b><span>${esc(protLast[x])} g</span></button>`).join('')}
+      <button class="main" data-act="pform"><b>+ Meal</b><span>or snack</span></button></div>`;
   else h += `<div class="padd">
       <div class="full small"><b>${ed ? 'Changing an entry' : 'Add food'}</b> · what you ate; the numbers you know (the rest is estimated later)</div>
       <select id="pSrc" aria-label="Source">${PSRC.map(x => `<option ${x === src ? 'selected' : ''}>${x}</option>`).join('')}
@@ -1953,7 +2191,7 @@ function protCard(day, now, isToday){
         <li>Salmon or white fish, 150 g ≈ 30–35 g</li><li>Beef or pork, lean, 150 g ≈ 40 g</li>
         <li>2 eggs ≈ 12 g</li><li>Cottage cheese, 200 g ≈ 22 g</li><li>Lentils or chickpeas, 200 g cooked ≈ 18 g</li>
         <li>Milk, 250 ml ≈ 8 g</li><li>Bread, 2 slices ≈ 7 g</li></ul></details></div>`;
-  const top = h; h = '';
+  const add = form ? `<div class="box">${h}</div>` : h; h = '';
   const list = protDay(day).sort((a, b) => a.at - b.at);
   const num = (e, k, unit) => nut(e, k) == null ? '' : `${isEst(e, k) ? '~' : ''}${nut(e, k)}${unit}`;
   if(list.length) h += opened.has('pent') || ed || !isToday
@@ -1965,18 +2203,16 @@ function protCard(day, now, isToday){
         <span class="g">${num(e, 'g', ' g') || '~'}</span><span class="small">✎</span></button>
         <button class="link x" data-pdel="${esc(e.id)}" aria-label="Remove ${esc(e.src)} at ${hhmm(e.at)}">✕</button></div>`; }).join('')
     : `<button class="foldline plain" data-unfold="pent">${list.length} entr${list.length === 1 ? 'y' : 'ies'} ${isToday ? 'today' : 'that day'} <span class="more">show ▾</span></button>`;
-  return { st:`🥩 ${total} g`, ok:!target || total >= target, top, list:h };
+  return { st:`${total} g`, ok:!target || total >= target, hero, add, list:h };
 }
 
 // Water: one tap per drink; Other… for an exact amount; the drinks fold away like food entries.
 function waterCard(day, isToday){
   const tot = waterTotal(day), target = prot && +prot.water, pct = target ? Math.min(100, Math.round(tot / target * 100)) : 0;
-  const head = cardHead('water', 'Water', `<span class="st ${target && tot >= target ? 'ok' : ''}">${litres(tot)}${target ? ` / ${litres(target)}` : ''} L</span>`);
-  if(!cardOpen('water')) return cardBox('water', head);
-  let h = `<div class="box card">${head}
-    ${target ? `<div class="pbar ${tot >= target ? 'full' : ''}"><i style="width:${pct}%"></i></div>` : ''}
-    <div class="pquick">${cups().map((c, i) => `<button data-cup="${i}">💧 ${esc(c.n)} ${esc(c.ml)}</button>`).join('')}
-      <button class="other" data-act="wother">Other…</button></div>`;
+  let h = `${secHead('secW', 'Water', `${litres(tot)}${target ? ` / ${litres(target)}` : ''} L`, target && tot >= target)}<div class="box card water">
+    <div class="wrow">${target ? `<span class="glass"><i style="height:${pct}%"></i><b>${pct}%</b></span>` : ''}
+    <div class="cups">${cups().map((c, i) => `<button data-cup="${i}"><b>${esc(c.n)}</b><span>${esc(c.ml)}</span></button>`).join('')}
+      <button class="other" data-act="wother"><b>Other</b><span>ml</span></button></div></div>`;
   if(waterOther) h += `<div class="nadd"><input id="wMl" class="gnote" inputmode="numeric" placeholder="ml" aria-label="Millilitres">
       <button class="btn" data-act="wadd">Add</button></div>`;
   const list = waterDay(day).sort((a, b) => a.at - b.at);
@@ -1993,11 +2229,9 @@ function waterCard(day, isToday){
 // timeline; tap a line to change it, ✕ removes it (with Undo).
 function gutCard(day, isToday){
   const list = gutDay(day), syms = symDay(day), ed = gutEdit && list.find(e => e.id === gutEdit), es = gutEdit && syms.find(e => e.id === gutEdit);
-  const head = cardHead('gut', 'Gut', `<span class="st">${list.length ? `💩 ${list.length}` : ''}${syms.length ? ` · ${syms.length} symptom${syms.length === 1 ? '' : 's'}` : ''}</span>`);
-  if(!cardOpen('gut')) return cardBox('gut', head);
-  let h = `<div class="box card">${head}
-    <div class="gnow"><button class="poo" data-act="gnew" aria-label="Log a poo ${isToday ? 'now' : 'that day'}"><span>💩</span>+ ${isToday ? 'Now' : 'Log'}</button>
-      ${GSYM.map(([k, ic, lb]) => `<button class="sym" data-gsym="${k}" aria-label="Log ${lb.toLowerCase()} ${isToday ? 'now' : 'that day'}"><span>${ic}</span>${lb}</button>`).join('')}</div>`;
+  let h = `${secHead('secG', 'Gut', [list.length ? `${list.length} today` : '', syms.length ? `${syms.length} symptom${syms.length === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · '))}<div class="box card gut">
+    <div class="gnow"><button class="poo" data-act="gnew" aria-label="Log a poo ${isToday ? 'now' : 'that day'}">${svgI('<path d="M12 5v14M5 12h14"/>', 2.4)}${isToday ? 'Log now' : 'Log'}</button>
+      ${GSYM.map(([k, ic, lb]) => `<button class="sym" data-gsym="${k}" aria-label="Log ${lb.toLowerCase()} ${isToday ? 'now' : 'that day'}">${svgI(GSYMI[k], 2)}${lb}</button>`).join('')}</div>`;
   if(ed) h += `<div class="gedit">
       <div class="top">💩 <input type="time" data-gutat="${esc(ed.id)}" value="${hhmm(ed.at)}" aria-label="Time">
         <button class="link" data-gdel="${esc(ed.id)}" style="color:var(--bad)">Remove</button>
@@ -2026,7 +2260,7 @@ function gutCard(day, isToday){
   h += gutNotes(day).map(n => `<div class="nline"><span class="small">${hhmm(n.at)}</span><span class="nt">📝 ${esc(n.text)}</span>
       <button class="link x" data-ndel="${esc(n.id)}" aria-label="Remove the note at ${hhmm(n.at)}">✕</button></div>`).join('');
   // the note box folds into a button (user, 2026-10-28); a note typed but not added keeps it open
-  if(!noteOpen && !noteDraft[day]) return h + `<button class="foldline plain" data-act="nopen">📝 Note… <span class="more">food, stress, travel…</span></button></div>`;
+  if(!noteOpen && !noteDraft[day]) return h + `<button class="addnote" data-act="nopen">Add a note <span>food, stress, travel…</span></button></div>`;
   return h + `<div class="nadd"><textarea class="gnote" data-gnote="1" rows="2" placeholder="📝 Note ${isToday ? '' : 'for that day '}— food, stress, travel… whenever it comes to mind" aria-label="New note">${esc(noteDraft[day] || '')}</textarea>
     <button class="btn" data-act="nadd">Add</button></div>
     <button class="link" data-act="ncancel">Cancel</button></div>`;
@@ -2267,143 +2501,183 @@ function reportTop(){
   return h;
 }
 
-// ---------- Dashboard (user, 2026-10-28) ----------
-// The first page: two big buttons into the sections, then today at a glance, what the data says about
-// you (KPIs), and the week from the Report (rings, ranges, wins, strength).
+// ---------- Today: the dashboard (user, 2026-10-28; look: the redesign canvas) ----------
+// The first page: the next workout as a big card with its button, what is due with Take, today's four
+// rings, "About you" as tiles (a big number, a small picture, a short caption) and strength by lift.
+const svgI = (d, w = 2.2) => `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const CHECK = svgI('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 3.2);
+// a ring: fraction filled, its colour, the text in the middle (a ✓ when full)
+function ring(frac, col, txt, size = 58){
+  const r = size / 2 - 5, c = 2 * Math.PI * r, f = Math.max(0, Math.min(1, frac || 0)), mid = size / 2;
+  return `<svg class="rg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true">
+    <circle cx="${mid}" cy="${mid}" r="${r}" fill="none" stroke="${col}" stroke-opacity=".18" stroke-width="7"/>
+    <circle cx="${mid}" cy="${mid}" r="${r}" fill="none" stroke="${col}" stroke-width="7" stroke-linecap="round"
+      stroke-dasharray="${(c * f).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 ${mid} ${mid})"/>
+    ${f >= 1 ? `<path d="M${mid - 7} ${mid + .5}l4.6 4.6L${mid + 7} ${mid - 4.2}" fill="none" stroke="${col}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`
+      : `<text x="${mid}" y="${mid + 4.5}" text-anchor="middle" font-size="13" font-weight="800" fill="currentColor">${esc(txt)}</text>`}</svg>`;
+}
+// a small line of values, last point marked
+function spark(vals, col){
+  if(vals.length < 2) return '';
+  const lo = Math.min(...vals), hi = Math.max(...vals), W = 140, H = 34, p = 5;
+  const pt = (v, i) => [p + i * (W - 2 * p) / (vals.length - 1), hi === lo ? H / 2 : H - p - (v - lo) / (hi - lo) * (H - 2 * p)];
+  const pts = vals.map(pt), [lx, ly] = pts[pts.length - 1];
+  return `<svg class="sp" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><polyline points="${pts.map(q => q.map(n => n.toFixed(1)).join(',')).join(' ')}"
+    fill="none" stroke="${col}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/><circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="3.5" fill="${col}"/></svg>`;
+}
+const tile = ({ label, val, unit = '', vis = '', cap = '', tone = '' }) => `<div class="kpi"><span class="kl">${label}</span>
+  <span class="kv ${tone}">${val}${unit ? `<small>${unit}</small>` : ''}</span>${vis}<span class="kc">${cap}</span></div>`;
+const waitTile = (label, need) => tile({ label, val:'–', cap:`<span class="wait">${need}</span>` });
+
 function renderDash(){
-  const now = Date.now(), today = dayKey(), next = defaultDay(), run = drafts[next]?.startedAt ? next : null;
+  const now = Date.now(), today = dayKey(), next = defaultDay(), run = ALL.find(d => drafts[d]?.startedAt);
   const target = prot && +prot.target, g = protTotal(), water = prot && +prot.water, wml = waterTotal();
   const items = todayItems(now), req = items.filter(x => !x.optional), got = req.filter(x => taken(today, x.id)).length;
-  const due = items.filter(x => itemDue(x, now)), later = items.filter(x => !taken(today, x.id) && x.time && !itemDue(x, now)).sort((a, b) => a.time.localeCompare(b.time));
-  const sets = run ? drafts[run].slots.flatMap(x => x.sets) : [];
+  const due = items.filter(x => itemDue(x, now)), wk = history.filter(s => s.startedAt >= weekStart(now)).length;
   const doneToday = history.filter(x => dayKey(x.startedAt) === today);
-  let h = `<div class="dbtns">
-    <button class="dbtn" data-tab="${next}">${ICON.dumbbell.replace('class="mini"', 'class="dic"')}<b>Workout</b>
-      <span class="small">${run ? `${PLAN[run].title} · in progress · ${sets.filter(x => x.done).length}/${sets.length} sets` : `Next: ${PLAN[next].title}`}</span>${run ? '<span class="dot"></span>' : ''}</button>
-    <button class="dbtn" data-tab="fuel">${ICON.broccoli.replace('class="ic"', 'class="dic"')}<b>Nutrition</b>
-      <span class="small">🥩 ${g}${target ? `/${target}` : ''} g${supp ? ` · 💊 ${got}/${req.length}` : ''}</span>${due.length ? '<span class="dot" style="background:var(--hint)"></span>' : ''}</button></div>`;
-  // today at a glance: one line each, what needs you first
-  const gl = [
-    doneToday.length ? `🏋 <b>${doneToday.map(x => PLAN[x.day] ? PLAN[x.day].title : x.day).join(', ')}</b> done today ✓` : run ? `🏋 <b>${PLAN[run].title}</b> in progress` : `🏋 Next workout: <b>${PLAN[next].title}</b> · ${esc(PLAN[next].focus)}`,
-    supp ? due.length ? `💊 <span class="due">Due:</span> <b>${esc(due.map(x => x.name).join(' + '))}</b>` : got === req.length ? '💊 All supplements taken ✓' : later.length ? `💊 Next at ${later[0].time}: ${esc(later.filter(x => x.time === later[0].time).map(x => x.name).join(' + '))}` : `💊 ${got}/${req.length} taken` : '',
-    target ? g >= target ? `🥩 Protein target reached ✓ (${g} g)` : `🥩 <b>${target - g} g</b> protein to go` : '',
-    water ? wml >= water ? `💧 Water reached ✓ (${litres(wml)} L)` : `💧 ${litres(wml)} of ${litres(water)} L` : '',
-    gutDay(today).length || symDay(today).length ? `💩 Gut logged ✓${symDay(today).length ? ` · ${symDay(today).length} symptom${symDay(today).length === 1 ? '' : 's'}` : ''}` : '💩 Gut: nothing logged yet'].filter(Boolean);
-  h += `<div class="box rep"><h3>At a glance</h3><ul class="glance">${gl.map(x => `<li>${x}</li>`).join('')}</ul></div>`;
-  h += aboutYou();
-  h += history.length ? reportTop() : `<p class="small">The week, your wins and strength appear here after your first workout.</p>`;
+  const mins = history.filter(x => x.finishedAt && x.startedAt).map(x => (x.finishedAt - x.startedAt) / 60000).filter(m => m >= 15 && m <= 180);
+  let h = `<p class="focus">${new Date(now).toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'short' })}</p>`;
+  // hero: the workout to do (or running, or done today)
+  const w = run || next, P = PLAN[w], sets = run ? drafts[run].slots.flatMap(x => x.sets) : [];
+  const hdone = !run && doneToday.length;
+  h += `<div class="hero ${hdone ? 'ok' : ''}"><div class="ht"><div><span class="eb">${run ? 'In progress' : hdone ? 'Done today' : 'Next workout'}</span>
+      <b>${hdone ? esc(doneToday.map(x => PLAN[x.day] ? PLAN[x.day].title : x.day).join(', ')) : P.title}</b><span class="sub">${esc(hdone ? `Next: ${P.title}` : P.focus)}</span></div>
+      <span class="hi">${NAVI.train}</span></div>
+    <div class="chips">${run ? `<span>${sets.filter(x => x.done).length} of ${sets.length} sets</span>` : `<span>${P.ex.length} exercises</span>`}${mins.length ? `<span>~${Math.round(avg(mins))} min</span>` : ''}<span>${wk} of 3 this week</span></div>
+    <button class="hb" data-tab="${w}" aria-label="${run ? 'Continue' : 'Open'} ${P.title}">${run ? 'Continue workout' : hdone ? `Open ${P.title}` : 'Start workout'}</button></div>`;
+  // what is due now, with Take
+  if(due.length){
+    const tm = due[0].time, its = due.filter(x => x.time === tm);
+    h += `<div class="duebar"><span class="di">${svgI('<rect x="3" y="8.5" width="18" height="7" rx="3.5" transform="rotate(-35 12 12)"/><path d="M9.2 8.6l5.6 6.8"/>', 2.2)}</span>
+      <span class="dt"><span class="eb">Due ${tm}</span><b>${esc(its.map(x => x.name).join(' + '))}</b></span>
+      <button class="take" ${its.length > 1 ? `data-suppslot="${tm}"` : `data-supp="${esc(its[0].id)}"`} aria-label="Take ${esc(its.map(x => x.name).join(' + '))}">Take</button></div>`;
+  }
+  // today: four rings
+  const rt = (frac, col, txt, big, unit, lab) => `<div class="rt">${ring(frac, col, txt)}<span><b>${big}<small>${unit}</small></b><span class="kc">${lab}</span></span></div>`;
+  const rts = [
+    target ? rt(g / target, '#3DD68C', `${Math.round(g / target * 100)}%`, g, ' g', `Protein · goal ${target}`) : '',
+    water ? rt(wml / water, '#4FB3FF', `${Math.round(wml / water * 100)}%`, litres(wml), ' L', `Water · goal ${litres(water)}`) : '',
+    supp ? rt(req.length ? got / req.length : 1, '#F5A524', `${got}/${req.length}`, got, ` of ${req.length}`, 'Supplements') : '',
+    rt(wk / 3, '#3A7BFF', `${wk}/3`, wk, ' of 3', 'Workouts · week')].filter(Boolean);
+  h += `<div class="sec"><b>Today</b><span>${[target && g >= target, water && wml >= water, supp && got === req.length, wk >= 3].filter(Boolean).length} of ${rts.length} done</span></div>
+    <div class="rts">${rts.join('')}</div>`;
+  h += `<div class="sec"><b>About you</b><button class="link" data-tab="report">See all</button></div><div class="about kpis">${kpiTraining()}${kpiHabits()}</div>`;
+  // strength: one line per main lift
+  const lines = strengthLines();
+  if(lines.length) h += `<div class="sec"><b>Strength</b><span>best set per session</span></div><div class="box lifts">${lines.map(([name, v]) => {
+      const f = v[0].sc, l = v[v.length - 1].sc, pct = Math.round((l / f - 1) * 100), assist = loadOf(name) === 'assist' && !bodyweight;
+      return `<div class="lft"><span class="ln"><b>${esc(name)}</b><span class="kc">${esc(setTxt(v[v.length - 1].set, exFor(name), name, v[v.length - 1].bw))}</span></span>
+        ${spark(v.map(o => o.sc), pct > 0 ? '#3DD68C' : '#8B93A1')}<span class="lc ${!assist && pct > 0 ? 'up' : ''}">${assist ? `${v[0].set.kg}→${v[v.length - 1].set.kg}` : `${pct > 0 ? '+' : ''}${pct}%`}</span></div>`; }).join('')}</div>`;
   h += `<div class="actions"><button class="btn ghost" data-tab="report">Full report</button><button class="btn ghost" data-tab="history">History</button></div>`;
   $main.innerHTML = h;
 }
 
 // ---------- About you: KPIs (user, 2026-10-28: "KPIs that make me learn about myself") ----------
-// Each one says what the data shows, or what it still needs — never a number from too little data.
+// Each tile says what the data shows, or what it still needs — never a number from too little data.
 // Habits look at the last 14 days before today, from the first day each was tracked.
 const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0;
 const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const hourPart = t => { const h = new Date(t).getHours(); return h < 12 ? 'morning' : h < 18 ? 'afternoon' : 'evening'; };
-const kpiRow = (ic, name, val, sub) => `<div class="kpi"><span class="ki">${ic}</span><span class="kt"><b>${name}</b><span class="small">${sub}</span></span><span class="kv">${val}</span></div>`;
-const kpiWait = (ic, name, need) => kpiRow(ic, name, '<span class="small">–</span>', `<span class="wait">${need}</span>`);
+const f1 = n => n.toLocaleString('en', { maximumFractionDigits:1 });
 // the tracked days of a log: from its first day, the last n days before today
 function pastDays(log, n = 14){
   const from = firstDay(log), out = [];
   for(let i = n; i >= 1; i--){ const k = dayKey(addDays(Date.now(), -i)); if(k >= from && from < dayKey()) out.push(k); }
   return out;
 }
-const bar3 = parts => { const tot = parts.reduce((n, [, v]) => n + v, 0) || 1;
-  return `<span class="kbar">${parts.map(([k, v]) => `<i class="${k}" style="width:${(v / tot * 100).toFixed(1)}%" title="${k} ${Math.round(v / tot * 100)}%"></i>`).join('')}</span>`; };
 function kpiTraining(){
   const done = history.filter(x => x.startedAt && x.finishedAt), h = [];
-  // 1. workout time: real sessions (15 min to 3 h), average, per workout, last 3 against the 3 before
-  const real = done.map(x => ({ d:x.day, m:(x.finishedAt - x.startedAt) / 60000 })).filter(x => x.m >= 15 && x.m <= 180);
+  // 1. workout time: real sessions (15 min to 3 h); the last 3 against the 3 before
+  const real = done.map(x => (x.finishedAt - x.startedAt) / 60000).filter(m => m >= 15 && m <= 180);
   if(real.length >= 2){
-    const per = ALL.filter(d => real.some(x => x.d === d)).map(d => `${PLAN[d].tab} ${Math.round(avg(real.filter(x => x.d === d).map(x => x.m)))}`);
-    const l3 = real.slice(-3).map(x => x.m), p3 = real.slice(-6, -3).map(x => x.m), dm = p3.length >= 2 ? Math.round(avg(l3) - avg(p3)) : null;
-    h.push(kpiRow('⏱', 'Workout time', `${Math.round(avg(real.map(x => x.m)))} min`, `average of ${real.length} · ${per.join(' · ')} min${dm != null ? ` · last 3 ${dm > 0 ? '+' : ''}${dm} min vs the 3 before` : ''}`));
-  } else h.push(kpiWait('⏱', 'Workout time', 'after 2 workouts'));
-  // 2. consistency: the last 4 full weeks against 3 a week, the longest gap, weeks on plan in a row
+    const l3 = real.slice(-3), p3 = real.slice(-6, -3), dm = p3.length >= 2 ? Math.round(avg(l3) - avg(p3)) : null;
+    h.push(tile({ label:'Workout time', val:Math.round(avg(real)), unit:' min', vis:spark(real.slice(-8), '#3A7BFF'),
+      cap:dm == null ? `${real.length} workouts` : Math.abs(dm) < 3 ? 'steady lately' : `<span class="${dm > 0 ? 'wait' : 'good'}">${dm > 0 ? '+' : '−'}${Math.abs(dm)} min lately</span>` }));
+  } else h.push(waitTile('Workout time', 'after 2 workouts'));
+  // 2. per week: the last 4 full weeks against 3, the longest gap
   const wk = weekStart(Date.now()), first = done.length ? weekStart(done[0].startedAt) : wk;
-  const weeks = [1, 2, 3, 4].map(i => addDays(wk, -7 * i)).filter(w => w >= first);
+  const weeks = [4, 3, 2, 1].map(i => addDays(wk, -7 * i)).filter(w => w >= first);
   if(weeks.length){
     const per = weeks.map(w => done.filter(x => x.startedAt >= w && x.startedAt < addDays(w, 7)).length);
-    const gaps = done.slice(1).map((x, i) => (x.startedAt - done[i].startedAt) / 864e5).filter(g => g > 0);
-    const ws = workoutStreak();
-    h.push(kpiRow('📅', 'Consistency', `${(avg(per)).toLocaleString('en', { maximumFractionDigits:1 })}/wk`,
-      `plan 3 · last ${per.length} full week${per.length === 1 ? '' : 's'}: ${per.reverse().join(', ')}${gaps.length ? ` · longest gap ${Math.round(Math.max(...gaps))} days` : ''}${ws ? ` · ${ws} week${ws === 1 ? '' : 's'} on plan in a row` : ''}`));
-  } else h.push(kpiWait('📅', 'Consistency', 'after your first full week'));
-  // 3. when you train best: usual day and hour; strength by part of day against each lift's own average
+    const gaps = done.slice(1).map((x, i) => (x.startedAt - done[i].startedAt) / 864e5);
+    h.push(tile({ label:'Per week', val:f1(avg(per)), unit:' / 3',
+      vis:`<span class="kbars">${per.map(n => `<i style="height:${Math.max(8, Math.min(100, n / 3 * 100))}%" class="${n >= 3 ? 'on' : ''}"></i>`).join('')}</span>`,
+      cap:gaps.length ? `longest gap ${Math.round(Math.max(...gaps))} days` : `${per.length} full week${per.length === 1 ? '' : 's'}` }));
+  } else h.push(waitTile('Per week', 'after a full week'));
+  // 3. when you train: usual days and hour; strength by part of day against each lift's own average
   if(done.length >= 3){
     const cnt = {}; done.forEach(x => { const k = WEEKDAY[new Date(x.startedAt).getDay()]; cnt[k] = (cnt[k] || 0) + 1; });
-    const days = Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => k).join(', ');
+    const days = Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 3);
     const hr = Math.round(avg(done.map(x => new Date(x.startedAt).getHours() + new Date(x.startedAt).getMinutes() / 60)));
-    const lines = strengthLines(), rel = {};
-    lines.forEach(([, v]) => { const m = avg(v.map(o => o.sc)); v.forEach(o => (rel[hourPart(o.at)] = rel[hourPart(o.at)] || []).push(o.sc / m)); });
-    const parts = Object.entries(rel).filter(([, v]) => v.length >= 4);
-    const best = parts.length >= 2 ? parts.sort((a, b) => avg(b[1]) - avg(a[1]))[0] : null;
-    const diff = best ? Math.round((avg(best[1]) - avg(parts[parts.length - 1][1])) * 100) : 0;
-    h.push(kpiRow('🕒', 'When you train', `~${pad2(hr)}:00`, `usually ${days}${best && diff >= 2 ? ` · ${diff}% stronger in the ${best[0]}` : best ? ' · no difference by time of day yet' : ' · strength by time of day: needs sessions at different times'}`));
-  } else h.push(kpiWait('🕒', 'When you train', 'after 3 workouts'));
-  // 4. progress speed: per main lift, % per month first → last, and when it last went up; 3 sessions flat = stall
+    const rel = {};
+    strengthLines().forEach(([, v]) => { const m = avg(v.map(o => o.sc)); v.forEach(o => (rel[hourPart(o.at)] = rel[hourPart(o.at)] || []).push(o.sc / m)); });
+    const parts = Object.entries(rel).filter(([, v]) => v.length >= 4).sort((a, b) => avg(b[1]) - avg(a[1]));
+    const diff = parts.length >= 2 ? Math.round((avg(parts[0][1]) - avg(parts[parts.length - 1][1])) * 100) : 0;
+    h.push(tile({ label:'You train at', val:`${pad2(hr)}:00`,
+      vis:`<span class="kdays">${days.map(([d], i) => `<i class="${i < 2 ? 'on' : ''}">${d.toUpperCase()}</i>`).join('')}</span>`,
+      cap:diff >= 2 ? `<span class="good">${diff}% stronger in the ${parts[0][0]}</span>` : 'your usual days' }));
+  } else h.push(waitTile('You train at', 'after 3 workouts'));
+  // 4. progress: the lift moving fastest (% a month, ≥ 12 days of data); a lift flat 3 sessions is flagged
   const sp = strengthLines().map(([name, v]) => {
     const span = (v[v.length - 1].at - v[0].at) / (30 * 864e5);
-    let up = null, top = 0; v.forEach(o => { if(o.sc > top * 1.005){ if(top) up = o.at; top = o.sc; } });
     const stall = v.length >= 4 && v.slice(-3).every(o => o.sc <= Math.max(...v.slice(0, -3).map(q => q.sc)) * 1.005);
-    return { name, pm:span >= .4 ? (v[v.length - 1].sc / v[0].sc - 1) * 100 / span : null, up, stall };
-  }).filter(x => x.pm != null);
-  if(sp.length) h.push(kpiRow('📈', 'Progress speed', `${Math.round(avg(sp.map(x => x.pm))) > 0 ? '+' : ''}${Math.round(avg(sp.map(x => x.pm)))}%/mo`,
-    sp.slice(0, 4).map(x => `${esc(x.name)} ${Math.round(x.pm) > 0 ? '+' : ''}${Math.round(x.pm)}%${x.stall ? ' <span class="wait">⚠ flat 3 sessions</span>' : x.up ? ` (up ${dateTxt(x.up)})` : ''}`).join(' · ')));
-  else h.push(kpiWait('📈', 'Progress speed', 'after 2 weeks of the same lifts'));
+    return { name, v, pm:span >= .4 ? (v[v.length - 1].sc / v[0].sc - 1) * 100 / span : null, stall };
+  }).filter(x => x.pm != null).sort((a, b) => b.pm - a.pm);
+  if(sp.length){
+    const b = sp[0], st = sp.find(x => x.stall), last = b.v[b.v.length - 1];
+    h.push(tile({ label:esc(b.name), val:`${Math.round(b.pm) > 0 ? '+' : ''}${Math.round(b.pm)}%`, unit:' /mo', tone:Math.round(b.pm) > 0 ? 'good' : '',
+      vis:spark(b.v.map(o => o.sc), Math.round(b.pm) > 0 ? '#3DD68C' : '#8B93A1'),
+      cap:st ? `<span class="wait">${esc(st.name)} flat 3×</span>` : `best ${esc(setTxt(last.set, exFor(b.name), b.name, last.bw))}` }));
+  } else h.push(waitTile('Progress', 'after 2 weeks of lifts'));
   return h.join('');
 }
 function kpiHabits(){
   const h = [];
-  // 5. supplements: % per time slot, the slot missed most, how long after the reminder you tick
+  // 5. supplements: % taken, per time slot as bars, the weak slot
   const sd = supp ? pastDays(suppLog) : [];
   if(sd.length >= 3){
-    const slot = {}, late = [];
+    const slot = {};
     sd.forEach(k => supp.items.filter(x => !x.optional && (x.days || []).includes(isoDay(atDay(k)))).forEach(x => {
-      const s = slot[x.time || 'any'] = slot[x.time || 'any'] || { due:0, got:0 }; s.due++;
-      if(taken(k, x.id)){ s.got++; const v = suppLog[k][x.id]; if(x.time && v.t && dayKey(v.t) === k) late.push((v.t - atDay(k, x.time)) / 60000); }
-    }));
+      const s = slot[x.time || 'any'] = slot[x.time || 'any'] || { due:0, got:0 }; s.due++; if(taken(k, x.id)) s.got++; }));
     const rows = Object.entries(slot).sort((a, b) => a[0].localeCompare(b[0])), all = rows.reduce((n, [, v]) => [n[0] + v.got, n[1] + v.due], [0, 0]);
     const worst = rows.filter(([, v]) => v.got < v.due).sort((a, b) => a[1].got / a[1].due - b[1].got / b[1].due)[0];
-    const lt = late.filter(m => m > -60).sort((a, b) => a - b), med = lt.length ? lt[Math.floor(lt.length / 2)] : null;
-    h.push(kpiRow('💊', 'Supplement habit', `${Math.round(all[0] / all[1] * 100)}%`, `${sd.length} days · ${rows.map(([k, v]) => `${k === 'any' ? 'any time' : k} ${Math.round(v.got / v.due * 100)}%`).join(' · ')}${worst ? ` · missed most: <b>${worst[0] === 'any' ? 'any time' : worst[0]}</b>` : ''}${med != null ? ` · ticked ~${Math.max(0, Math.round(med))} min after the reminder` : ''}`));
-  } else h.push(kpiWait('💊', 'Supplement habit', 'after 3 days of ticks'));
-  // 6. protein: days at target, average, training vs rest days, where you are at 19:00
+    const nm = k => k === 'any' ? 'any' : k;
+    h.push(tile({ label:'Supplements', val:Math.round(all[0] / all[1] * 100), unit:'%',
+      vis:`<span class="kslots">${rows.slice(0, 4).map(([k, v]) => `<span class="${worst && worst[0] === k ? 'bad' : ''}"><em>${nm(k)}</em><i><b style="width:${Math.round(v.got / v.due * 100)}%"></b></i></span>`).join('')}</span>`,
+      cap:worst ? `${nm(worst[0])} is your weak spot` : 'every slot taken' }));
+  } else h.push(waitTile('Supplements', 'after 3 days of ticks'));
+  // 6. protein: days at target as squares, where you are at 19:00
   const target = prot && +prot.target, pd = pastDays(Object.fromEntries(Object.entries(protLog).map(([k, v]) => [k, (v || []).filter(e => !e.del)])));
   if(target && pd.length >= 3){
-    const g = pd.map(k => protTotal(k)), trained = new Set(history.map(x => dayKey(x.startedAt)));
-    const tr = pd.filter(k => trained.has(k)).map(protTotal), rs = pd.filter(k => !trained.has(k)).map(protTotal);
+    const g = pd.map(k => protTotal(k)), hit = g.filter(x => x >= target).length;
     const at19 = pd.map(k => protDay(k).filter(e => e.at < atDay(k, '19:00')).reduce((n, e) => n + (nut(e, 'g') || 0), 0));
-    h.push(kpiRow('🥩', 'Protein pattern', `${g.filter(x => x >= target).length}/${pd.length}`, `days at ${target} g · average ${Math.round(avg(g))} g${tr.length && rs.length ? ` · training days ${Math.round(avg(tr))} g, rest days ${Math.round(avg(rs))} g` : ''} · by 19:00 usually ${Math.round(avg(at19))} g`));
-  } else h.push(kpiWait('🥩', 'Protein pattern', target ? 'after 3 days of food' : 'set a protein target first'));
-  // 7. gut: stool type and poos a day, symptom days a week, and symptoms on training / low-water days
+    h.push(tile({ label:'Protein days', val:hit, unit:` of ${pd.length}`,
+      vis:`<span class="ksq">${g.slice(-7).map(x => `<i class="${x >= target ? 'on' : ''}">${x >= target ? CHECK : ''}</i>`).join('')}</span>`,
+      cap:`${Math.round(avg(at19))} g by 19:00` }));
+  } else h.push(waitTile('Protein days', target ? 'after 3 days of food' : 'set a target first'));
+  // 7. gut: average type on the Bristol scale, poos a day; symptoms counted from the first day logged
   const gd = pastDays(gutLog);
   if(gd.length >= 3){
     const types = gd.flatMap(k => gutDay(k).map(e => e.type).filter(Boolean)), poo = avg(gd.map(k => gutDay(k).length));
-    // symptoms have times since 2026-10-28: count them only from the first day any was logged
     const sFrom = Object.keys(gutLog).filter(k => symDay(k).length).sort()[0], sg = sFrom ? gd.filter(k => k >= sFrom) : [];
-    const symd = sg.filter(k => symDay(k).length), trained = new Set(history.map(x => dayKey(x.startedAt)));
-    const water = prot && +prot.water, wd = new Set(pastDays(waterLog));
-    const per = list => list.length ? avg(list.map(k => symDay(k).length)) : null, f1 = n => n.toLocaleString('en', { maximumFractionDigits:1 });
-    const enough = sg.length >= 3;
-    const tr = enough ? per(sg.filter(k => trained.has(k))) : null, rs = enough ? per(sg.filter(k => !trained.has(k))) : null;
-    const low = enough && water ? per(sg.filter(k => wd.has(k) && waterTotal(k) < water * .8)) : null, ok = enough && water ? per(sg.filter(k => wd.has(k) && waterTotal(k) >= water * .8)) : null;
-    const vs = [tr != null && rs != null ? `symptoms ${f1(tr)}/day training vs ${f1(rs)} rest` : '', low != null && ok != null ? `${f1(low)} on low-water days vs ${f1(ok)}` : ''].filter(Boolean);
-    h.push(kpiRow('💩', 'Gut vs life', types.length ? `type ${f1(avg(types))}` : `${f1(poo)}/day`, `${gd.length} days · ${f1(poo)} a day${types.length ? '' : ' · add the type to see the average'} · ${enough ? `symptoms on ${f1(symd.length / sg.length * 7)} days a week` : '<span class="wait">symptoms: after 3 days of logging them</span>'}${vs.length ? ' · ' + vs.join(' · ') : ''} · meals vs symptoms: in Claude's reviews`));
-  } else h.push(kpiWait('💩', 'Gut vs life', 'after 3 days of gut log'));
-  // 8. water: litres a day, and when you drink (morning / afternoon / evening)
+    const t = types.length ? Math.round(avg(types)) : 0;
+    h.push(tile({ label:'Gut', val:types.length ? `Type ${t}` : f1(poo), unit:types.length ? '' : ' a day',
+      vis:`<span class="kbristol">${[1, 2, 3, 4, 5, 6, 7].map(n => `<i class="${n === t ? 'on' : ''}"></i>`).join('')}</span>`,
+      cap:`${f1(poo)} a day${t ? ` · ${t >= 3 && t <= 5 ? 'normal' : t < 3 ? 'hard' : 'loose'}` : ''}${sg.length >= 3 ? ` · symptoms ${f1(sg.filter(k => symDay(k).length).length / sg.length * 7)} d/wk` : ''}` }));
+  } else h.push(waitTile('Gut', 'after 3 days of log'));
+  // 8. water: litres a day; morning / afternoon / evening as one bar, the part of the day that runs dry
   const wd = pastDays(waterLog);
   if(wd.length >= 2){
     const by = { morning:0, afternoon:0, evening:0 };
     wd.forEach(k => waterDay(k).forEach(e => { by[hourPart(e.at)] += +e.ml || 0; }));
-    const dry = Object.entries(by).sort((a, b) => a[1] - b[1])[0][0];
-    h.push(kpiRow('💧', 'Water rhythm', `${litres(avg(wd.map(k => waterTotal(k))))} L`, `a day, ${wd.length} days · ${bar3(Object.entries(by))} morning ${Math.round(by.morning / (by.morning + by.afternoon + by.evening || 1) * 100)}% · afternoon ${Math.round(by.afternoon / (by.morning + by.afternoon + by.evening || 1) * 100)}% · evening ${Math.round(by.evening / (by.morning + by.afternoon + by.evening || 1) * 100)}% · runs dry: <b>${dry}</b>`));
-  } else h.push(kpiWait('💧', 'Water rhythm', 'after 2 days of water'));
+    const tot = by.morning + by.afternoon + by.evening || 1, dry = Object.entries(by).sort((a, b) => a[1] - b[1])[0][0];
+    h.push(tile({ label:'Water rhythm', val:litres(avg(wd.map(k => waterTotal(k)))), unit:' L/day',
+      vis:`<span class="kwater">${Object.entries(by).map(([k, v]) => `<i class="${k}" style="width:${(v / tot * 100).toFixed(1)}%" title="${k} ${Math.round(v / tot * 100)}%"></i>`).join('')}</span>`,
+      cap:`${dry}s run dry` }));
+  } else h.push(waitTile('Water rhythm', 'after 2 days of water'));
   return h.join('');
 }
-const aboutYou = () => `<div class="box rep about"><h3>About you</h3><p class="kind">Training</p>${kpiTraining()}<p class="kind">Habits · last 14 days</p>${kpiHabits()}</div>`;
+const aboutYou = () => `<div class="about kpis">${kpiTraining()}${kpiHabits()}</div>`;
 
 function renderReport(){
   if(!history.length){ $main.innerHTML = `<p class="empty">No finished workouts yet. The report appears after your first one.</p>`; return; }
@@ -2684,6 +2958,13 @@ document.addEventListener('click', e => {
     save(); render(); return;
   }
   if(t.dataset.demo){ demoOpen = demoOpen === t.dataset.demo ? null : t.dataset.demo; render(); return; }
+  if(t.dataset.step){
+    const [i, j, f, dir] = t.dataset.step.split('.'), d = draft(view, true), slot = d.slots[+i], s = slot.sets[+j];
+    const box = document.querySelector(`[data-i="${i}"][data-j="${j}"][data-f="${f}"]`);
+    const base = parseFloat(s[f] !== '' && s[f] != null ? s[f] : box && box.placeholder) || 0;
+    const v = Math.max(0, base + +dir * (f === 'kg' ? kgStep(slot.name) : 1));
+    s[f] = String(Math.round(v * 100) / 100); save(); render(); return;
+  }
   if(t.dataset.addset){ draft(view, true).slots[+t.dataset.addset].sets.push(newSet()); save(); render(); return; }
   // − on a set not done (user, 2026-10-28): remove it, instead of typing 0 to close the exercise
   if(t.dataset.rmset){
