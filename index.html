@@ -295,6 +295,8 @@ button.pline:first-child{border-top:0}
 #toast.show{opacity:1}
 #toast.undo{pointer-events:auto;display:flex;align-items:center;gap:12px}
 #toast button{border:0;background:none;color:var(--accent);font-weight:700;font-size:14px;padding:2px 4px}
+#toast button[data-again]{padding:8px 10px;font-size:15px}
+#toast button[data-again="no"]{color:var(--bg);font-weight:500;opacity:.8}
 /* tabs are icons (user, 2026-10-25): gym = dumbbell over its faded letter, home = house, daily = capsule */
 nav button{display:grid;place-items:center;min-height:48px;padding:5px 0;overflow:hidden}
 /* tabs (user, 2026-10-25, set 2): the letter says which workout, a small symbol under it the
@@ -312,6 +314,21 @@ nav button .lb{font-size:11px;font-weight:650;line-height:1;font-variant-numeric
 .card h3{display:flex;align-items:baseline;gap:8px;margin:0 0 6px}
 .card h3 .st{margin-left:auto;font-size:14px;font-weight:650;color:var(--muted);font-variant-numeric:tabular-nums}
 .card h3 .st.ok{color:var(--done)}
+/* Daily cards fold to their heading; a tap on it opens the card (user, 2026-10-28) */
+.card h3:has(.chead){margin:0}
+.card .chead{display:flex;align-items:baseline;gap:8px;width:calc(100% + 28px);margin:-12px -14px 0;padding:12px 14px 8px;
+  border:0;background:none;font:inherit;color:inherit;text-align:left}
+.card.folded{padding-bottom:0}
+.card.folded .chead{padding-bottom:12px}
+.chead .more{color:var(--muted);font-size:14px;font-weight:400}
+.chead .due{font-size:13px;color:var(--hint);font-weight:600}
+/* supplements by time slot: the time shows once ticked */
+.sline.todo{grid-template-columns:1fr 52px}
+.shead.slot{display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:13px;padding:10px 0 0}
+.shead.slot b{color:var(--ink);font-variant-numeric:tabular-nums}
+.shead .due{color:var(--hint);font-weight:600}
+.shead .all{margin-left:auto;border:1px solid var(--accent);background:var(--card);color:var(--accent);border-radius:9px;padding:7px 12px;font-size:14px;font-weight:650}
+.shead.slot + .sline{border-top:0}
 .foldline{display:flex;width:100%;align-items:center;gap:8px;border:0;border-top:1px solid var(--line);background:none;padding:10px 0 4px;
   text-align:left;color:var(--done);font-size:14px;font-weight:600}
 .foldline.plain{color:var(--accent)}
@@ -334,7 +351,8 @@ nav button .lb{font-size:11px;font-weight:650;line-height:1;font-variant-numeric
 .glvl button[aria-pressed="true"]{border-color:var(--accent);font-weight:700}
 .lrow{display:flex;align-items:stretch;border-top:1px solid var(--line)}
 .lrow>.gline,.lrow>.pline{flex:1;min-width:0;border-top:0}
-.link.x{flex:0 0 auto;padding:8px 4px 8px 14px;color:var(--muted);font-size:16px}
+.link.x{flex:0 0 auto;align-self:center;width:40px;height:40px;margin:2px 0 2px 8px;padding:0;border:1px solid var(--line);border-radius:50%;
+  color:var(--bad);font-size:18px;line-height:1;display:flex;align-items:center;justify-content:center}
 .gline .si{font-size:18px}
 .gedit{background:var(--input);border-radius:12px;padding:10px;margin:6px 0}
 .gedit .top{display:flex;align-items:center;gap:8px;font-size:15px}
@@ -751,10 +769,13 @@ function mergeEntries(a = [], b = []){
 }
 
 // The same thing again within minutes is usually a double tap (user, 2026-10-28: two 💩 three minutes
-// apart): ask before adding it. `list` is what that day already has, `at` the time of the new one.
-function okAgain(list, at, ms, what){
+// apart): ask before adding it. `list` is what that day already has, `at` the time of the new one;
+// `add` logs it — at once, or after Add in the bar (in the page, like Undo: the browser's own pop-up
+// looked like an error, 2026-10-28).
+function okAgain(list, at, ms, what, add){
   const r = list.filter(e => Math.abs(e.at - at) < ms).sort((a, b) => b.at - a.at)[0];
-  return !r || confirm(`Another ${what}? You logged one at ${hhmm(r.at)}.`);
+  if(!r){ add(); return; }
+  askToast(`Another ${what}? You logged one at ${hhmm(r.at)}.`, add);
 }
 
 // two copies of a day's ticks → per item, the later change wins
@@ -861,18 +882,21 @@ function begin(day, late){
   if(!d.startedAt){ d.startedAt = Date.now() - (late ? LATE_START : 0); wakeRefused = false; }
   return true;
 }
+// a set that counts as done: ticked, with reps or seconds — a 0 × 0 (ticked to close it, 2026-10-27)
+// never becomes "Last" or the greyed-in numbers, else one ✓ saves another
+const realSet = t => t.done && [t.reps, t.l, t.r].some(v => +v > 0);
 function lastFor(name){
   for(let i = history.length - 1; i >= 0; i--){
-    const s = history[i].slots.find(x => x.name === name && x.sets.some(t => t.done));
-    if(s) return { at:history[i].startedAt, sets:s.sets.filter(t => t.done) };
+    const s = history[i].slots.find(x => x.name === name && x.sets.some(realSet));
+    if(s) return { at:history[i].startedAt, sets:s.sets.filter(realSet) };
   }
   return null;
 }
 function prevFor(name, before){
   for(let i = history.length - 1; i >= 0; i--){
     if(history[i].startedAt >= before) continue;
-    const s = history[i].slots.find(x => x.name === name && x.sets.some(t => t.done));
-    if(s) return { at:history[i].startedAt, bw:history[i].bw, sets:s.sets.filter(t => t.done) };
+    const s = history[i].slots.find(x => x.name === name && x.sets.some(realSet));
+    if(s) return { at:history[i].startedAt, bw:history[i].bw, sets:s.sets.filter(realSet) };
   }
   return null;
 }
@@ -1799,6 +1823,12 @@ function renderDay(day){
 // supplements, food, water, gut — so nothing jumps; what needs you is at the top of each card and
 // what is done folds away (like a finished exercise), so the tab gets shorter as the day goes well.
 let protForm = false;                                   // the protein form is open ("+ Meal or other…")
+let noteOpen = false;                                   // the gut note box is open ("📝 Note…")
+// each card folds to its heading (name and how the day stands); a tap opens it, another closes it;
+// all fold again when you leave the tab (user, 2026-10-28)
+const cardOpen = k => opened.has('c:' + k);
+const cardHead = (k, title, st, extra = '') => `<h3><button class="chead" data-${cardOpen(k) ? 'fold' : 'unfold'}="c:${k}" aria-expanded="${cardOpen(k)}">${title}${extra}${st}<span class="more">${cardOpen(k) ? '▴' : '▾'}</span></button></h3>`;
+const cardBox = (k, head, body) => cardOpen(k) ? `<div class="box card">${head}${body}</div>` : `<div class="box card folded">${head}</div>`;
 function renderFuel(){
   const day = sDay(), now = Date.now(), isToday = day === dayKey(), noon = atDay(day);
   $main.innerHTML = `${dayNav(day, isToday)}<p class="focus">${isToday ? 'Today · ' : ''}${dateTxt(noon)}</p>
@@ -1810,30 +1840,37 @@ function suppCard(day, now, isToday, noon){
     and ${ghReady() ? 'loads by itself when there is signal.' : 'loads once the GitHub token is in ⋯ → Settings.'}</p></div>`;
   const items = todayItems(noon), req = items.filter(x => !x.optional);
   const got = req.filter(x => taken(day, x.id)).length;
-  const line = x => { const on = taken(day, x.id); return `<div class="sline ${on ? 'done' : ''}">
+  const head = cardHead('supp', 'Supplements', `<span class="st ${req.length && got === req.length ? 'ok' : ''}">${got}/${req.length}</span>`,
+    isToday && items.some(x => itemDue(x, now)) ? ' <span class="due">· due</span>' : '');
+  // a line: name and dose; taken → when (a box to correct it), else just ✓ — the time shows only once ticked
+  const line = x => { const on = taken(day, x.id); return `<div class="sline ${on ? 'done' : 'todo'}">
       <span><b>${esc(x.name)}</b> · ${esc(x.dose)}${x.optional ? ' <span class="small" style="display:inline">· optional</span>' : ''}
-        <span class="small">${on ? `✓ taken ${hhmm(takenAt(day, x.id))}` : !isToday ? '<span class="miss">✗ not taken</span>' + (x.time ? ` · reminder ${x.time}` : '') : isToday && itemDue(x, now) ? `<span class="due">due</span> · reminder ${x.time}` : x.time ? `reminder ${x.time}` : 'any time'}${x.note ? ' · ' + esc(x.note) : ''}</span></span>
-      <input type="time" data-suppat="${esc(x.id)}" value="${hhmm(on ? takenAt(day, x.id) : isToday ? suggestAt(x, now) : suggestPast(x, day))}" aria-label="${esc(x.name)}: time taken">
+        <span class="small">${on ? `✓ taken ${hhmm(takenAt(day, x.id))}` : !isToday ? '<span class="miss">✗ not taken</span>' + (x.time ? ` · reminder ${x.time}` : '') : ''}${x.note ? (on || !isToday ? ' · ' : '') + esc(x.note) : ''}</span></span>
+      ${on ? `<input type="time" data-suppat="${esc(x.id)}" value="${hhmm(takenAt(day, x.id))}" aria-label="${esc(x.name)}: time taken">` : ''}
       <button class="tick" data-supp="${esc(x.id)}" aria-label="${esc(x.name)} taken">✓</button></div>`; };
-  // to do: due first, then by reminder time, then the any-time ones; done: in the order taken
-  const rank = x => isToday && itemDue(x, now) ? 0 : x.time ? 1 : 2;
-  const todo = items.filter(x => !taken(day, x.id)).sort((a, b) => rank(a) - rank(b) || (a.time || '').localeCompare(b.time || ''));
-  const done = items.filter(x => taken(day, x.id)).sort((a, b) => takenAt(day, a.id) - takenAt(day, b.id));
-  let h = `<div class="box card"><h3>Supplements <span class="st ${req.length && got === req.length ? 'ok' : ''}">${got}/${req.length}</span></h3>`;
   // a past day is a record, not a to-do list (user, 2026-10-25): everything listed in the day's order,
   // taken ✓ with its time, not taken ✗ — nothing folded away
   if(!isToday){
     const key = x => taken(day, x.id) ? takenAt(day, x.id) : atDay(day, x.time || '23:59');
-    if(!items.length) return h + `<p class="small">Nothing scheduled that day.</p></div>`;
-    return h + [...items].sort((a, b) => key(a) - key(b)).map(line).join('') + '</div>';
+    if(!items.length) return cardBox('supp', head, `<p class="small">Nothing scheduled that day.</p>`);
+    return cardBox('supp', head, [...items].sort((a, b) => key(a) - key(b)).map(line).join(''));
   }
-  if(!items.length) h += `<p class="small">Nothing scheduled ${isToday ? 'today' : 'that day'}.</p>`;
-  else if(!todo.length || todo.every(x => x.optional) && got === req.length) h += `<div class="allok">✓ All taken${isToday ? ' today' : ''}</div>`;
-  h += todo.map(line).join('');
+  // to do, by time slot (user, 2026-10-28): "13:25 · due · ✓ both" — due first, then by time, then any time
+  const todo = items.filter(x => !taken(day, x.id));
+  const done = items.filter(x => taken(day, x.id)).sort((a, b) => takenAt(day, a.id) - takenAt(day, b.id));
+  const rank = tm => !tm ? 2 : atToday(tm) <= now ? 0 : 1;
+  const slots = [...new Set(todo.map(x => x.time || ''))].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b));
+  let h = '';
+  if(!items.length) h += `<p class="small">Nothing scheduled today.</p>`;
+  else if(!todo.length || todo.every(x => x.optional) && got === req.length) h += `<div class="allok">✓ All taken today</div>`;
+  h += slots.map(tm => { const its = todo.filter(x => (x.time || '') === tm), due = tm && atToday(tm) <= now;
+    return `<div class="shead slot"><b>${tm || 'Any time'}</b> ${due ? '<span class="due">due</span>' : tm ? '<span>reminder</span>' : ''}
+      ${tm && its.length > 1 ? `<button class="all" data-suppslot="${tm}" aria-label="All at ${tm} taken">✓ ${its.length === 2 ? 'both' : `all ${its.length}`}</button>` : ''}</div>`
+      + its.map(line).join(''); }).join('');
   if(done.length) h += opened.has('stake')
     ? `<button class="foldline" data-fold="stake">✓ ${done.length} taken <span class="more">hide ▴</span></button>${done.map(line).join('')}`
     : `<button class="foldline" data-unfold="stake">✓ ${done.length} taken · ${[...new Set(done.map(x => hhmm(takenAt(day, x.id))))].join(', ')} <span class="more">show ▾</span></button>`;
-  return h + '</div>';
+  return cardBox('supp', head, h);
 }
 function protCard(day, now, isToday){
   const total = protTotal(day), target = prot && +prot.target, range = prot && prot.range;
@@ -1843,7 +1880,9 @@ function protCard(day, now, isToday){
   // the form adds food, or changes the entry tapped in the list
   const ed = protEdit && protDay(day).find(e => e.id === protEdit), src = ed ? ed.src : pMeal ? pMeal.src : protSrc, form = protForm || !!ed;
   const last = ed || pMeal || { g:protLast[src], ...(foodLast[src] || {}) };
-  let h = `<div class="box card"><h3>Food <span class="st ${target && total >= target ? 'ok' : ''}">${total}${target ? ` / ${target}` : ''} g</span></h3>
+  const head = cardHead('food', 'Food', `<span class="st ${target && total >= target ? 'ok' : ''}">${total}${target ? ` / ${target}` : ''} g</span>`);
+  if(!cardOpen('food')) return cardBox('food', head);
+  let h = `<div class="box card">${head}
     ${target ? `<div class="pbar ${total >= target ? 'full' : ''}"><i style="width:${pct}%"></i></div>
       <div class="small">🥩 ${total >= target ? `✓ Protein target reached${range && range[1] ? ` · fine up to ${range[1]} g` : ''}` : `${target - total} g to go`}</div>`
       : `<div class="small">Set your daily targets in ⋯ → Settings → Food${ghReady() ? ' (or they load from your repo)' : ''}.</div>`}
@@ -1887,7 +1926,9 @@ function protCard(day, now, isToday){
 // Water: one tap per drink; Other… for an exact amount; the drinks fold away like food entries.
 function waterCard(day, isToday){
   const tot = waterTotal(day), target = prot && +prot.water, pct = target ? Math.min(100, Math.round(tot / target * 100)) : 0;
-  let h = `<div class="box card"><h3>Water <span class="st ${target && tot >= target ? 'ok' : ''}">${litres(tot)}${target ? ` / ${litres(target)}` : ''} L</span></h3>
+  const head = cardHead('water', 'Water', `<span class="st ${target && tot >= target ? 'ok' : ''}">${litres(tot)}${target ? ` / ${litres(target)}` : ''} L</span>`);
+  if(!cardOpen('water')) return cardBox('water', head);
+  let h = `<div class="box card">${head}
     ${target ? `<div class="pbar ${tot >= target ? 'full' : ''}"><i style="width:${pct}%"></i></div>` : ''}
     <div class="pquick">${cups().map((c, i) => `<button data-cup="${i}">💧 ${esc(c.n)} ${esc(c.ml)}</button>`).join('')}
       <button class="other" data-act="wother">Other…</button></div>`;
@@ -1907,7 +1948,9 @@ function waterCard(day, isToday){
 // timeline; tap a line to change it, ✕ removes it (with Undo).
 function gutCard(day, isToday){
   const list = gutDay(day), syms = symDay(day), ed = gutEdit && list.find(e => e.id === gutEdit), es = gutEdit && syms.find(e => e.id === gutEdit);
-  let h = `<div class="box card"><h3>Gut <span class="st">${list.length ? `💩 ${list.length}` : ''}</span></h3>
+  const head = cardHead('gut', 'Gut', `<span class="st">${list.length ? `💩 ${list.length}` : ''}${syms.length ? ` · ${syms.length} symptom${syms.length === 1 ? '' : 's'}` : ''}</span>`);
+  if(!cardOpen('gut')) return cardBox('gut', head);
+  let h = `<div class="box card">${head}
     <div class="gnow"><button class="poo" data-act="gnew" aria-label="Log a poo ${isToday ? 'now' : 'that day'}"><span>💩</span>+ ${isToday ? 'Now' : 'Log'}</button>
       ${GSYM.map(([k, ic, lb]) => `<button class="sym" data-gsym="${k}" aria-label="Log ${lb.toLowerCase()} ${isToday ? 'now' : 'that day'}"><span>${ic}</span>${lb}</button>`).join('')}</div>`;
   if(ed) h += `<div class="gedit">
@@ -1937,8 +1980,11 @@ function gutCard(day, isToday){
   if(!list.length && !syms.length && !isToday) h += `<p class="small">None logged that day.</p>`;
   h += gutNotes(day).map(n => `<div class="nline"><span class="small">${hhmm(n.at)}</span><span class="nt">📝 ${esc(n.text)}</span>
       <button class="link x" data-ndel="${esc(n.id)}" aria-label="Remove the note at ${hhmm(n.at)}">✕</button></div>`).join('');
+  // the note box folds into a button (user, 2026-10-28); a note typed but not added keeps it open
+  if(!noteOpen && !noteDraft[day]) return h + `<button class="foldline plain" data-act="nopen">📝 Note… <span class="more">food, stress, travel…</span></button></div>`;
   return h + `<div class="nadd"><textarea class="gnote" data-gnote="1" rows="2" placeholder="📝 Note ${isToday ? '' : 'for that day '}— food, stress, travel… whenever it comes to mind" aria-label="New note">${esc(noteDraft[day] || '')}</textarea>
-    <button class="btn" data-act="nadd">Add</button></div></div>`;
+    <button class="btn" data-act="nadd">Add</button></div>
+    <button class="link" data-act="ncancel">Cancel</button></div>`;
 }
 
 function reminderBox(){
@@ -2269,7 +2315,8 @@ document.addEventListener('click', e => {
   const t = e.target.closest('button'); if(!t){ showMenu(false); return; }
   if(t.id === 'more'){ showMenu(document.getElementById('menu').hidden); return; }
   showMenu(false);
-  if(t.dataset.tab){ if(t.dataset.tab !== view){ opened.clear(); suppView = null; protEdit = null; protForm = false; pMeal = null; gutEdit = null; logEdit = null; } view = t.dataset.tab; store.set('fb3.view', view); render(); scrollTo(0, 0); return; }
+  buzzFor(t);
+  if(t.dataset.tab){ if(t.dataset.tab !== view){ opened.clear(); noteOpen = false; suppView = null; protEdit = null; protForm = false; pMeal = null; gutEdit = null; logEdit = null; } view = t.dataset.tab; store.set('fb3.view', view); render(); scrollTo(0, 0); return; }
   if(t.id === 'back'){ view = lastDay; render(); scrollTo(0, 0); return; }
   if(t.dataset.unfold){ const k = t.dataset.unfold; opened.add(/^\d+$/.test(k) ? +k : k); render(); return; }
   if(t.dataset.fold){ opened.delete(t.dataset.fold); render(); return; }
@@ -2288,21 +2335,28 @@ document.addEventListener('click', e => {
     if(fn){ fn(); render(); sync(); }
     return;
   }
+  if(t.dataset.again){
+    const fn = t.dataset.again === 'add' ? againFn : null; againFn = null; document.getElementById('toast').classList.remove('show', 'undo');
+    if(fn) fn();
+    return;
+  }
   if(t.dataset.pquick){
     const day = sDay(), src = t.dataset.pquick, g = +protLast[src], id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     const fl = foodLast[src] || {}, e = { id, at:day === dayKey() ? Date.now() : atDay(day), src, g,
       ...(fl.kcal != null ? { kcal:fl.kcal } : {}), ...(fl.fat != null ? { fat:fl.fat } : {}) };
-    if(!okAgain(protDay(day).filter(x => x.src === src), e.at, 2 * 60000, src === 'Powder' ? 'shake' : src.toLowerCase())) return;
-    protChange(day, e); render(); sync();
-    undoToast(`+${g} g ${src}`, () => protChange(day, { ...e, del:true }));
+    okAgain(protDay(day).filter(x => x.src === src), e.at, 2 * 60000, src === 'Powder' ? 'shake' : src.toLowerCase(), () => {
+      protChange(day, e); render(); sync();
+      undoToast(`+${g} g ${src}`, () => protChange(day, { ...e, del:true }));
+    });
     return;
   }
   if(t.dataset.cup){
     const day = sDay(), c = cups()[+t.dataset.cup]; if(!c) return;
     const e = { id:Date.now().toString(36) + Math.random().toString(36).slice(2, 6), at:day === dayKey() ? Date.now() : atDay(day), ml:+c.ml };
-    if(!okAgain(waterDay(day).filter(x => +x.ml === e.ml), e.at, 2 * 60000, `${c.n.toLowerCase()} of water`)) return;
-    waterChange(day, e); render(); sync();
-    undoToast(`💧 +${e.ml} ml`, () => waterChange(day, { ...e, del:true }));
+    okAgain(waterDay(day).filter(x => +x.ml === e.ml), e.at, 2 * 60000, `${c.n.toLowerCase()} of water`, () => {
+      waterChange(day, e); render(); sync();
+      undoToast(`💧 +${e.ml} ml`, () => waterChange(day, { ...e, del:true }));
+    });
     return;
   }
   if(t.dataset.act === 'wother'){ waterOther = !waterOther; render(); const w = document.getElementById('wMl'); if(w) w.focus(); return; }
@@ -2321,17 +2375,19 @@ document.addEventListener('click', e => {
   }
   if(t.dataset.act === 'gnew'){
     const day = sDay(), e = { id:Date.now().toString(36) + Math.random().toString(36).slice(2, 6), at:day === dayKey() ? Date.now() : atDay(day), tags:[] };
-    if(!okAgain(gutDay(day), e.at, 10 * 60000, '💩')) return;
-    gutChange(day, e); gutEdit = e.id; render(); sync();
-    undoToast(`💩 logged ${hhmm(e.at)}`, () => { gutChange(day, { ...e, del:true }); gutEdit = null; });
+    okAgain(gutDay(day), e.at, 10 * 60000, '💩', () => {
+      gutChange(day, e); gutEdit = e.id; render(); sync();
+      undoToast(`💩 logged ${hhmm(e.at)}`, () => { gutChange(day, { ...e, del:true }); gutEdit = null; });
+    });
     return;
   }
   if(t.dataset.gsym){
     const day = sDay(), k = t.dataset.gsym, [, ic, lb] = GSYM.find(x => x[0] === k);
     const e = { id:Date.now().toString(36) + Math.random().toString(36).slice(2, 6), at:day === dayKey() ? Date.now() : atDay(day), k, lvl:null };
-    if(!okAgain(symDay(day).filter(x => x.k === k), e.at, 10 * 60000, `${ic} ${lb.toLowerCase()}`)) return;
-    symChange(day, e); gutEdit = e.id; render(); sync();
-    undoToast(`${ic} ${lb} logged ${hhmm(e.at)}`, () => { symChange(day, { ...e, del:true }); gutEdit = null; });
+    okAgain(symDay(day).filter(x => x.k === k), e.at, 10 * 60000, `${ic} ${lb.toLowerCase()}`, () => {
+      symChange(day, e); gutEdit = e.id; render(); sync();
+      undoToast(`${ic} ${lb} logged ${hhmm(e.at)}`, () => { symChange(day, { ...e, del:true }); gutEdit = null; });
+    });
     return;
   }
   if(t.dataset.symlvl){
@@ -2347,7 +2403,7 @@ document.addEventListener('click', e => {
     const day = sDay(), box = document.querySelector('[data-gnote]'), text = (box ? box.value : '').trim();
     if(!text){ toast('Write the note first'); return; }
     const n = { id:Date.now().toString(36) + Math.random().toString(36).slice(2, 6), at:day === dayKey() ? Date.now() : atDay(day), text };
-    gutNoteChange(day, n); delete noteDraft[day]; store.set('fb3.notedraft', noteDraft); render(); sync();
+    gutNoteChange(day, n); delete noteDraft[day]; store.set('fb3.notedraft', noteDraft); noteOpen = false; render(); sync();
     undoToast(`📝 Note added ${hhmm(n.at)}`, () => gutNoteChange(day, { ...n, del:true }));
     return;
   }
@@ -2356,6 +2412,8 @@ document.addEventListener('click', e => {
     if(n){ gutNoteChange(day, { ...n, del:true }); render(); sync(); undoToast(`📝 Note ${hhmm(n.at)} removed`, () => gutNoteChange(day, { ...n, del:false })); }
     return;
   }
+  if(t.dataset.act === 'nopen'){ noteOpen = true; render(); const b = document.querySelector('[data-gnote]'); if(b) b.focus(); return; }
+  if(t.dataset.act === 'ncancel'){ noteOpen = false; delete noteDraft[sDay()]; store.set('fb3.notedraft', noteDraft); render(); return; }
   if(t.dataset.act === 'gdone'){ gutEdit = null; render(); return; }
   if(t.dataset.gedit){ gutEdit = gutEdit === t.dataset.gedit ? null : t.dataset.gedit; render(); return; }
   if(t.dataset.gflag){ const day = sDay(), k = t.dataset.gflag; gutSetFlag(day, k, !gutFlag(day, k)); render(); sync(); return; }
@@ -2390,12 +2448,19 @@ document.addEventListener('click', e => {
     return;
   }
   if(t.dataset.supp){
-    const id = t.dataset.supp, day = sDay(), on = !taken(day, id), box = document.querySelector(`[data-suppat="${id}"]`);
-    const at = on && box && /^\d\d:\d\d$/.test(box.value) ? atDay(day, box.value) : day === dayKey() ? Date.now() : atDay(day);
-    if(on && at > Date.now()){ toast('That time hasn’t come yet'); return; }
+    // taken at its reminder time if that has passed (else now; on a past day the reminder time or noon) —
+    // the time then shows on the line, to correct if it was different
+    const id = t.dataset.supp, day = sDay(), on = !taken(day, id), it = supp.items.find(x => x.id === id);
+    const at = !on ? Date.now() : !it ? Date.now() : day === dayKey() ? suggestAt(it) : suggestPast(it, day);
     const was = takenAt(day, id);
     setTaken(id, on, at, day); render(); sync();
     if(!on){ const it = supp.items.find(x => x.id === id); undoToast(`${it ? it.name : 'Supplement'} un-ticked`, () => setTaken(id, true, was, day)); }
+    return;
+  }
+  if(t.dataset.suppslot){
+    const day = sDay(), its = todayItems(atDay(day)).filter(x => x.time === t.dataset.suppslot && !taken(day, x.id));
+    its.forEach(x => setTaken(x.id, true, suggestAt(x), day)); render(); sync();
+    if(its.length) undoToast(`${t.dataset.suppslot} · ${its.length} taken`, () => its.forEach(x => setTaken(x.id, false, Date.now(), day)));
     return;
   }
   if(t.dataset.sdayn){
@@ -2693,6 +2758,9 @@ function heldTxt(d, kind, k, r){
   const lab = n => r.sides ? (n % 2 ? 'R ' : 'L ') : '';
   return `<span class="small got">Held: ${secs.map((x, n) => lab(n) + x).join(' · ')} s</span>`;
 }
+// a short buzz confirms a tick or a removal without looking (user, 2026-10-28)
+const BUZZ = '[data-tick],[data-supp],[data-suppslot],[data-reset],[data-cool],[data-rmset],.link.x,[data-undo]';
+function buzzFor(t){ if(t.matches(BUZZ)) try{ navigator.vibrate && navigator.vibrate(25); }catch(e){} }
 function signal(n){ beep(n); try{ navigator.vibrate && navigator.vibrate(n > 1 ? [300, 150, 300] : 200); }catch(e){} }
 function tickHold(){
   $hold.hidden = !hold;
@@ -3024,7 +3092,7 @@ document.addEventListener('visibilitychange', () => { if(document.visibilityStat
 sync();
 
 let toastT;
-function toast(msg){ const t = document.getElementById('toast'); undoFn = null; t.classList.remove('undo'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2000); }
+function toast(msg){ const t = document.getElementById('toast'); undoFn = null; againFn = null; t.classList.remove('undo'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2000); }
 // Act at once and offer Undo for a few seconds, instead of asking "are you sure?" (user, 2026-10-25)
 let undoFn = null;
 // ---------- Reminders (user, 2026-10-26) ----------
@@ -3081,8 +3149,16 @@ const pushErr = e => toast(e && e.message && e.message.startsWith('GitHub') ? e.
 function undoToast(msg, fn){
   const t = document.getElementById('toast');
   t.innerHTML = `<span>${esc(msg)}</span><button data-undo="1">Undo</button>`;
-  t.classList.add('show', 'undo'); undoFn = fn;
+  t.classList.add('show', 'undo'); undoFn = fn; againFn = null;
   clearTimeout(toastT); toastT = setTimeout(() => { t.classList.remove('show', 'undo'); undoFn = null; }, 5000);
+}
+// "Another one?" in the same bar: Add logs it, Cancel (or waiting) logs nothing
+let againFn = null;
+function askToast(msg, fn){
+  const t = document.getElementById('toast');
+  t.innerHTML = `<span>${esc(msg)}</span><button data-again="add">Add</button><button data-again="no">Cancel</button>`;
+  t.classList.add('show', 'undo'); againFn = fn; undoFn = null;
+  clearTimeout(toastT); toastT = setTimeout(() => { t.classList.remove('show', 'undo'); againFn = null; }, 8000);
 }
 
 // a tapped reminder opens the app at #fuel: show the Daily tab (today), then drop the #
