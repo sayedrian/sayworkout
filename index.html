@@ -2016,7 +2016,8 @@ const NAVI = {
 let lastTrain = null;        // the workout tab last open (Train goes back to it)
 let lastProg = 'report';     // Report or History, the one last open in Progress
 const opened = new Set();    // folded cards the user tapped open again (until the tab changes)
-// Sections (user, 2026-10-28): the tab bar is the whole map — Today (opens first), Train (A B C H),
+// Sections (user, 2026-10-28): the tab bar is the whole map — Home (the Today screen, opens first; a house
+// says "Home", user 2026-10-28), Train (A B C H),
 // Nutrition, Progress (Report and History, one switch apart) and Settings. No ⋯ menu, no ← back.
 function render(){
   const page = PAGES[view], workout = !!PLAN[view], prog = view === 'report' || view === 'history';
@@ -2026,7 +2027,7 @@ function render(){
   if(workout) lastTrain = view;
   if(prog) lastProg = view;
   document.getElementById('bnavIn').innerHTML =
-    `<button id="dash" data-tab="dash" aria-current="${view === 'dash'}">${NAVI.dash}Today</button>`
+    `<button id="dash" data-tab="dash" aria-current="${view === 'dash'}">${NAVI.dash}Home</button>`
     + `<button data-tab="${trainD}" aria-current="${workout}" aria-label="Train">${NAVI.train}Train${runD ? '<span class="dot run"></span>' : ''}</button>`
     + `<button data-tab="fuel" aria-current="${view === 'fuel'}">${NAVI.fuel}Nutrition${suppDue() ? '<span class="dot"></span>' : ''}</button>`
     + `<button data-tab="${lastProg}" aria-current="${prog}" aria-label="Progress">${NAVI.prog}Progress</button>`
