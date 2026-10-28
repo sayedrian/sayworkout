@@ -55,7 +55,7 @@ header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px so
 header .wrap{position:relative}
 .menu{position:absolute;right:16px;top:46px;z-index:6;background:var(--card);
   border:1px solid var(--line);border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.18);overflow:hidden;min-width:170px}
-.menu[hidden]{display:none}
+.menu[hidden],#tabs[hidden]{display:none}
 .menu button{display:block;width:100%;text-align:left;border:0;background:none;padding:13px 16px;font-size:16px}
 .menu button+button{border-top:1px solid var(--line)}
 .menu button[aria-current="true"]{font-weight:700}
@@ -64,6 +64,12 @@ button.fold{display:flex;width:100%;align-items:center;gap:10px;text-align:left;
 button.fold .num{background:var(--done);color:var(--card)}
 button.fold .what{flex:1;min-width:0}
 button.fold .small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* every block of a workout starts folded (user, 2026-10-28): you open the one you're on; done ones are green */
+button.fold{background:var(--done-bg)}
+button.fold.todo{border-color:var(--line);background:var(--card)}
+button.fold.todo .num{background:var(--input);color:var(--ink)}
+button.fold .more{color:var(--muted);font-size:14px}
+.foldup{flex:none;border:0;background:none;color:var(--muted);font-size:15px;padding:4px 2px 4px 8px;margin-left:auto}
 .pill{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 11px;font-size:13px}
 .pill.on{background:var(--done);color:#fff;border-color:var(--done)}
 #wake[hidden]{display:none}
@@ -321,7 +327,33 @@ nav button .lb{font-size:11px;font-weight:650;line-height:1;font-variant-numeric
 .card.folded{padding-bottom:0}
 .card.folded .chead{padding-bottom:12px}
 .chead .more{color:var(--muted);font-size:14px;font-weight:400}
-.chead .due{font-size:13px;color:var(--hint);font-weight:600}
+.chead .due{font-size:13px;color:var(--hint);font-weight:600;white-space:nowrap}
+.chead .st{white-space:nowrap}
+/* dashboard: two big section buttons, then the day at a glance */
+.dbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.dbtn{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:4px;border:1px solid var(--line);background:var(--card);
+  border-radius:16px;padding:14px;text-align:left;color:var(--ink);min-height:112px}
+.dbtn b{font-size:19px}
+.dbtn .small{line-height:1.3}
+.dbtn .dot{position:absolute;top:12px;right:12px;width:9px;height:9px;border-radius:50%;background:var(--done)}
+.dbtn svg.dic{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.dbtn svg .fl{fill:#3a9d4f;stroke:none}.dbtn svg .st{stroke:#3a9d4f;stroke-width:2.6}
+.glance{list-style:none;margin:0;padding:0;font-size:15px}
+.glance li{padding:7px 0;border-top:1px solid var(--line)}.glance li:first-child{border-top:0}
+.glance .due{color:var(--hint);font-weight:650}
+/* About you: one KPI per row — icon, name with what it means, the number */
+.kpi{display:grid;grid-template-columns:26px 1fr auto;gap:8px;align-items:start;padding:9px 0;border-top:1px solid var(--line)}
+.kind + .kpi{border-top:0}
+.kpi .ki{font-size:18px;line-height:1.3}
+.kpi .kt .small{display:block;line-height:1.35;margin-top:1px}
+.kpi .kv{font-size:17px;font-weight:750;font-variant-numeric:tabular-nums;white-space:nowrap}
+.kpi .wait{color:var(--hint)}
+.kbar{display:flex;height:8px;border-radius:4px;overflow:hidden;margin:4px 0;background:var(--input)}
+.kbar i{display:block;height:100%}.kbar .morning{background:#e3b341}.kbar .afternoon{background:var(--accent)}.kbar .evening{background:#6e59c9}
+/* Food & supplements: what is due now in a tinted box on top; sub headings for the blocks */
+.nowbox{background:var(--hint-bg);border-radius:12px;padding:2px 10px 6px;margin:4px 0 10px}
+.nowbox .shead:first-child{color:var(--hint);font-weight:700}
+.shead.sub{margin-top:10px;border-top:1px solid var(--line);padding-top:12px}
 /* supplements by time slot: the time shows once ticked */
 .sline.todo{grid-template-columns:1fr 52px}
 .shead.slot{display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;font-size:13px;padding:10px 0 0}
@@ -408,6 +440,7 @@ nav button .lb{font-size:11px;font-weight:650;line-height:1;font-variant-numeric
   <div class="wrap">
     <div class="top">
       <button class="icon" id="back" aria-label="Back to the workout" hidden>←</button>
+      <button class="icon" id="dash" data-tab="dash" aria-label="Dashboard" hidden>⌂</button>
       <h1 id="title">Full Body 3</h1>
       <span class="prog" id="prog"></span>
       <span class="sdot" id="sdot" hidden></span>
@@ -639,7 +672,7 @@ const store = {
 };
 let history = store.get('fb3.history', []);
 let drafts  = store.get('fb3.drafts', {});
-let view    = defaultDay();
+let view    = 'dash';     // the app opens on the dashboard (user, 2026-10-28)
 const save = () => { store.set('fb3.history', history); store.set('fb3.drafts', drafts); };
 let bodyweight = store.get('fb3.bw', '');   // typed in on the phone, never in this file
 let reportId = null;                        // which workout the Report tab shows (null = latest)
@@ -1687,18 +1720,20 @@ const ICON = {
 };
 let lastDay = view;          // where ← goes back to
 const opened = new Set();    // folded cards the user tapped open again (until the tab changes)
+// Sections (user, 2026-10-28): the dashboard opens first; Workout holds the A B C H tabs, Nutrition the
+// daily cards; ⌂ goes back to the dashboard from either. History, Report and Settings stay behind ⋯.
 function render(){
-  const page = PAGES[view];
+  const page = PAGES[view], workout = !!PLAN[view];
   if(!page) lastDay = view;
-  document.getElementById('tabs').hidden = !!page;
+  document.getElementById('tabs').hidden = !workout;
   document.getElementById('back').hidden = !page;
-  document.getElementById('title').textContent = page || (view === 'fuel' ? 'Daily' : PLAN[view].title);
+  document.getElementById('dash').hidden = !!page || view === 'dash';
+  document.getElementById('title').textContent = page || (view === 'fuel' ? 'Nutrition' : view === 'dash' ? 'Today' : PLAN[view].title);
   const run = d => drafts[d]?.startedAt ? '<span class="dot"></span>' : '';
   document.getElementById('tabs').innerHTML =
-    ALL.map(d => `<button data-tab="${d}" aria-current="${view===d}" aria-label="${PLAN[d].title}"><span class="big">${PLAN[d].tab}</span>${d === 'home' ? ICON.band : ICON.dumbbell}${run(d)}</button>`).join('')
-    + `<button data-tab="fuel" aria-current="${view==='fuel'}" aria-label="Daily">${ICON.broccoli}<span class="lb${protTotal() ? ' pg' : ''}">${protTotal() ? `${protTotal()} g` : 'Daily'}</span>${suppDue() ? '<span class="dot" style="background:var(--hint)"></span>' : ''}</button>`;
+    ALL.map(d => `<button data-tab="${d}" aria-current="${view===d}" aria-label="${PLAN[d].title}"><span class="big">${PLAN[d].tab}</span>${d === 'home' ? ICON.band : ICON.dumbbell}${run(d)}</button>`).join('');
   document.querySelectorAll('#menu [data-tab]').forEach(b => b.setAttribute('aria-current', b.dataset.tab === view));
-  view === 'history' ? renderHistory() : view === 'settings' ? renderSettings() : view === 'report' ? renderReport() : view === 'fuel' ? renderFuel() : renderDay(view);
+  view === 'history' ? renderHistory() : view === 'settings' ? renderSettings() : view === 'report' ? renderReport() : view === 'fuel' ? renderFuel() : view === 'dash' ? renderDash() : renderDay(view);
   tickClock(); runDemos();
 }
 function showMenu(on){
@@ -1706,6 +1741,10 @@ function showMenu(on){
   document.getElementById('more').setAttribute('aria-expanded', on);
 }
 
+// a folded block: ✓ and green when done, else its number; one line under the name
+const foldBtn = (k, done, num, name, sub) => `<button class="fold ${done ? '' : 'todo'}" data-unfold="${k}"><span class="num">${done ? '✓' : num}</span>
+  <span class="what"><b>${esc(name)}</b><span class="small">${sub}</span></span><span class="more">▾</span></button>`;
+const foldUp = k => `<button class="foldup" data-fold="${k}" aria-label="Fold">▴</button>`;
 function renderDay(day){
   const p = PLAN[day], d = draft(day, false), reset = resetFor(day);
   let h = `<p class="focus">${p.focus}</p>`;
@@ -1715,11 +1754,10 @@ function renderDay(day){
         <div class="actions"><button class="btn ghost" data-tab="${other}">Go to ${PLAN[other].title}</button></div></div>`
       : `<button class="btn start" data-act="start">▶ Start ${esc(p.title)}</button>`;
   }
-  // a finished desk reset folds to one line; tap to open it again
-  if(resetDone(d) === reset.length && !opened.has('reset'))
-    h += `<button class="fold" data-unfold="reset"><span class="num">✓</span><span class="what"><b>Desk reset</b>
-      <span class="small">${reset.length}/${reset.length} · tap to open</span></span></button>`;
-  else h += `<div class="box reset"><h3>Desk reset (~5 min) <span class="small">${resetDone(d)}/${reset.length}</span></h3>
+  // every block starts folded to one line; tap to open it (user, 2026-10-28)
+  if(!opened.has('reset'))
+    h += foldBtn('reset', resetDone(d) === reset.length, '·', 'Desk reset (~5 min)', `${resetDone(d)}/${reset.length} · ${esc(reset.map(r => r.name).join(', '))}`);
+  else h += `<div class="box reset"><h3>Desk reset (~5 min) <span class="small">${resetDone(d)}/${reset.length}</span>${foldUp('reset')}</h3>
     ${reset.map((r, k) => `<div class="rrow ${(d.reset || [])[k] ? 'done' : ''} ${r.secs ? 'timed' : ''}">
       <button class="mv" data-demo="${esc(r.name)}" aria-expanded="${demoOpen === r.name}" title="Tap to see how">
         <b>${esc(r.name)}</b> · ${esc(r.dose)} <span class="play">${demoOpen === r.name ? '▾' : '▸'}</span><span class="small">${esc(cueLine(r.name, r.cue))}</span>${heldTxt(d, 'reset', k, r)}</button>
@@ -1756,10 +1794,11 @@ function renderDay(day){
       const top = last ? Math.max(...last.sets.map(s => +s.kg || 0)) : 0;
       hint = (top ? `Warm-up sets: ${round(top*.5, 2.5)} kg × 5, then ${round(top*.8, 2.5)} kg × 3. ` : 'Warm-up sets: ~50% × 5, then ~80% × 3. ') + hint;
     }
-    // a finished exercise folds to one line with what was done; tap to open it again
-    if(doneCount >= slot.sets.length && !opened.has(i)){
-      h += `<button class="fold ex" data-unfold="${i}"><span class="num">✓</span><span class="what"><b>${esc(slot.name)}</b>
-        <span class="small">${slot.sets.map(s => esc(setTxt(s, ex, slot.name))).join(' · ')}</span></span></button>`;
+    // folded: done → what was done; else the prescription, sets ticked so far, and last time
+    if(!opened.has(i)){
+      const done = doneCount >= slot.sets.length;
+      h += foldBtn(i, done, i + 1, slot.name, done ? slot.sets.map(s => esc(setTxt(s, ex, slot.name))).join(' · ')
+        : [esc(rxOf(ex, slot.name)), doneCount ? `${doneCount}/${slot.sets.length} sets` : '', last ? `last ${esc(setTxt(last.sets[last.sets.length - 1], ex, slot.name))}` : ''].filter(Boolean).join(' · '));
       return;
     }
     h += `<article class="ex ${doneCount >= slot.sets.length ? 'complete' : ''}">
@@ -1767,7 +1806,7 @@ function renderDay(day){
         <div class="ex-title">
           <div class="pick"><select data-swap="${i}" aria-label="Exercise (tap to swap)">${options}</select></div>
           <div class="rx">${rxOf(ex, slot.name)} · rest ${restTxt(ex.rest)} ${slot.name !== ex.name ? '· <span class="swap">swapped</span>' : ''}</div>
-        </div>${HOW[slot.name] || DEMO[slot.name] ? `<button class="vid" data-demo="${esc(slot.name)}" aria-expanded="${demoOpen === slot.name}" aria-label="How to do ${esc(slot.name)}" title="How to do it"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="3.5"/><path d="M10 9.2v5.6l4.8-2.8z"/></svg></button>` : ''}</div>
+        </div>${foldUp(i)}${HOW[slot.name] || DEMO[slot.name] ? `<button class="vid" data-demo="${esc(slot.name)}" aria-expanded="${demoOpen === slot.name}" aria-label="How to do ${esc(slot.name)}" title="How to do it"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="3.5"/><path d="M10 9.2v5.6l4.8-2.8z"/></svg></button>` : ''}</div>
       <p class="cue">${esc(cueLine(slot.name, ex.cue))}</p>
       ${demoOpen === slot.name ? howBox(slot.name) : ''}
       ${hint ? `<div class="hint">${esc(hint)}</div>` : ''}
@@ -1798,10 +1837,9 @@ function renderDay(day){
 
   if(day === 'home'){
     const cool = d.cool || [];
-    if(cool.filter(Boolean).length === COOL.length && !opened.has('cool'))
-      h += `<button class="fold" data-unfold="cool"><span class="num">✓</span><span class="what"><b>Cool-down: back care</b>
-        <span class="small">${COOL.length}/${COOL.length} · tap to open</span></span></button>`;
-    else h += `<div class="box reset"><h3>Cool-down: back care <span class="small">${cool.filter(Boolean).length}/${COOL.length}</span></h3>
+    if(!opened.has('cool'))
+      h += foldBtn('cool', cool.filter(Boolean).length === COOL.length, '·', 'Cool-down: back care', `${cool.filter(Boolean).length}/${COOL.length} · ${esc(COOL.map(r => r.name).join(', '))}`);
+    else h += `<div class="box reset"><h3>Cool-down: back care <span class="small">${cool.filter(Boolean).length}/${COOL.length}</span>${foldUp('cool')}</h3>
       ${COOL.map((r, k) => `<div class="rrow ${cool[k] ? 'done' : ''} ${r.secs ? 'timed' : ''}">
         <button class="mv" data-demo="${esc(r.name)}" aria-expanded="${demoOpen === r.name}" title="Tap to see how">
           <b>${esc(r.name)}</b> · ${esc(r.dose)} <span class="play">${demoOpen === r.name ? '▾' : '▸'}</span><span class="small">${esc(cueLine(r.name, r.cue))}</span>${heldTxt(d, 'cool', k, r)}</button>
@@ -1829,19 +1867,26 @@ let noteOpen = false;                                   // the gut note box is o
 const cardOpen = k => opened.has('c:' + k);
 const cardHead = (k, title, st, extra = '') => `<h3><button class="chead" data-${cardOpen(k) ? 'fold' : 'unfold'}="c:${k}" aria-expanded="${cardOpen(k)}">${title}${extra}${st}<span class="more">${cardOpen(k) ? '▴' : '▾'}</span></button></h3>`;
 const cardBox = (k, head, body) => cardOpen(k) ? `<div class="box card">${head}${body}</div>` : `<div class="box card folded">${head}</div>`;
+// Food & supplements (user, 2026-10-28: one card): what is due now on top, then protein with its
+// quick adds, then the supplements still to come and the day's food — each folded once done
+function nutriCard(day, now, isToday, noon){
+  const S = suppCard(day, now, isToday, noon), F = protCard(day, now, isToday);
+  const head = cardHead('nutri', 'Food & supplements', `<span class="st ${F.ok && S.ok ? 'ok' : ''}">${F.st} · ${S.st}</span>`, S.due ? ' <span class="due">· due</span>' : '');
+  return cardBox('nutri', head, (S.now ? `<div class="nowbox"><div class="shead">Now</div>${S.now}</div>` : '')
+    + F.top + `<div class="shead sub">💊 ${S.now ? 'Later' : 'Supplements'}</div>${S.later}` + (F.list ? `<div class="shead sub">🍽 Food</div>${F.list}` : ''));
+}
 function renderFuel(){
   const day = sDay(), now = Date.now(), isToday = day === dayKey(), noon = atDay(day);
   $main.innerHTML = `${dayNav(day, isToday)}<p class="focus">${isToday ? 'Today · ' : ''}${dateTxt(noon)}</p>
-    ${suppCard(day, now, isToday, noon)}${protCard(day, now, isToday)}${waterCard(day, isToday)}${gutCard(day, isToday)}
+    ${nutriCard(day, now, isToday, noon)}${waterCard(day, isToday)}${gutCard(day, isToday)}
     <p class="small">Doses, reminders, food targets and drink sizes are in ⋯ → Settings. ${syncText()}</p>`;
 }
 function suppCard(day, now, isToday, noon){
-  if(!supp) return `<div class="box card"><h3>Supplements</h3><p class="small">No list on this phone yet. It is kept in your private repo
-    and ${ghReady() ? 'loads by itself when there is signal.' : 'loads once the GitHub token is in ⋯ → Settings.'}</p></div>`;
+  if(!supp) return { st:'💊 –', ok:true, due:false, now:'', later:`<p class="small">No supplement list on this phone yet. It is kept in your private repo
+    and ${ghReady() ? 'loads by itself when there is signal.' : 'loads once the GitHub token is in ⋯ → Settings.'}</p>` };
   const items = todayItems(noon), req = items.filter(x => !x.optional);
   const got = req.filter(x => taken(day, x.id)).length;
-  const head = cardHead('supp', 'Supplements', `<span class="st ${req.length && got === req.length ? 'ok' : ''}">${got}/${req.length}</span>`,
-    isToday && items.some(x => itemDue(x, now)) ? ' <span class="due">· due</span>' : '');
+  const part = (now, later, due = false) => ({ st:`💊 ${got}/${req.length}`, ok:got === req.length, due, now, later });
   // a line: name and dose; taken → when (a box to correct it), else just ✓ — the time shows only once ticked
   const line = x => { const on = taken(day, x.id); return `<div class="sline ${on ? 'done' : 'todo'}">
       <span><b>${esc(x.name)}</b> · ${esc(x.dose)}${x.optional ? ' <span class="small" style="display:inline">· optional</span>' : ''}
@@ -1852,8 +1897,8 @@ function suppCard(day, now, isToday, noon){
   // taken ✓ with its time, not taken ✗ — nothing folded away
   if(!isToday){
     const key = x => taken(day, x.id) ? takenAt(day, x.id) : atDay(day, x.time || '23:59');
-    if(!items.length) return cardBox('supp', head, `<p class="small">Nothing scheduled that day.</p>`);
-    return cardBox('supp', head, [...items].sort((a, b) => key(a) - key(b)).map(line).join(''));
+    if(!items.length) return part('', `<p class="small">Nothing scheduled that day.</p>`);
+    return part('', [...items].sort((a, b) => key(a) - key(b)).map(line).join(''));
   }
   // to do, by time slot (user, 2026-10-28): "13:25 · due · ✓ both" — due first, then by time, then any time
   const todo = items.filter(x => !taken(day, x.id));
@@ -1863,14 +1908,16 @@ function suppCard(day, now, isToday, noon){
   let h = '';
   if(!items.length) h += `<p class="small">Nothing scheduled today.</p>`;
   else if(!todo.length || todo.every(x => x.optional) && got === req.length) h += `<div class="allok">✓ All taken today</div>`;
-  h += slots.map(tm => { const its = todo.filter(x => (x.time || '') === tm), due = tm && atToday(tm) <= now;
+  const slotHtml = tm => { const its = todo.filter(x => (x.time || '') === tm), due = tm && atToday(tm) <= now;
     return `<div class="shead slot"><b>${tm || 'Any time'}</b> ${due ? '<span class="due">due</span>' : tm ? '<span>reminder</span>' : ''}
       ${tm && its.length > 1 ? `<button class="all" data-suppslot="${tm}" aria-label="All at ${tm} taken">✓ ${its.length === 2 ? 'both' : `all ${its.length}`}</button>` : ''}</div>`
-      + its.map(line).join(''); }).join('');
+      + its.map(line).join(''); };
+  const dueNow = slots.filter(tm => rank(tm) === 0);
+  h += slots.filter(tm => rank(tm) > 0).map(slotHtml).join('');
   if(done.length) h += opened.has('stake')
     ? `<button class="foldline" data-fold="stake">✓ ${done.length} taken <span class="more">hide ▴</span></button>${done.map(line).join('')}`
     : `<button class="foldline" data-unfold="stake">✓ ${done.length} taken · ${[...new Set(done.map(x => hhmm(takenAt(day, x.id))))].join(', ')} <span class="more">show ▾</span></button>`;
-  return cardBox('supp', head, h);
+  return part(dueNow.map(slotHtml).join(''), h, dueNow.length > 0);
 }
 function protCard(day, now, isToday){
   const total = protTotal(day), target = prot && +prot.target, range = prot && prot.range;
@@ -1880,10 +1927,7 @@ function protCard(day, now, isToday){
   // the form adds food, or changes the entry tapped in the list
   const ed = protEdit && protDay(day).find(e => e.id === protEdit), src = ed ? ed.src : pMeal ? pMeal.src : protSrc, form = protForm || !!ed;
   const last = ed || pMeal || { g:protLast[src], ...(foodLast[src] || {}) };
-  const head = cardHead('food', 'Food', `<span class="st ${target && total >= target ? 'ok' : ''}">${total}${target ? ` / ${target}` : ''} g</span>`);
-  if(!cardOpen('food')) return cardBox('food', head);
-  let h = `<div class="box card">${head}
-    ${target ? `<div class="pbar ${total >= target ? 'full' : ''}"><i style="width:${pct}%"></i></div>
+  let h = `${target ? `<div class="pbar ${total >= target ? 'full' : ''}"><i style="width:${pct}%"></i></div>
       <div class="small">🥩 ${total >= target ? `✓ Protein target reached${range && range[1] ? ` · fine up to ${range[1]} g` : ''}` : `${target - total} g to go`}</div>`
       : `<div class="small">Set your daily targets in ⋯ → Settings → Food${ghReady() ? ' (or they load from your repo)' : ''}.</div>`}
     <div class="ftot small">🔥 <b class="${kc && kcal > kc[1] ? 'over' : kc && kcal >= kc[0] ? 'ok' : ''}">${approx('kcal')}${kcal.toLocaleString('en')}</b>${kc ? ` / ${kc[0].toLocaleString('en')}–${kc[1].toLocaleString('en')}` : ''} kcal
@@ -1909,6 +1953,7 @@ function protCard(day, now, isToday){
         <li>Salmon or white fish, 150 g ≈ 30–35 g</li><li>Beef or pork, lean, 150 g ≈ 40 g</li>
         <li>2 eggs ≈ 12 g</li><li>Cottage cheese, 200 g ≈ 22 g</li><li>Lentils or chickpeas, 200 g cooked ≈ 18 g</li>
         <li>Milk, 250 ml ≈ 8 g</li><li>Bread, 2 slices ≈ 7 g</li></ul></details></div>`;
+  const top = h; h = '';
   const list = protDay(day).sort((a, b) => a.at - b.at);
   const num = (e, k, unit) => nut(e, k) == null ? '' : `${isEst(e, k) ? '~' : ''}${nut(e, k)}${unit}`;
   if(list.length) h += opened.has('pent') || ed || !isToday
@@ -1920,7 +1965,7 @@ function protCard(day, now, isToday){
         <span class="g">${num(e, 'g', ' g') || '~'}</span><span class="small">✎</span></button>
         <button class="link x" data-pdel="${esc(e.id)}" aria-label="Remove ${esc(e.src)} at ${hhmm(e.at)}">✕</button></div>`; }).join('')
     : `<button class="foldline plain" data-unfold="pent">${list.length} entr${list.length === 1 ? 'y' : 'ies'} ${isToday ? 'today' : 'that day'} <span class="more">show ▾</span></button>`;
-  return h + '</div>';
+  return { st:`🥩 ${total} g`, ok:!target || total >= target, top, list:h };
 }
 
 // Water: one tap per drink; Other… for an exact amount; the drinks fold away like food entries.
@@ -1993,7 +2038,7 @@ function reminderBox(){
     <p class="small">💊 supplements at their reminder times, again every 30 min until ticked (last call after 2 h) ·
       🥩 protein at 19:00 if below the target, again hourly (last call 22:00) · 💩 gut at 20:00 if nothing is logged,
       again hourly (last call 23:00) · 📋 07:30 what was missed yesterday. Each stops as soon as it's done; a repeat
-      replaces the last one. Times on :00 or :30 come on time. Tap one to open the Daily tab.</p>
+      replaces the last one. Times on :00 or :30 come on time. Tap one to open Nutrition.</p>
     ${st === 'unsupported' ? '<p class="small">This browser can’t get notifications here. Open the installed app (home screen icon) instead.</p>'
       : st === 'blocked' ? '<p class="small">Notifications are blocked for this app: phone Settings → Apps → this app → Notifications → allow, then come back.</p>' : ''}
     <div class="actions">${st === 'off' ? '<button class="btn" data-act="pushon">Turn on reminders</button>'
@@ -2222,6 +2267,144 @@ function reportTop(){
   return h;
 }
 
+// ---------- Dashboard (user, 2026-10-28) ----------
+// The first page: two big buttons into the sections, then today at a glance, what the data says about
+// you (KPIs), and the week from the Report (rings, ranges, wins, strength).
+function renderDash(){
+  const now = Date.now(), today = dayKey(), next = defaultDay(), run = drafts[next]?.startedAt ? next : null;
+  const target = prot && +prot.target, g = protTotal(), water = prot && +prot.water, wml = waterTotal();
+  const items = todayItems(now), req = items.filter(x => !x.optional), got = req.filter(x => taken(today, x.id)).length;
+  const due = items.filter(x => itemDue(x, now)), later = items.filter(x => !taken(today, x.id) && x.time && !itemDue(x, now)).sort((a, b) => a.time.localeCompare(b.time));
+  const sets = run ? drafts[run].slots.flatMap(x => x.sets) : [];
+  const doneToday = history.filter(x => dayKey(x.startedAt) === today);
+  let h = `<div class="dbtns">
+    <button class="dbtn" data-tab="${next}">${ICON.dumbbell.replace('class="mini"', 'class="dic"')}<b>Workout</b>
+      <span class="small">${run ? `${PLAN[run].title} · in progress · ${sets.filter(x => x.done).length}/${sets.length} sets` : `Next: ${PLAN[next].title}`}</span>${run ? '<span class="dot"></span>' : ''}</button>
+    <button class="dbtn" data-tab="fuel">${ICON.broccoli.replace('class="ic"', 'class="dic"')}<b>Nutrition</b>
+      <span class="small">🥩 ${g}${target ? `/${target}` : ''} g${supp ? ` · 💊 ${got}/${req.length}` : ''}</span>${due.length ? '<span class="dot" style="background:var(--hint)"></span>' : ''}</button></div>`;
+  // today at a glance: one line each, what needs you first
+  const gl = [
+    doneToday.length ? `🏋 <b>${doneToday.map(x => PLAN[x.day] ? PLAN[x.day].title : x.day).join(', ')}</b> done today ✓` : run ? `🏋 <b>${PLAN[run].title}</b> in progress` : `🏋 Next workout: <b>${PLAN[next].title}</b> · ${esc(PLAN[next].focus)}`,
+    supp ? due.length ? `💊 <span class="due">Due:</span> <b>${esc(due.map(x => x.name).join(' + '))}</b>` : got === req.length ? '💊 All supplements taken ✓' : later.length ? `💊 Next at ${later[0].time}: ${esc(later.filter(x => x.time === later[0].time).map(x => x.name).join(' + '))}` : `💊 ${got}/${req.length} taken` : '',
+    target ? g >= target ? `🥩 Protein target reached ✓ (${g} g)` : `🥩 <b>${target - g} g</b> protein to go` : '',
+    water ? wml >= water ? `💧 Water reached ✓ (${litres(wml)} L)` : `💧 ${litres(wml)} of ${litres(water)} L` : '',
+    gutDay(today).length || symDay(today).length ? `💩 Gut logged ✓${symDay(today).length ? ` · ${symDay(today).length} symptom${symDay(today).length === 1 ? '' : 's'}` : ''}` : '💩 Gut: nothing logged yet'].filter(Boolean);
+  h += `<div class="box rep"><h3>At a glance</h3><ul class="glance">${gl.map(x => `<li>${x}</li>`).join('')}</ul></div>`;
+  h += aboutYou();
+  h += history.length ? reportTop() : `<p class="small">The week, your wins and strength appear here after your first workout.</p>`;
+  h += `<div class="actions"><button class="btn ghost" data-tab="report">Full report</button><button class="btn ghost" data-tab="history">History</button></div>`;
+  $main.innerHTML = h;
+}
+
+// ---------- About you: KPIs (user, 2026-10-28: "KPIs that make me learn about myself") ----------
+// Each one says what the data shows, or what it still needs — never a number from too little data.
+// Habits look at the last 14 days before today, from the first day each was tracked.
+const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0;
+const WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const hourPart = t => { const h = new Date(t).getHours(); return h < 12 ? 'morning' : h < 18 ? 'afternoon' : 'evening'; };
+const kpiRow = (ic, name, val, sub) => `<div class="kpi"><span class="ki">${ic}</span><span class="kt"><b>${name}</b><span class="small">${sub}</span></span><span class="kv">${val}</span></div>`;
+const kpiWait = (ic, name, need) => kpiRow(ic, name, '<span class="small">–</span>', `<span class="wait">${need}</span>`);
+// the tracked days of a log: from its first day, the last n days before today
+function pastDays(log, n = 14){
+  const from = firstDay(log), out = [];
+  for(let i = n; i >= 1; i--){ const k = dayKey(addDays(Date.now(), -i)); if(k >= from && from < dayKey()) out.push(k); }
+  return out;
+}
+const bar3 = parts => { const tot = parts.reduce((n, [, v]) => n + v, 0) || 1;
+  return `<span class="kbar">${parts.map(([k, v]) => `<i class="${k}" style="width:${(v / tot * 100).toFixed(1)}%" title="${k} ${Math.round(v / tot * 100)}%"></i>`).join('')}</span>`; };
+function kpiTraining(){
+  const done = history.filter(x => x.startedAt && x.finishedAt), h = [];
+  // 1. workout time: real sessions (15 min to 3 h), average, per workout, last 3 against the 3 before
+  const real = done.map(x => ({ d:x.day, m:(x.finishedAt - x.startedAt) / 60000 })).filter(x => x.m >= 15 && x.m <= 180);
+  if(real.length >= 2){
+    const per = ALL.filter(d => real.some(x => x.d === d)).map(d => `${PLAN[d].tab} ${Math.round(avg(real.filter(x => x.d === d).map(x => x.m)))}`);
+    const l3 = real.slice(-3).map(x => x.m), p3 = real.slice(-6, -3).map(x => x.m), dm = p3.length >= 2 ? Math.round(avg(l3) - avg(p3)) : null;
+    h.push(kpiRow('⏱', 'Workout time', `${Math.round(avg(real.map(x => x.m)))} min`, `average of ${real.length} · ${per.join(' · ')} min${dm != null ? ` · last 3 ${dm > 0 ? '+' : ''}${dm} min vs the 3 before` : ''}`));
+  } else h.push(kpiWait('⏱', 'Workout time', 'after 2 workouts'));
+  // 2. consistency: the last 4 full weeks against 3 a week, the longest gap, weeks on plan in a row
+  const wk = weekStart(Date.now()), first = done.length ? weekStart(done[0].startedAt) : wk;
+  const weeks = [1, 2, 3, 4].map(i => addDays(wk, -7 * i)).filter(w => w >= first);
+  if(weeks.length){
+    const per = weeks.map(w => done.filter(x => x.startedAt >= w && x.startedAt < addDays(w, 7)).length);
+    const gaps = done.slice(1).map((x, i) => (x.startedAt - done[i].startedAt) / 864e5).filter(g => g > 0);
+    const ws = workoutStreak();
+    h.push(kpiRow('📅', 'Consistency', `${(avg(per)).toLocaleString('en', { maximumFractionDigits:1 })}/wk`,
+      `plan 3 · last ${per.length} full week${per.length === 1 ? '' : 's'}: ${per.reverse().join(', ')}${gaps.length ? ` · longest gap ${Math.round(Math.max(...gaps))} days` : ''}${ws ? ` · ${ws} week${ws === 1 ? '' : 's'} on plan in a row` : ''}`));
+  } else h.push(kpiWait('📅', 'Consistency', 'after your first full week'));
+  // 3. when you train best: usual day and hour; strength by part of day against each lift's own average
+  if(done.length >= 3){
+    const cnt = {}; done.forEach(x => { const k = WEEKDAY[new Date(x.startedAt).getDay()]; cnt[k] = (cnt[k] || 0) + 1; });
+    const days = Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => k).join(', ');
+    const hr = Math.round(avg(done.map(x => new Date(x.startedAt).getHours() + new Date(x.startedAt).getMinutes() / 60)));
+    const lines = strengthLines(), rel = {};
+    lines.forEach(([, v]) => { const m = avg(v.map(o => o.sc)); v.forEach(o => (rel[hourPart(o.at)] = rel[hourPart(o.at)] || []).push(o.sc / m)); });
+    const parts = Object.entries(rel).filter(([, v]) => v.length >= 4);
+    const best = parts.length >= 2 ? parts.sort((a, b) => avg(b[1]) - avg(a[1]))[0] : null;
+    const diff = best ? Math.round((avg(best[1]) - avg(parts[parts.length - 1][1])) * 100) : 0;
+    h.push(kpiRow('🕒', 'When you train', `~${pad2(hr)}:00`, `usually ${days}${best && diff >= 2 ? ` · ${diff}% stronger in the ${best[0]}` : best ? ' · no difference by time of day yet' : ' · strength by time of day: needs sessions at different times'}`));
+  } else h.push(kpiWait('🕒', 'When you train', 'after 3 workouts'));
+  // 4. progress speed: per main lift, % per month first → last, and when it last went up; 3 sessions flat = stall
+  const sp = strengthLines().map(([name, v]) => {
+    const span = (v[v.length - 1].at - v[0].at) / (30 * 864e5);
+    let up = null, top = 0; v.forEach(o => { if(o.sc > top * 1.005){ if(top) up = o.at; top = o.sc; } });
+    const stall = v.length >= 4 && v.slice(-3).every(o => o.sc <= Math.max(...v.slice(0, -3).map(q => q.sc)) * 1.005);
+    return { name, pm:span >= .4 ? (v[v.length - 1].sc / v[0].sc - 1) * 100 / span : null, up, stall };
+  }).filter(x => x.pm != null);
+  if(sp.length) h.push(kpiRow('📈', 'Progress speed', `${Math.round(avg(sp.map(x => x.pm))) > 0 ? '+' : ''}${Math.round(avg(sp.map(x => x.pm)))}%/mo`,
+    sp.slice(0, 4).map(x => `${esc(x.name)} ${Math.round(x.pm) > 0 ? '+' : ''}${Math.round(x.pm)}%${x.stall ? ' <span class="wait">⚠ flat 3 sessions</span>' : x.up ? ` (up ${dateTxt(x.up)})` : ''}`).join(' · ')));
+  else h.push(kpiWait('📈', 'Progress speed', 'after 2 weeks of the same lifts'));
+  return h.join('');
+}
+function kpiHabits(){
+  const h = [];
+  // 5. supplements: % per time slot, the slot missed most, how long after the reminder you tick
+  const sd = supp ? pastDays(suppLog) : [];
+  if(sd.length >= 3){
+    const slot = {}, late = [];
+    sd.forEach(k => supp.items.filter(x => !x.optional && (x.days || []).includes(isoDay(atDay(k)))).forEach(x => {
+      const s = slot[x.time || 'any'] = slot[x.time || 'any'] || { due:0, got:0 }; s.due++;
+      if(taken(k, x.id)){ s.got++; const v = suppLog[k][x.id]; if(x.time && v.t && dayKey(v.t) === k) late.push((v.t - atDay(k, x.time)) / 60000); }
+    }));
+    const rows = Object.entries(slot).sort((a, b) => a[0].localeCompare(b[0])), all = rows.reduce((n, [, v]) => [n[0] + v.got, n[1] + v.due], [0, 0]);
+    const worst = rows.filter(([, v]) => v.got < v.due).sort((a, b) => a[1].got / a[1].due - b[1].got / b[1].due)[0];
+    const lt = late.filter(m => m > -60).sort((a, b) => a - b), med = lt.length ? lt[Math.floor(lt.length / 2)] : null;
+    h.push(kpiRow('💊', 'Supplement habit', `${Math.round(all[0] / all[1] * 100)}%`, `${sd.length} days · ${rows.map(([k, v]) => `${k === 'any' ? 'any time' : k} ${Math.round(v.got / v.due * 100)}%`).join(' · ')}${worst ? ` · missed most: <b>${worst[0] === 'any' ? 'any time' : worst[0]}</b>` : ''}${med != null ? ` · ticked ~${Math.max(0, Math.round(med))} min after the reminder` : ''}`));
+  } else h.push(kpiWait('💊', 'Supplement habit', 'after 3 days of ticks'));
+  // 6. protein: days at target, average, training vs rest days, where you are at 19:00
+  const target = prot && +prot.target, pd = pastDays(Object.fromEntries(Object.entries(protLog).map(([k, v]) => [k, (v || []).filter(e => !e.del)])));
+  if(target && pd.length >= 3){
+    const g = pd.map(k => protTotal(k)), trained = new Set(history.map(x => dayKey(x.startedAt)));
+    const tr = pd.filter(k => trained.has(k)).map(protTotal), rs = pd.filter(k => !trained.has(k)).map(protTotal);
+    const at19 = pd.map(k => protDay(k).filter(e => e.at < atDay(k, '19:00')).reduce((n, e) => n + (nut(e, 'g') || 0), 0));
+    h.push(kpiRow('🥩', 'Protein pattern', `${g.filter(x => x >= target).length}/${pd.length}`, `days at ${target} g · average ${Math.round(avg(g))} g${tr.length && rs.length ? ` · training days ${Math.round(avg(tr))} g, rest days ${Math.round(avg(rs))} g` : ''} · by 19:00 usually ${Math.round(avg(at19))} g`));
+  } else h.push(kpiWait('🥩', 'Protein pattern', target ? 'after 3 days of food' : 'set a protein target first'));
+  // 7. gut: stool type and poos a day, symptom days a week, and symptoms on training / low-water days
+  const gd = pastDays(gutLog);
+  if(gd.length >= 3){
+    const types = gd.flatMap(k => gutDay(k).map(e => e.type).filter(Boolean)), poo = avg(gd.map(k => gutDay(k).length));
+    // symptoms have times since 2026-10-28: count them only from the first day any was logged
+    const sFrom = Object.keys(gutLog).filter(k => symDay(k).length).sort()[0], sg = sFrom ? gd.filter(k => k >= sFrom) : [];
+    const symd = sg.filter(k => symDay(k).length), trained = new Set(history.map(x => dayKey(x.startedAt)));
+    const water = prot && +prot.water, wd = new Set(pastDays(waterLog));
+    const per = list => list.length ? avg(list.map(k => symDay(k).length)) : null, f1 = n => n.toLocaleString('en', { maximumFractionDigits:1 });
+    const enough = sg.length >= 3;
+    const tr = enough ? per(sg.filter(k => trained.has(k))) : null, rs = enough ? per(sg.filter(k => !trained.has(k))) : null;
+    const low = enough && water ? per(sg.filter(k => wd.has(k) && waterTotal(k) < water * .8)) : null, ok = enough && water ? per(sg.filter(k => wd.has(k) && waterTotal(k) >= water * .8)) : null;
+    const vs = [tr != null && rs != null ? `symptoms ${f1(tr)}/day training vs ${f1(rs)} rest` : '', low != null && ok != null ? `${f1(low)} on low-water days vs ${f1(ok)}` : ''].filter(Boolean);
+    h.push(kpiRow('💩', 'Gut vs life', types.length ? `type ${f1(avg(types))}` : `${f1(poo)}/day`, `${gd.length} days · ${f1(poo)} a day${types.length ? '' : ' · add the type to see the average'} · ${enough ? `symptoms on ${f1(symd.length / sg.length * 7)} days a week` : '<span class="wait">symptoms: after 3 days of logging them</span>'}${vs.length ? ' · ' + vs.join(' · ') : ''} · meals vs symptoms: in Claude's reviews`));
+  } else h.push(kpiWait('💩', 'Gut vs life', 'after 3 days of gut log'));
+  // 8. water: litres a day, and when you drink (morning / afternoon / evening)
+  const wd = pastDays(waterLog);
+  if(wd.length >= 2){
+    const by = { morning:0, afternoon:0, evening:0 };
+    wd.forEach(k => waterDay(k).forEach(e => { by[hourPart(e.at)] += +e.ml || 0; }));
+    const dry = Object.entries(by).sort((a, b) => a[1] - b[1])[0][0];
+    h.push(kpiRow('💧', 'Water rhythm', `${litres(avg(wd.map(k => waterTotal(k))))} L`, `a day, ${wd.length} days · ${bar3(Object.entries(by))} morning ${Math.round(by.morning / (by.morning + by.afternoon + by.evening || 1) * 100)}% · afternoon ${Math.round(by.afternoon / (by.morning + by.afternoon + by.evening || 1) * 100)}% · evening ${Math.round(by.evening / (by.morning + by.afternoon + by.evening || 1) * 100)}% · runs dry: <b>${dry}</b>`));
+  } else h.push(kpiWait('💧', 'Water rhythm', 'after 2 days of water'));
+  return h.join('');
+}
+const aboutYou = () => `<div class="box rep about"><h3>About you</h3><p class="kind">Training</p>${kpiTraining()}<p class="kind">Habits · last 14 days</p>${kpiHabits()}</div>`;
+
 function renderReport(){
   if(!history.length){ $main.innerHTML = `<p class="empty">No finished workouts yet. The report appears after your first one.</p>`; return; }
   const s = history.find(x => x.id === reportId) || history[history.length - 1];
@@ -2319,7 +2502,7 @@ document.addEventListener('click', e => {
   if(t.dataset.tab){ if(t.dataset.tab !== view){ opened.clear(); noteOpen = false; suppView = null; protEdit = null; protForm = false; pMeal = null; gutEdit = null; logEdit = null; } view = t.dataset.tab; store.set('fb3.view', view); render(); scrollTo(0, 0); return; }
   if(t.id === 'back'){ view = lastDay; render(); scrollTo(0, 0); return; }
   if(t.dataset.unfold){ const k = t.dataset.unfold; opened.add(/^\d+$/.test(k) ? +k : k); render(); return; }
-  if(t.dataset.fold){ opened.delete(t.dataset.fold); render(); return; }
+  if(t.dataset.fold){ const k = t.dataset.fold; opened.delete(/^\d+$/.test(k) ? +k : k); render(); return; }
   if(t.dataset.rest){ adjustRest(t.dataset.rest); return; }
 
   if(t.dataset.tick){
@@ -2483,12 +2666,14 @@ document.addEventListener('click', e => {
     if(!begin(view, true)) return;
     const d = draft(view, true), k = +t.dataset.reset;
     d.reset = RESET.map((_, n) => !!(d.reset || [])[n]); d.reset[k] = !d.reset[k];
+    if(d.reset.every(Boolean)) opened.delete('reset');
     save(); render(); return;
   }
   if(t.dataset.cool){
     if(!begin(view, true)) return;
     const d = draft(view, true), k = +t.dataset.cool;
     d.cool = COOL.map((_, n) => !!(d.cool || [])[n]); d.cool[k] = !d.cool[k];
+    if(d.cool.every(Boolean)) opened.delete('cool');
     save(); render(); return;
   }
   if(t.dataset.band){
@@ -2697,6 +2882,7 @@ function setDone(day, i, j){
   // bands: the colours tapped for this exercise, and their kg
   if(bandOf(slot.name)){ const c = slot.band || []; s.band = c.join('+'); s.kg = bandKg(slot.name, c); }
   const lastSet = slot.sets.every(x => x.done);
+  if(lastSet && day === view) opened.delete(i);
   startRest(ex.rest, lastSet ? `Next: ${PLAN[day].ex[i+1]?.name || 'finish'}` : `${slot.name} · set ${j+2}`);
 }
 // a per-side hold counts as its weaker side for the range and progress ("every set at the top")
@@ -3161,7 +3347,7 @@ function askToast(msg, fn){
   clearTimeout(toastT); toastT = setTimeout(() => { t.classList.remove('show', 'undo'); againFn = null; }, 8000);
 }
 
-// a tapped reminder opens the app at #fuel: show the Daily tab (today), then drop the #
+// a tapped reminder opens the app at #fuel: show Nutrition (today), then drop the #
 function fromHash(){
   if(location.hash !== '#fuel') return false;
   view = 'fuel'; suppView = null; store.set('fb3.view', view);
