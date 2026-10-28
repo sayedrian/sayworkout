@@ -482,6 +482,16 @@ input,select,textarea{color-scheme:dark}
 .lft .lc{text-align:right;font-weight:800;font-variant-numeric:tabular-nums;color:var(--soft)}.lft .lc.up{color:var(--done)}
 .sec .link{border:0;background:none;color:#7FB0FF;padding:0}
 
+/* tap to go to the source: tiles, rings and rows are buttons that keep their card look */
+button.kpi,button.rt,button.win,button.nx,button.lft,button.dt,button.rl{border:0;font:inherit;color:inherit;text-align:left;width:100%;cursor:pointer}
+button.kpi{background:var(--card)}button.rt{background:var(--card)}button.win{background:var(--card)}button.win.pr{background:linear-gradient(135deg,#1C3A2A,#17261F)}
+button.nx,button.lft,button.dt,button.rl{background:none;padding-left:0;padding-right:0}
+button.nx{padding-top:10px;padding-bottom:10px}button.lft{padding-top:10px;padding-bottom:10px}
+button.rl{padding:0}
+.duebar button.dt{padding:0}
+.flash{animation:flash .9s ease-out}
+@keyframes flash{0%{box-shadow:0 0 0 3px var(--accent)}100%{box-shadow:0 0 0 0 transparent}}
+
 /* History: a month calendar, workouts as cards that open */
 .cal{padding:16px}
 .calh{display:flex;align-items:center;gap:8px;margin-bottom:12px}
@@ -526,7 +536,7 @@ details[open]>summary .chev{transform:rotate(90deg)}
 .sic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none;font-size:13px;font-weight:800}
 .sic svg{width:18px;height:18px}
 .sic.blue{background:#1E2A45;color:#7FB0FF}.sic.green{background:var(--done-bg);color:var(--done)}.sic.amber{background:var(--hint-bg);color:var(--hint)}
-.sic.violet{background:#2A2333;color:var(--fat)}.sic.water{background:var(--water-bg);color:var(--water)}
+.sic.violet{background:#2A2333;color:var(--fat)}.sic.aqua{background:var(--water-bg);color:var(--water)}
 .stime{width:44px;flex:none;font-size:14px;font-weight:800;color:var(--hint);font-variant-numeric:tabular-nums}
 .sbody{padding:0 0 14px;display:flex;flex-direction:column;gap:10px}
 .sbody .btn{min-height:46px;font-size:15px}
@@ -539,6 +549,9 @@ details[open]>summary .chev{transform:rotate(90deg)}
 .srow.act{display:block;width:100%;min-height:52px;border:0;border-top:1px solid var(--line);background:none;color:var(--ink);font-size:15px;font-weight:650;text-align:left;padding:0}
 .srow.act.bad{color:var(--bad)}.srow.act.blue{color:#7FB0FF}
 .stp.small2{height:40px;border-radius:12px;flex:none}.stp.small2 input{height:40px;width:52px;font-size:16px}.stp.small2 .sb{height:40px}
+.seg3{display:flex;gap:4px;padding:3px;border-radius:12px;background:var(--input);flex:none}
+.seg3 button{min-height:36px;padding:0 12px;border:0;border-radius:9px;background:none;color:var(--muted);font-weight:750;font-size:14px}
+.seg3 button[aria-pressed="true"]{background:var(--accent);color:#fff}
 .switch{position:relative;width:52px;height:32px;border:0;border-radius:16px;background:#39414E;flex:none;padding:0}
 .switch i{position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:13px;background:#fff;transition:left .15s}
 .switch.on{background:var(--done)}.switch.on i{left:23px}
@@ -956,6 +969,7 @@ let drafts  = store.get('fb3.drafts', {});
 let view    = 'dash';     // the app opens on the dashboard (user, 2026-10-28)
 const save = () => { store.set('fb3.history', history); store.set('fb3.drafts', drafts); };
 let bodyweight = store.get('fb3.bw', '');   // typed in on the phone, never in this file
+let profile = store.get('fb3.profile', {});   // {age, height (cm), sex: 'm'|'f'} — on the phone only, like the body weight
 let reportId = null;                        // which workout the Report tab shows (null = latest)
 
 // ---------- Supplements (user, 2026-10-25; the list: fitness.md "Supplements") ----------
@@ -2019,6 +2033,14 @@ const opened = new Set();    // folded cards the user tapped open again (until t
 // Sections (user, 2026-10-28): the tab bar is the whole map — Home (the Today screen, opens first; a house
 // says "Home", user 2026-10-28), Train (A B C H),
 // Nutrition, Progress (Report and History, one switch apart) and Settings. No ⋯ menu, no ← back.
+// change tab (and scroll to one of its sections: an element id), clearing what was open on the tab left
+function goTo(v, sec){
+  if(v !== view){ opened.clear(); noteOpen = false; suppView = null; protEdit = null; protForm = false; pMeal = null; gutEdit = null; logEdit = null; }
+  view = v; store.set('fb3.view', view); render();
+  const el = sec && document.getElementById(sec);
+  if(el){ const top = el.getBoundingClientRect().top + scrollY - document.querySelector('header').offsetHeight - 8; scrollTo(0, Math.max(0, top)); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 900); }
+  else scrollTo(0, 0);
+}
 function render(){
   const page = PAGES[view], workout = !!PLAN[view], prog = view === 'report' || view === 'history';
   document.getElementById('tabs').hidden = !workout;
@@ -2231,7 +2253,7 @@ function protCard(day, now, isToday){
   const last = ed || pMeal || { g:protLast[src], ...(foodLast[src] || {}) };
   // the hero: protein as a big ring, calories and fat as bars against their aims
   const kcPct = kc ? Math.min(100, kcal / kc[1] * 100) : 0, fatPct = fatMin ? Math.min(100, fat / fatMin * 100) : 0;
-  const hero = `<div class="box fhero">${target ? `<div class="pring">${ring(total / target, '#3DD68C', '', 128).replace(/<path[^>]*\/>|<text[^>]*>[^<]*<\/text>/, '')}
+  const hero = `<div class="box fhero" id="secP">${target ? `<div class="pring">${ring(total / target, '#3DD68C', '', 128).replace(/<path[^>]*\/>|<text[^>]*>[^<]*<\/text>/, '')}
       <span class="pc"><b class="pg">${total}</b><span>of ${target} g protein</span></span></div>` : ''}
     <div class="macros">
       ${target ? '' : `<div class="small">Set your daily targets in ⋯ → Settings → Food${ghReady() ? ' (or they load from your repo)' : ''}.</div>`}
@@ -2366,7 +2388,7 @@ function renderHistory(){
   const on = new Set(inMonth.map(s => new Date(s.startedAt).getDate())), lead = (m.getDay() + 6) % 7, nDays = new Date(y, mo + 1, 0).getDate();
   const isNow = histMonth === 0, today = now.getDate();
   let h = `<div class="rtop">${progSeg()}</div><p class="small">${syncText()}</p>
-    <div class="box cal"><div class="calh"><button class="calnav" data-hmon="1" aria-label="Month before">‹</button>
+    <div class="box cal" id="hist"><div class="calh"><button class="calnav" data-hmon="1" aria-label="Month before">‹</button>
       <b>${m.toLocaleDateString('en-GB', { month:'long', year:y === now.getFullYear() ? undefined : 'numeric' })}</b>
       <span class="chips2"><span>${inMonth.length} workout${inMonth.length === 1 ? '' : 's'}</span>${hours ? `<span>${hours < 10 ? f1(hours) : Math.round(hours)} h</span>` : ''}</span>
       <button class="calnav" data-hmon="-1" aria-label="Next month" ${isNow ? 'disabled' : ''}>›</button></div>
@@ -2404,8 +2426,17 @@ const sgroup = (title, rows, extra = '') => `<div class="sgt"><span>${title}</sp
 function renderSettings(){
   const P = prot || {}, fmt = n => (+n).toLocaleString('en');
   let h = `<p class="small">${syncText()}</p>`;
-  h += sgroup('You', `<div class="srow flat"><span class="sic blue">${svgI('<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 10a3 3 0 0 1 6 0M12 10l1.5-2"/>')}</span>
-      <span class="sl">Body weight<span class="kc">for pull-ups and body-weight sets</span></span>
+  // Profile (user, 2026-10-28): age, sex, height, weight — kept on this phone only, like the body weight
+  // (never in this page, which is public); weight is the same one the workouts use
+  const pf = profile, age = +pf.age, ht = +pf.height;
+  h += sgroup('Profile', `<div class="srow flat"><span class="sic blue">${svgI('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>')}</span>
+      <span class="sl">Age</span><span class="stp small2"><button class="sb" data-pfstep="age.-1" aria-label="Younger">−</button><input data-pf="age" inputmode="numeric" value="${esc(pf.age || '')}" placeholder="–" aria-label="Age, years"><button class="sb" data-pfstep="age.1" aria-label="Older">+</button></span></div>
+    <div class="srow flat"><span class="sic blue">${svgI('<path d="M12 3v18M8 7l4-4 4 4M8 17l4 4 4-4"/>')}</span>
+      <span class="sl">Height<span class="kc">cm</span></span><span class="stp small2"><button class="sb" data-pfstep="height.-1" aria-label="Shorter">−</button><input data-pf="height" inputmode="numeric" value="${esc(pf.height || '')}" placeholder="–" aria-label="Height, cm"><button class="sb" data-pfstep="height.1" aria-label="Taller">+</button></span></div>
+    <div class="srow flat"><span class="sic blue">${svgI('<circle cx="12" cy="12" r="8"/><path d="M12 8v4M10 14h4"/>')}</span>
+      <span class="sl">Sex<span class="kc">for calorie needs</span></span><span class="seg3">${[['m', 'Male'], ['f', 'Female']].map(([k, l]) => `<button data-pfsex="${k}" aria-pressed="${pf.sex === k}">${l}</button>`).join('')}</span></div>
+    <div class="srow flat"><span class="sic blue">${svgI('<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 10a3 3 0 0 1 6 0M12 10l1.5-2"/>')}</span>
+      <span class="sl">Weight<span class="kc">${bodyweight && ht ? `BMI ${f1(bodyweight / (ht / 100) ** 2)} · ` : ''}kg, also for pull-ups</span></span>
       <span class="stp small2"><button class="sb" data-bwstep="-1" aria-label="Less body weight">−</button><input id="bw" inputmode="decimal" value="${esc(bodyweight)}" placeholder="kg" aria-label="Body weight, kg"><button class="sb" data-bwstep="1" aria-label="More body weight">+</button></span></div>`);
   h += sgroup('Daily targets',
     srow('t:p', sic('green', 'P'), 'Protein', P.target ? `done at ${P.target} g` : 'not set', `<p class="small">Counts as done at "done at"; fine up to "to".</p>
@@ -2419,10 +2450,10 @@ function renderSettings(){
       <button class="btn" data-act="ptarget">Save</button>`)
     + srow('t:f', sic('violet', 'F'), 'Fat', P.fat ? `at least ${P.fat} g` : 'not set', `<div class="tgrid"><label class="full">at least, g <input id="fMin" inputmode="numeric" value="${esc(P.fat || '')}"></label></div>
       <button class="btn" data-act="ptarget">Save</button>`)
-    + srow('t:w', sic('water', svgI('<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>')), 'Water', P.water ? `${litres(P.water)} L` : 'not set', `<div class="tgrid">
+    + srow('t:w', sic('aqua', svgI('<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>')), 'Water', P.water ? `${litres(P.water)} L` : 'not set', `<div class="tgrid">
         <label class="full">a day, ml <input id="wTarget" inputmode="numeric" value="${esc(P.water || '')}"></label></div>
       <button class="btn" data-act="ptarget">Save</button>`));
-  h += sgroup('Food', srow('t:c', sic('water', svgI('<path d="M7 3h10l-1.5 17a1.5 1.5 0 0 1-1.5 1.4h-4.6A1.5 1.5 0 0 1 8 20z"/>')), 'Drink buttons', esc(cups().map(c => `${c.n} ${c.ml}`).join(' · ')),
+  h += sgroup('Food', srow('t:c', sic('aqua', svgI('<path d="M7 3h10l-1.5 17a1.5 1.5 0 0 1-1.5 1.4h-4.6A1.5 1.5 0 0 1 8 20z"/>')), 'Drink buttons', esc(cups().map(c => `${c.n} ${c.ml}`).join(' · ')),
       `<div class="tgrid">${cups().map((c, i) => `<label>drink ${i + 1} <input data-cupn="${i}" value="${esc(c.n)}" aria-label="Drink ${i + 1} name"></label><label>ml <input data-cupml="${i}" inputmode="numeric" value="${esc(c.ml)}" aria-label="Drink ${i + 1} ml"></label><span></span>`).join('')}</div>
       <button class="btn" data-act="ptarget">Save</button>`)
     + srow('t:m', sic('green', '☆'), 'My meals', `${meals().length}`, meals().length ? meals().map((m, i) => `<div class="nline"><span class="nt">☆ ${esc(m.name)}<span class="small"> · ${esc(m.src)}${
@@ -2495,9 +2526,9 @@ function spark(vals, col){
 // how long a workout should take by the plan: desk reset 5 min, ~40 s a set, the rests between sets
 // (also between exercises), no rest after the last set
 const planMins = d => { const ex = PLAN[d].ex; return Math.round(5 + ex.reduce((n, e) => n + e.sets * (40 + e.rest), 0) / 60 - ex[ex.length - 1].rest / 60); };
-const tile = ({ label, val, unit = '', vis = '', cap = '', tone = '' }) => `<div class="kpi"><span class="kl">${label}</span>
-  <span class="kv ${tone}">${val}${unit ? `<small>${unit}</small>` : ''}</span>${vis}<span class="kc">${cap}</span></div>`;
-const waitTile = (label, need) => tile({ label, val:'–', cap:`<span class="wait">${need}</span>` });
+const tile = ({ label, val, unit = '', vis = '', cap = '', tone = '', go = '' }) => `<${go ? `button data-go="${go}"` : 'div'} class="kpi"><span class="kl">${label}</span>
+  <span class="kv ${tone}">${val}${unit ? `<small>${unit}</small>` : ''}</span>${vis}<span class="kc">${cap}</span></${go ? 'button' : 'div'}>`;
+const waitTile = (label, need, go = '') => tile({ label, val:'–', cap:`<span class="wait">${need}</span>`, go });
 
 function renderDash(){
   const now = Date.now(), today = dayKey(), next = defaultDay(), run = ALL.find(d => drafts[d]?.startedAt);
@@ -2519,16 +2550,16 @@ function renderDash(){
   if(due.length){
     const tm = due[0].time, its = due.filter(x => x.time === tm);
     h += `<div class="duebar"><span class="di">${svgI('<rect x="3" y="8.5" width="18" height="7" rx="3.5" transform="rotate(-35 12 12)"/><path d="M9.2 8.6l5.6 6.8"/>', 2.2)}</span>
-      <span class="dt"><span class="eb">Due ${tm}</span><b>${esc(its.map(x => x.name).join(' + '))}</b></span>
+      <button class="dt" data-go="fuel#secS"><span class="eb">Due ${tm}</span><b>${esc(its.map(x => x.name).join(' + '))}</b></button>
       <button class="take" ${its.length > 1 ? `data-suppslot="${tm}"` : `data-supp="${esc(its[0].id)}"`} aria-label="Take ${esc(its.map(x => x.name).join(' + '))}">Take</button></div>`;
   }
   // today: four rings
-  const rt = (frac, col, txt, big, unit, lab) => `<div class="rt">${ring(frac, col, txt)}<span><b>${big}<small>${unit}</small></b><span class="kc">${lab}</span></span></div>`;
+  const rt = (go, frac, col, txt, big, unit, lab) => `<button class="rt" data-go="${go}">${ring(frac, col, txt)}<span><b>${big}<small>${unit}</small></b><span class="kc">${lab}</span></span></button>`;
   const rts = [
-    target ? rt(g / target, '#3DD68C', `${Math.round(g / target * 100)}%`, g, ' g', `Protein · goal ${target}`) : '',
-    water ? rt(wml / water, '#4FB3FF', `${Math.round(wml / water * 100)}%`, litres(wml), ' L', `Water · goal ${litres(water)}`) : '',
-    supp ? rt(req.length ? got / req.length : 1, '#F5A524', `${got}/${req.length}`, got, ` of ${req.length}`, 'Supplements') : '',
-    rt(wk / 3, '#3A7BFF', `${wk}/3`, wk, ' of 3', 'Workouts · 7 days')].filter(Boolean);
+    target ? rt('fuel#secP', g / target, '#3DD68C', `${Math.round(g / target * 100)}%`, g, ' g', `Protein · goal ${target}`) : '',
+    water ? rt('fuel#secW', wml / water, '#4FB3FF', `${Math.round(wml / water * 100)}%`, litres(wml), ' L', `Water · goal ${litres(water)}`) : '',
+    supp ? rt('fuel#secS', req.length ? got / req.length : 1, '#F5A524', `${got}/${req.length}`, got, ` of ${req.length}`, 'Supplements') : '',
+    rt('history#hist', wk / 3, '#3A7BFF', `${wk}/3`, wk, ' of 3', 'Workouts · 7 days')].filter(Boolean);
   h += `<div class="sec"><b>Today</b><span>${[target && g >= target, water && wml >= water, supp && got === req.length, wk >= 3].filter(Boolean).length} of ${rts.length} done</span></div>
     <div class="rts">${rts.join('')}</div>`;
   h += `<div class="sec"><b>About you</b><button class="link" data-tab="report">See all</button></div><div class="about kpis">${kpiTraining()}${kpiHabits()}</div>`;
@@ -2536,8 +2567,8 @@ function renderDash(){
   const lines = strengthLines();
   if(lines.length) h += `<div class="sec"><b>Strength</b><span>best set per session</span></div><div class="box lifts">${lines.map(([name, v]) => {
       const f = v[0].sc, l = v[v.length - 1].sc, pct = Math.round((l / f - 1) * 100), assist = loadOf(name) === 'assist' && !bodyweight;
-      return `<div class="lft"><span class="ln"><b>${esc(name)}</b><span class="kc">${esc(setTxt(v[v.length - 1].set, exFor(name), name, v[v.length - 1].bw))}</span></span>
-        ${spark(v.map(o => o.sc), pct > 0 ? '#3DD68C' : '#8B93A1')}<span class="lc ${!assist && pct > 0 ? 'up' : ''}">${assist ? `${v[0].set.kg}→${v[v.length - 1].set.kg}` : `${pct > 0 ? '+' : ''}${pct}%`}</span></div>`; }).join('')}</div>`;
+      return `<button class="lft" data-go="history#hist"><span class="ln"><b>${esc(name)}</b><span class="kc">${esc(setTxt(v[v.length - 1].set, exFor(name), name, v[v.length - 1].bw))}</span></span>
+        ${spark(v.map(o => o.sc), pct > 0 ? '#3DD68C' : '#8B93A1')}<span class="lc ${!assist && pct > 0 ? 'up' : ''}">${assist ? `${v[0].set.kg}→${v[v.length - 1].set.kg}` : `${pct > 0 ? '+' : ''}${pct}%`}</span></button>`; }).join('')}</div>`;
   h += `<div class="actions"><button class="btn ghost" data-tab="report">Full report</button><button class="btn ghost" data-tab="history">History</button></div>`;
   $main.innerHTML = h;
 }
@@ -2569,21 +2600,21 @@ function kpiTraining(){
         <text x="${bx + bw / 2}" y="${H + 12}" text-anchor="middle" font-size="10" font-weight="700" fill="currentColor">${Math.round(x.m)}</text>`; }).join('')}
       <line x1="0" x2="${W}" y1="${y(am).toFixed(1)}" y2="${y(am).toFixed(1)}" stroke="#F2F4F7" stroke-width="1.5" stroke-dasharray="4 3"/>
       <line x1="0" x2="${W}" y1="${y(pm).toFixed(1)}" y2="${y(pm).toFixed(1)}" stroke="#3DD68C" stroke-width="1.5" stroke-dasharray="4 3"/></svg>`;
-    h.push(tile({ label:'Workout time', val:Math.round(l3[l3.length - 1].m), unit:' min', vis,
+    h.push(tile({ go:'history#hist', label:'Workout time', val:Math.round(l3[l3.length - 1].m), unit:' min', vis,
       cap:`<span class="lg"><i class="avg"></i>avg ${Math.round(am)}</span> <span class="lg"><i class="pln"></i>plan ${pm}</span>` }));
-  } else h.push(waitTile('Workout time', 'after 2 workouts'));
+  } else h.push(waitTile('Workout time', 'after 2 workouts', 'history#hist'));
   // 2. workouts a week (user, 2026-10-28: "2/3, I don't understand"): the last 4 rolling weeks of 7 days as
   // bars with their count, oldest first, and a dashed line at the goal of 3
   if(done.length){
     const first = dayStart(done[0].startedAt), ends = [21, 14, 7, 0].map(n => addDays(Date.now(), -n)).filter(t => dayStart(addDays(t, 1)) > first);   // weeks since the first workout
-    const per = ends.map(t => last7(t)), W = 140, H = 48, top = Math.max(4, ...per), bw = 22, gap = (W - per.length * bw) / (per.length + 1), y = n => H - n / top * H;
+    const per = ends.map(t => last7(t)), W = 140, H = 48, top = Math.max(4, ...per), bw = 26, gap = (W - per.length * bw) / (per.length + 1), y = n => H - n / top * H;
     const vis = `<svg class="kt" viewBox="0 0 ${W} ${H + 14}" aria-hidden="true">
       ${per.map((n, i) => { const bx = gap + i * (bw + gap); return `<rect x="${bx}" y="${y(Math.max(n, .12)).toFixed(1)}" width="${bw}" height="${(H - y(Math.max(n, .12))).toFixed(1)}" rx="4" fill="${n >= 3 ? '#3A7BFF' : '#2B3A59'}"/>
         <text x="${bx + bw / 2}" y="${(y(n) - 3).toFixed(1)}" text-anchor="middle" font-size="10" font-weight="800" fill="currentColor">${n}</text>
-        <text x="${bx + bw / 2}" y="${H + 12}" text-anchor="middle" font-size="9" fill="#959DAA">${i === per.length - 1 ? 'now' : `−${per.length - 1 - i}w`}</text>`; }).join('')}
+        <text x="${bx + bw / 2}" y="${H + 12}" text-anchor="middle" font-size="8.5" fill="#959DAA">${new Date(addDays(ends[i], -6)).getDate()}–${new Date(ends[i]).getDate()}</text>`; }).join('')}
       <line x1="0" x2="${W}" y1="${y(3)}" y2="${y(3)}" stroke="#3DD68C" stroke-width="1.5" stroke-dasharray="4 3"/></svg>`;
-    h.push(tile({ label:'Workouts a week', val:per[per.length - 1], unit:' of 3', vis, cap:'<span class="lg"><i class="pln"></i>goal 3 · each bar = 7 days</span>' }));
-  } else h.push(waitTile('Workouts a week', 'after your first workout'));
+    h.push(tile({ go:'history#hist', label:'Workouts a week', val:per[per.length - 1], unit:' of 3', vis, cap:'<span class="lg"><i class="pln"></i>goal 3 a week</span>' }));
+  } else h.push(waitTile('Workouts a week', 'after your first workout', 'history#hist'));
   // 3. when you train: usual days and hour; strength by part of day against each lift's own average
   if(done.length >= 3){
     const cnt = {}; done.forEach(x => { const k = WEEKDAY[new Date(x.startedAt).getDay()]; cnt[k] = (cnt[k] || 0) + 1; });
@@ -2593,10 +2624,10 @@ function kpiTraining(){
     strengthLines().forEach(([, v]) => { const m = avg(v.map(o => o.sc)); v.forEach(o => (rel[hourPart(o.at)] = rel[hourPart(o.at)] || []).push(o.sc / m)); });
     const parts = Object.entries(rel).filter(([, v]) => v.length >= 4).sort((a, b) => avg(b[1]) - avg(a[1]));
     const diff = parts.length >= 2 ? Math.round((avg(parts[0][1]) - avg(parts[parts.length - 1][1])) * 100) : 0;
-    h.push(tile({ label:'You train at', val:`${pad2(hr)}:00`,
+    h.push(tile({ go:'history#hist', label:'You train at', val:`${pad2(hr)}:00`,
       vis:`<span class="kdays">${days.map(([d], i) => `<i class="${i < 2 ? 'on' : ''}">${d.toUpperCase()}</i>`).join('')}</span>`,
       cap:diff >= 2 ? `<span class="good">${diff}% stronger in the ${parts[0][0]}</span>` : 'your usual days' }));
-  } else h.push(waitTile('You train at', 'after 3 workouts'));
+  } else h.push(waitTile('You train at', 'after 3 workouts', 'history#hist'));
   // 4. progress: the lift moving fastest (% a month, ≥ 12 days of data); a lift flat 3 sessions is flagged
   const sp = strengthLines().map(([name, v]) => {
     const span = (v[v.length - 1].at - v[0].at) / (30 * 864e5);
@@ -2605,10 +2636,10 @@ function kpiTraining(){
   }).filter(x => x.pm != null).sort((a, b) => b.pm - a.pm);
   if(sp.length){
     const b = sp[0], st = sp.find(x => x.stall), last = b.v[b.v.length - 1];
-    h.push(tile({ label:esc(b.name), val:`${Math.round(b.pm) > 0 ? '+' : ''}${Math.round(b.pm)}%`, unit:' /mo', tone:Math.round(b.pm) > 0 ? 'good' : '',
+    h.push(tile({ go:'history#hist', label:esc(b.name), val:`${Math.round(b.pm) > 0 ? '+' : ''}${Math.round(b.pm)}%`, unit:' /mo', tone:Math.round(b.pm) > 0 ? 'good' : '',
       vis:spark(b.v.map(o => o.sc), Math.round(b.pm) > 0 ? '#3DD68C' : '#8B93A1'),
       cap:st ? `<span class="wait">${esc(st.name)} flat 3×</span>` : `best ${esc(setTxt(last.set, exFor(b.name), b.name, last.bw))}` }));
-  } else h.push(waitTile('Progress', 'after 2 weeks of lifts'));
+  } else h.push(waitTile('Progress', 'after 2 weeks of lifts', 'history#hist'));
   return h.join('');
 }
 function kpiHabits(){
@@ -2622,39 +2653,39 @@ function kpiHabits(){
     const rows = Object.entries(slot).sort((a, b) => a[0].localeCompare(b[0])), all = rows.reduce((n, [, v]) => [n[0] + v.got, n[1] + v.due], [0, 0]);
     const worst = rows.filter(([, v]) => v.got < v.due).sort((a, b) => a[1].got / a[1].due - b[1].got / b[1].due)[0];
     const nm = k => k === 'any' ? 'any' : k;
-    h.push(tile({ label:'Supplements', val:Math.round(all[0] / all[1] * 100), unit:'%',
+    h.push(tile({ go:'fuel#secS', label:'Supplements', val:Math.round(all[0] / all[1] * 100), unit:'%',
       vis:`<span class="kslots">${rows.slice(0, 4).map(([k, v]) => `<span class="${worst && worst[0] === k ? 'bad' : ''}"><em>${nm(k)}</em><i><b style="width:${Math.round(v.got / v.due * 100)}%"></b></i></span>`).join('')}</span>`,
       cap:worst ? `${nm(worst[0])} is your weak spot` : 'every slot taken' }));
-  } else h.push(waitTile('Supplements', 'after 3 days of ticks'));
+  } else h.push(waitTile('Supplements', 'after 3 days of ticks', 'fuel#secS'));
   // 6. protein: days at target as squares, where you are at 19:00
   const target = prot && +prot.target, pd = pastDays(Object.fromEntries(Object.entries(protLog).map(([k, v]) => [k, (v || []).filter(e => !e.del)])));
   if(target && pd.length >= 3){
     const g = pd.map(k => protTotal(k)), hit = g.filter(x => x >= target).length;
     const at19 = pd.map(k => protDay(k).filter(e => e.at < atDay(k, '19:00')).reduce((n, e) => n + (nut(e, 'g') || 0), 0));
-    h.push(tile({ label:'Protein days', val:hit, unit:` of ${pd.length}`,
+    h.push(tile({ go:'fuel#secP', label:'Protein days', val:hit, unit:` of ${pd.length}`,
       vis:`<span class="ksq">${g.slice(-7).map(x => `<i class="${x >= target ? 'on' : ''}">${x >= target ? CHECK : ''}</i>`).join('')}</span>`,
       cap:`${Math.round(avg(at19))} g by 19:00` }));
-  } else h.push(waitTile('Protein days', target ? 'after 3 days of food' : 'set a target first'));
+  } else h.push(waitTile('Protein days', target ? 'after 3 days of food' : 'set a target first', 'fuel#secP'));
   // 7. gut: average type on the Bristol scale, poos a day; symptoms counted from the first day logged
   const gd = pastDays(gutLog);
   if(gd.length >= 3){
     const types = gd.flatMap(k => gutDay(k).map(e => e.type).filter(Boolean)), poo = avg(gd.map(k => gutDay(k).length));
     const sFrom = Object.keys(gutLog).filter(k => symDay(k).length).sort()[0], sg = sFrom ? gd.filter(k => k >= sFrom) : [];
     const t = types.length ? Math.round(avg(types)) : 0;
-    h.push(tile({ label:'Gut', val:types.length ? `Type ${t}` : f1(poo), unit:types.length ? '' : ' a day',
+    h.push(tile({ go:'fuel#secG', label:'Gut', val:types.length ? `Type ${t}` : f1(poo), unit:types.length ? '' : ' a day',
       vis:`<span class="kbristol">${[1, 2, 3, 4, 5, 6, 7].map(n => `<i class="${n === t ? 'on' : ''}"></i>`).join('')}</span>`,
       cap:`${f1(poo)} a day${t ? ` · ${t >= 3 && t <= 5 ? 'normal' : t < 3 ? 'hard' : 'loose'}` : ''}${sg.length >= 3 ? ` · symptoms ${f1(sg.filter(k => symDay(k).length).length / sg.length * 7)} d/wk` : ''}` }));
-  } else h.push(waitTile('Gut', 'after 3 days of log'));
+  } else h.push(waitTile('Gut', 'after 3 days of log', 'fuel#secG'));
   // 8. water: litres a day; morning / afternoon / evening as one bar, the part of the day that runs dry
   const wd = pastDays(waterLog);
   if(wd.length >= 2){
     const by = { morning:0, afternoon:0, evening:0 };
     wd.forEach(k => waterDay(k).forEach(e => { by[hourPart(e.at)] += +e.ml || 0; }));
     const tot = by.morning + by.afternoon + by.evening || 1, dry = Object.entries(by).sort((a, b) => a[1] - b[1])[0][0];
-    h.push(tile({ label:'Water rhythm', val:litres(avg(wd.map(k => waterTotal(k)))), unit:' L/day',
+    h.push(tile({ go:'fuel#secW', label:'Water rhythm', val:litres(avg(wd.map(k => waterTotal(k)))), unit:' L/day',
       vis:`<span class="kwater">${Object.entries(by).map(([k, v]) => `<i class="${k}" style="width:${(v / tot * 100).toFixed(1)}%" title="${k} ${Math.round(v / tot * 100)}%"></i>`).join('')}</span>`,
       cap:`${dry}s run dry` }));
-  } else h.push(waitTile('Water rhythm', 'after 2 days of water'));
+  } else h.push(waitTile('Water rhythm', 'after 2 days of water', 'fuel#secW'));
   return h.join('');
 }
 const aboutYou = () => `<div class="about kpis">${kpiTraining()}${kpiHabits()}</div>`;
@@ -2723,7 +2754,7 @@ function renderReport(){
   const dl = k => new Date(atDay(k)).toLocaleDateString('en-GB', { weekday:'narrow' });
   h += `<div class="sec"><b>Last 7 days</b><span>${new Date(atDay(days[0])).toLocaleDateString('en-GB', { day:'numeric', month:'short' })} – ${new Date(now).toLocaleDateString('en-GB', { day:'numeric', month:'short' })}</span></div>
     <div class="box g7"><div class="g7g"><span></span>${days.map(k => `<span class="dl ${k === today ? 'now' : ''}">${dl(k)}</span>`).join('')}
-      ${rows.map(([lb, f]) => `<span class="rl">${lb}</span>${days.map(k => f(k).replace('class="c', `class="c${k === today ? ' now' : ''}`)).join('')}`).join('')}</div>
+      ${rows.map(([lb, f]) => `<button class="rl" data-go="${{ Workout:'history#hist', Protein:'fuel#secP', Calories:'fuel#secP', Supplements:'fuel#secS', Water:'fuel#secW' }[lb]}">${lb}</button>${days.map(k => f(k).replace('class="c', `class="c${k === today ? ' now' : ''}`)).join('')}`).join('')}</div>
       <div class="g7l"><span><i class="ok"></i>in range</span><span><i class="under"></i>↓ under · ↑ over</span><span><i class="na"></i>not tracked</span></div></div>`;
 
   // 2. wins: the last 7 days, from the data only — no made-up praise
@@ -2740,7 +2771,7 @@ function renderReport(){
   if(ws) wins.push(['fire', `${ws} week${ws === 1 ? '' : 's'} in a row`, 'with every workout done']);
   const WI = { pr:'<path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8"/>', fire:'<path d="M12 3c2 3 5 5 5 9a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 1-8z"/>' };
   h += `<div class="sec"><b>Wins</b><span>last 7 days</span></div><div class="wins">${wins.length ? wins.slice(0, 8).map(([k, a, b]) =>
-      `<div class="win ${k}"><span class="wi">${svgI(WI[k])}</span><span><b>${a}</b><span class="kc">${b}</span></span></div>`).join('')
+      `<button class="win ${k}" data-go="${k === 'pr' || /week/.test(a) ? 'history#hist' : 'fuel#secP'}"><span class="wi">${svgI(WI[k])}</span><span><b>${a}</b><span class="kc">${b}</span></span></button>`).join('')
     : `<div class="win none"><span class="wi">${svgI(WI.pr)}</span><span><b>No new bests yet</b><span class="kc">${wDone < 3 ? `${3 - wDone} workout${3 - wDone === 1 ? '' : 's'} to go this week — each one is a chance` : 'next time: one more rep or the next weight step'}</span></span></div>`}</div>`;
 
   // 3. a workout against the time before
@@ -2783,7 +2814,7 @@ function renderReport(){
   ALL.forEach(d => PLAN[d].ex.forEach(ex => {
     const last = [ex.name, ...ex.alts].map(n => ({ n, l:lastFor(n) })).filter(o => o.l).sort((a, b) => b.l.at - a.l.at)[0];
     if(last && !listed.has(last.n) && listed.add(last.n) && last.l.sets.length >= ex.sets && last.l.sets.every(t => +t.reps >= topOf(ex, last.n)))
-      next.push(`<div class="nx"><span class="ni">${svgI('<path d="M12 19V5M5 12l7-7 7 7"/>', 2.6)}</span><span><b>${esc(last.n)}</b><span class="kc">${PLAN[d].title}</span></span><b class="nv">${esc(nextLoad(ex, last.n, last.l.sets))}</b></div>`);
+      next.push(`<button class="nx" data-go="${d}"><span class="ni">${svgI('<path d="M12 19V5M5 12l7-7 7 7"/>', 2.6)}</span><span><b>${esc(last.n)}</b><span class="kc">${PLAN[d].title}</span></span><b class="nv">${esc(nextLoad(ex, last.n, last.l.sets))}</b></button>`);
   }));
   h += `<div class="sec"><b>Next time</b></div><div class="box nxt">${next.length ? next.join('')
     : '<p class="small">Nothing to raise yet — keep adding reps until every set reaches the top of its range.</p>'}</div>`;
@@ -2825,7 +2856,9 @@ document.addEventListener('click', e => {
   if(pressed){ pressed = false; return; }
   const t = e.target.closest('button'); if(!t) return;
   buzzFor(t);
-  if(t.dataset.tab){ if(t.dataset.tab !== view){ opened.clear(); noteOpen = false; suppView = null; protEdit = null; protForm = false; pMeal = null; gutEdit = null; logEdit = null; } view = t.dataset.tab; store.set('fb3.view', view); render(); scrollTo(0, 0); return; }
+  if(t.dataset.tab){ goTo(t.dataset.tab); return; }
+  // a tile, ring or row that comes from somewhere opens that place (user, 2026-10-28): "fuel#secW" = Nutrition, Water
+  if(t.dataset.go){ const [v, sec] = t.dataset.go.split('#'); goTo(v, sec); return; }
   if(t.dataset.unfold){ const k = t.dataset.unfold; opened.add(/^\d+$/.test(k) ? +k : k); render(); return; }
   if(t.dataset.fold){ const k = t.dataset.fold; opened.delete(/^\d+$/.test(k) ? +k : k); render(); return; }
   if(t.dataset.rest){ adjustRest(t.dataset.rest); return; }
@@ -3017,6 +3050,11 @@ document.addEventListener('click', e => {
     s[f] = String(Math.round(v * 100) / 100); save(); render(); return;
   }
   if(t.dataset.hmon){ histMonth = Math.max(0, histMonth + +t.dataset.hmon); render(); return; }
+  if(t.dataset.pfstep){
+    const [k, d] = t.dataset.pfstep.split('.'), v = Math.max(0, (parseFloat(profile[k]) || (k === 'age' ? 40 : 175)) + +d);
+    profile = { ...profile, [k]:String(v) }; store.set('fb3.profile', profile); render(); return;
+  }
+  if(t.dataset.pfsex){ profile = { ...profile, sex:profile.sex === t.dataset.pfsex ? '' : t.dataset.pfsex }; store.set('fb3.profile', profile); render(); return; }
   if(t.dataset.bwstep){
     const v = Math.max(0, (parseFloat(bodyweight) || 0) + +t.dataset.bwstep * .5);
     bodyweight = String(Math.round(v * 10) / 10); store.set('fb3.bw', bodyweight); render(); return;
@@ -3160,6 +3198,7 @@ document.addEventListener('input', e => {
   if(t.id === 'notes'){ draft(view, true).notes = t.value; save(); }
   if(t.dataset.le && logEdit){ const [i, j, f] = t.dataset.le.split('.'); logEdit.slots[+i].sets[+j][f] = t.value.replace(',', '.').trim(); }
   if(t.id === 'bw'){ bodyweight = t.value.replace(',', '.').trim(); store.set('fb3.bw', bodyweight); }
+  if(t.dataset.pf){ profile = { ...profile, [t.dataset.pf]:t.value.replace(/[^\d.]/g, '') }; store.set('fb3.profile', profile); }
   if(t.dataset.gnote){ noteDraft[sDay()] = t.value; store.set('fb3.notedraft', noteDraft); }   // kept until Add
 });
 document.addEventListener('change', e => {
