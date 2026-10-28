@@ -253,49 +253,6 @@ button.pline{width:100%;border:0;border-top:1px solid var(--line);background:non
 button.pline:first-child{border-top:0}
 .pline.on{background:var(--input);border-radius:9px}
 .pkeep{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)}.pkeep input{width:auto;margin:0}
-/* report: rings, wins, strength sparklines */
-.rings{display:grid;grid-template-columns:repeat(auto-fit,minmax(64px,1fr));gap:6px;text-align:center}
-.rings.n4 .ring svg{width:64px;height:64px}
-.kind{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600;margin:2px 0 8px}
-/* ranges (user, 2026-10-27): a band to stay inside, not a ring to fill */
-.frow{padding:10px 0 4px;border-top:1px solid var(--line)}.kind+.frow{border-top:0}
-.rhead{display:flex;align-items:baseline;gap:8px;font-size:14px}.rhead .rv{margin-left:auto;font-weight:750;font-variant-numeric:tabular-nums}
-.rbar{position:relative;height:14px;margin:12px 0 4px;border-radius:7px;background:var(--input)}
-.rbar .band{position:absolute;top:0;bottom:0;background:var(--done-bg);border-left:2px solid var(--done);border-right:2px solid var(--done)}
-.rbar .dt{position:absolute;top:-4px;bottom:-4px;width:2px;margin-left:-1px;background:var(--done)}
-.rbar .mk{position:absolute;top:50%;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 2px var(--card)}
-.rbar .mk.ok{background:var(--done)}.rbar .mk.over{background:var(--bad)}
-.rscale{position:relative;height:16px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
-.rscale span{position:absolute;transform:translateX(-50%)}
-.wk{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:6px;text-align:center;font-size:12px}
-.wk div{border-radius:8px;padding:3px 0;background:var(--input);color:var(--muted)}
-.wk b{display:block;font-size:15px}
-.wk .ok{background:var(--done-bg);color:var(--done)}.wk .over{color:var(--bad)}.wk .today{box-shadow:inset 0 0 0 2px var(--line)}
-.wk .later{background:none}
-.ring svg{width:76px;height:76px;display:block;margin:0 auto}
-.ring .tr{fill:none;stroke:var(--input);stroke-width:7}
-.ring .pr{fill:none;stroke:var(--accent);stroke-width:7;stroke-linecap:round}
-.ring.full .pr{stroke:var(--done)}
-.ring .v{font-size:15px;font-weight:750;fill:var(--ink);text-anchor:middle;font-variant-numeric:tabular-nums}
-.ring .lab{font-size:13px;font-weight:600;margin-top:2px}
-.ring .sub{font-size:12px;color:var(--muted)}
-.streak{margin:10px 0 0;font-size:14px}
-.wins{list-style:none;margin:4px 0 0;padding:0}
-.wins li{padding:6px 0;border-top:1px solid var(--line);font-size:14px}
-.wins li:first-child{border-top:0}
-.wins .ic{display:inline-block;width:22px}
-.lift{display:grid;grid-template-columns:1fr 110px 62px;gap:8px;align-items:center;padding:7px 0;border-top:1px solid var(--line)}
-.lift:first-of-type{border-top:0}
-.lift .nm{font-size:14px;font-weight:600}
-.lift .nm .small{display:block;font-weight:400}
-.lift svg{width:110px;height:34px;display:block;overflow:visible}
-.lift .ln{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
-.lift .pt{fill:var(--accent);stroke:var(--card);stroke-width:2}
-.lift .hit{fill:transparent}
-.lift .ch{text-align:right;font-weight:700;font-size:14px;font-variant-numeric:tabular-nums}
-.lift .ch.up{color:var(--done)}
-.lift .ch.flat{color:var(--muted)}
-.lift .ch .small{display:block;font-weight:400}
 #toast{position:fixed;left:50%;top:70px;transform:translateX(-50%);background:var(--ink);color:var(--bg);
   padding:8px 14px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20}
 #toast.show{opacity:1}
@@ -524,6 +481,118 @@ input,select,textarea{color-scheme:dark}
 .lft .ln b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lft .lc{text-align:right;font-weight:800;font-variant-numeric:tabular-nums;color:var(--soft)}.lft .lc.up{color:var(--done)}
 .sec .link{border:0;background:none;color:#7FB0FF;padding:0}
+
+/* History: a month calendar, workouts as cards that open */
+.cal{padding:16px}
+.calh{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.calh b{font-size:17px;font-weight:750}
+.chips2{display:flex;gap:6px;margin-left:auto}.chips2 span{font-size:12px;font-weight:700;padding:5px 9px;border-radius:999px;background:#1E2A45;color:#B7CCFF}
+.calnav{width:36px;height:36px;border:0;border-radius:10px;background:var(--chip);color:var(--soft);font-size:18px}.calnav:disabled{opacity:.3}
+.calg{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;text-align:center}
+.cw{font-size:11px;font-weight:750;color:#6E7684}
+.cd{height:34px;display:grid;place-items:center;font-size:13px;color:#7B8391;border-radius:10px}
+.cd.on{background:var(--accent);color:#fff;font-weight:800}
+.cd.today{box-shadow:inset 0 0 0 2px var(--ink);color:var(--ink);font-weight:800}
+.cd.later{color:#3A414D}
+.hcard{background:var(--card);border-radius:20px;margin:8px 0;overflow:hidden}
+.hcard[open],.hcard.on{box-shadow:inset 0 0 0 1.5px var(--accent)}
+.hsum{display:flex;align-items:center;gap:12px;padding:12px 14px;list-style:none;cursor:pointer}
+.hsum::-webkit-details-marker{display:none}
+.db{width:48px;height:48px;border-radius:14px;background:var(--chip);display:flex;flex-direction:column;align-items:center;justify-content:center;flex:none}
+.db span{font-size:10px;font-weight:800;color:var(--muted)}.db b{font-size:18px;line-height:1}
+.hcard[open] .db{background:#1E2A45}.hcard[open] .db span{color:#7FB0FF}
+.ht{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}.ht b{font-size:16px}
+.chev{width:18px;height:18px;color:#6E7684;flex:none;transition:transform .15s}
+details[open]>summary .chev{transform:rotate(90deg)}
+.hbody{padding:0 14px 14px;display:flex;flex-direction:column;gap:10px}
+.hx{display:flex;flex-direction:column;gap:5px}.hx b{font-size:14px}
+.hsets{display:flex;gap:5px;flex-wrap:wrap}
+.hsets span{font-size:12px;font-weight:700;padding:5px 8px;border-radius:8px;background:var(--chip)}
+.hsets .top{background:var(--done-bg);color:var(--done)}
+.hacts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.hacts .btn{min-height:44px;font-size:14px;border-radius:12px}
+.btn.bad{background:#2A1C1C;color:var(--bad)}
+.hcard .ledit{padding:0 14px 14px}
+/* Settings: grouped lists */
+.sgt{display:flex;justify-content:space-between;align-items:baseline;margin:22px 4px 8px;font-size:12px;font-weight:750;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+.sgt .link{font-size:13px;letter-spacing:0;text-transform:none;font-weight:700;color:#7FB0FF}
+.sgroup{padding:0 16px}
+.srow{display:block;border-top:1px solid var(--line)}.srow:first-child{border-top:0}
+.srow>summary,.srow.flat{display:flex;align-items:center;gap:12px;min-height:60px;list-style:none;cursor:pointer}
+.srow>summary::-webkit-details-marker{display:none}
+.srow .sl{flex:1;display:flex;flex-direction:column;font-size:16px;font-weight:650;min-width:0}
+.srow .sv{font-size:15px;color:#C9CED6;font-weight:650;text-align:right;min-width:0;max-width:52%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.srow .sl{flex:1 0 auto;max-width:60%}.srow .sv.ok{color:var(--done)}
+.sic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none;font-size:13px;font-weight:800}
+.sic svg{width:18px;height:18px}
+.sic.blue{background:#1E2A45;color:#7FB0FF}.sic.green{background:var(--done-bg);color:var(--done)}.sic.amber{background:var(--hint-bg);color:var(--hint)}
+.sic.violet{background:#2A2333;color:var(--fat)}.sic.water{background:var(--water-bg);color:var(--water)}
+.stime{width:44px;flex:none;font-size:14px;font-weight:800;color:var(--hint);font-variant-numeric:tabular-nums}
+.sbody{padding:0 0 14px;display:flex;flex-direction:column;gap:10px}
+.sbody .btn{min-height:46px;font-size:15px}
+.sbody .tgrid label{color:var(--muted)}
+.sbody input,.supped input,.sdose{display:block;width:100%;margin-top:4px;border:0;background:var(--input);border-radius:12px;padding:12px;font-size:16px;color:var(--ink)}
+.supped{display:grid;grid-template-columns:minmax(0,1fr) 100px;gap:8px}.supped input{margin:0}
+.sdays{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.sdays .chip{justify-content:center;min-height:38px;border:0;border-radius:10px;background:var(--chip);color:var(--muted);font-weight:800;padding:0}
+.sdays .chip[aria-pressed="true"]{background:var(--accent);color:#fff}
+.srow.act{display:block;width:100%;min-height:52px;border:0;border-top:1px solid var(--line);background:none;color:var(--ink);font-size:15px;font-weight:650;text-align:left;padding:0}
+.srow.act.bad{color:var(--bad)}.srow.act.blue{color:#7FB0FF}
+.stp.small2{height:40px;border-radius:12px;flex:none}.stp.small2 input{height:40px;width:52px;font-size:16px}.stp.small2 .sb{height:40px}
+.switch{position:relative;width:52px;height:32px;border:0;border-radius:16px;background:#39414E;flex:none;padding:0}
+.switch i{position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:13px;background:#fff;transition:left .15s}
+.switch.on{background:var(--done)}.switch.on i{left:23px}
+.sdot2{width:10px;height:10px;border-radius:5px;background:var(--done);flex:none}.sdot2.wait{background:var(--hint)}.sdot2.off{background:#39414E}
+.spad{padding:0 0 12px;margin:0}
+
+/* Report: a 7-day grid, wins as cards, workout badges, next weights, sets per muscle */
+.rtop{display:flex;justify-content:flex-end;margin:4px 0 -14px}
+.chipbtn{display:flex;align-items:center;gap:6px;min-height:40px;padding:0 14px;border:0;border-radius:12px;background:var(--card);color:#C9CED6;font-size:14px;font-weight:700}
+.chipbtn svg{width:16px;height:16px}
+.g7{padding:14px 12px 10px}
+.g7g{display:grid;grid-template-columns:94px repeat(7,minmax(0,1fr));gap:5px;align-items:center}
+.g7g .dl{font-size:11px;font-weight:750;color:var(--muted);text-align:center}.g7g .dl.now{color:var(--ink)}
+.g7g .rl{font-size:13px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c{height:30px;border-radius:8px;background:#1A1F27;display:grid;place-items:center;font-size:11px;font-weight:800;color:var(--ink);min-width:0;overflow:hidden}
+.c svg{width:14px;height:14px}
+.c.now{box-shadow:inset 0 0 0 2px #39414E}
+.c.ok{background:var(--done);color:var(--done-ink)}
+.c.under,.c.over{background:var(--hint-bg);color:var(--hint);font-size:14px}
+.c.wk{background:var(--accent);color:#fff}
+.c.sp{background:rgba(245,165,36,var(--f));color:#1B1408}.c.sp.full{background:var(--done);color:var(--done-ink)}
+.c.wa{background:rgba(79,179,255,var(--f));color:#0E1116;font-size:10px}.c.wa.full{background:#4FB3FF}
+.g7l{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;font-size:11px;color:var(--muted)}
+.g7l span{display:flex;align-items:center;gap:5px}.g7l i{width:10px;height:10px;border-radius:3px;background:#1A1F27}
+.g7l .ok{background:var(--done)}.g7l .under{background:var(--hint)}.g7l .na{outline:1px solid #2B3340}
+.wins{display:flex;flex-direction:column;gap:8px}
+.win{display:flex;align-items:center;gap:12px;border-radius:18px;background:var(--card);padding:14px}
+.win.pr{background:linear-gradient(135deg,#1C3A2A,#17261F)}
+.win>span:last-child{display:flex;flex-direction:column;min-width:0}.win b{font-size:16px}
+.win .wi{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none;background:var(--hint-bg);color:var(--hint)}
+.win.pr .wi{background:var(--done);color:var(--done-ink)}.win.none .wi{background:var(--chip);color:var(--muted)}
+.win .wi svg{width:22px;height:22px}
+.win.pr .kc{color:#7FCFA2}
+.chipsel{border:0;border-radius:10px;background:var(--card);color:var(--ink);font-weight:700;font-size:13px;padding:9px 10px;max-width:60%}
+.rwk{padding:14px}
+.rwt{font-size:13px;font-weight:700;color:var(--soft);margin-bottom:10px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:6px}
+.stats div{border-radius:14px;background:#1A1F27;padding:10px 8px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.stats b{font-size:20px;font-weight:800}.stats small{font-size:12px;color:var(--muted)}.stats span{font-size:11px;color:var(--muted)}
+.rx2{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+.rx2>span:first-child{flex:1;display:flex;flex-direction:column;min-width:0}.rx2 b{font-size:15px}
+.down{color:var(--bad)}
+.bdg{flex:none;font-size:12px;font-weight:800;padding:4px 8px;border-radius:999px;background:var(--chip);color:#C9CED6}
+.bdg.best{background:var(--done);color:var(--done-ink)}.bdg.up{background:var(--done-bg);color:var(--done)}.bdg.dn{background:#2A1C1C;color:var(--bad)}
+.nxt{padding:4px 14px}
+.nx{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--line)}.nx:first-child{border-top:0}
+.nx>span:nth-child(2){flex:1;display:flex;flex-direction:column;min-width:0}
+.nx .ni{width:34px;height:34px;border-radius:11px;background:#1E2A45;color:#7FB0FF;display:grid;place-items:center;flex:none}.nx .ni svg{width:18px;height:18px}
+.nx .nv{font-size:15px;font-weight:800;text-align:right;max-width:45%}
+.lgd{display:flex;align-items:center;gap:6px;font-size:11px}.lgd i{width:10px;height:10px;border-radius:3px}.lgd .a{background:var(--accent)}.lgd .b{background:#2B3A59;margin-left:6px}
+.mus{padding:14px;display:flex;flex-direction:column;gap:10px}
+.mr{display:grid;grid-template-columns:110px 1fr 26px;gap:8px;align-items:center;font-size:13px;font-weight:650}
+.mr>b{text-align:right;font-weight:800}
+.mb{display:flex;flex-direction:column;gap:3px}.mb i{height:7px;border-radius:4px;min-width:3px}.mb .a{background:var(--accent)}.mb .b{background:#2B3A59}
 
 /* Train: folded rows, the open exercise, big set rows with − / + */
 #bar:not(.show){visibility:hidden}
@@ -2276,65 +2345,116 @@ function gutCard(day, isToday){
 
 function reminderBox(){
   const st = pushState();
-  return `<div class="box card"><h3>Reminders <span class="st ${st === 'on' ? 'ok' : ''}">${{ on:'on ✓', off:'off', blocked:'blocked', unsupported:'' }[st]}</span></h3>
-    <p class="small">💊 supplements at their reminder times, again every 30 min until ticked (last call after 2 h) ·
-      🥩 protein at 19:00 if below the target, again hourly (last call 22:00) · 💩 gut at 20:00 if nothing is logged,
-      again hourly (last call 23:00) · 📋 07:30 what was missed yesterday. Each stops as soon as it's done; a repeat
-      replaces the last one. Times on :00 or :30 come on time. Tap one to open Nutrition.</p>
-    ${st === 'unsupported' ? '<p class="small">This browser can’t get notifications here. Open the installed app (home screen icon) instead.</p>'
-      : st === 'blocked' ? '<p class="small">Notifications are blocked for this app: phone Settings → Apps → this app → Notifications → allow, then come back.</p>' : ''}
-    <div class="actions">${st === 'off' ? '<button class="btn" data-act="pushon">Turn on reminders</button>'
-      : st === 'on' ? '<button class="btn ghost" data-act="pushtest">Test on this phone</button><button class="btn ghost" data-act="pushoff">Turn off</button>' : ''}</div></div>`;
+  return sgroup('Reminders', `<div class="srow flat"><span class="sl">Notifications<span class="kc">supplements · protein 19:00 · gut at 20:00</span></span>
+      ${st === 'on' ? '<span class="sv ok">on ✓</span><button class="switch on" data-act="pushoff" aria-label="Turn off reminders"><i></i></button>'
+        : st === 'off' ? '<button class="switch" data-act="pushon" aria-label="Turn on reminders"><i></i></button>' : `<span class="sv">${st === 'blocked' ? 'blocked' : ''}</span>`}</div>
+    ${st === 'on' ? '<button class="srow act blue" data-act="pushtest">Send a test</button>' : ''}
+    ${st === 'unsupported' ? '<p class="small spad">This browser can’t get notifications here. Open the installed app (home screen icon) instead.</p>'
+      : st === 'blocked' ? '<p class="small spad">Notifications are blocked for this app: phone Settings → Apps → this app → Notifications → allow, then come back.</p>' : ''}
+    <p class="small spad">Supplements repeat every 30 min until ticked; 07:30 says what was missed. Each stops once done. Times on :00 or :30 come on time.</p>`);
 }
 
-function renderSettings(){
+// Rows that open (History cards, Settings rows) stay open across re-renders: each <details data-k> is remembered.
+const detOpen = new Set();
+document.addEventListener('toggle', e => { const d = e.target; if(d.dataset && d.dataset.k) d.open ? detOpen.add(d.dataset.k) : detOpen.delete(d.dataset.k); }, true);
+const detK = (k, open = false) => `data-k="${k}"${open || detOpen.has(k) ? ' open' : ''}`;
+const CHEV = '<svg class="chev" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>';
+
+// ---------- History (look: the approved canvas, round 2, 2026-10-28) ----------
+// The month as a calendar (workout days in blue), then every workout as a card: tap to see its sets as
+// chips (the best one green), Edit sets and Delete.
+let histMonth = 0;                                      // months back from this one
+function renderHistory(){
+  const now = new Date(), m = new Date(now.getFullYear(), now.getMonth() - histMonth, 1), y = m.getFullYear(), mo = m.getMonth();
+  const inMonth = history.filter(s => { const d = new Date(s.startedAt); return d.getFullYear() === y && d.getMonth() === mo; });
+  const hours = inMonth.reduce((n, s) => n + (s.finishedAt && s.startedAt ? (s.finishedAt - s.startedAt) / 36e5 : 0), 0);
+  const on = new Set(inMonth.map(s => new Date(s.startedAt).getDate())), lead = (m.getDay() + 6) % 7, nDays = new Date(y, mo + 1, 0).getDate();
+  const isNow = histMonth === 0, today = now.getDate();
   let h = `<p class="small">${syncText()}</p>
-    <div class="box gh"><h3>Body weight</h3>
-      <label>kg — used for assisted pull-ups (you lift body weight − assist), body-weight exercises and the report
-        <input id="bw" inputmode="decimal" value="${esc(bodyweight)}" placeholder="kg"></label></div>`;
-  h += `<details class="sess" ${ghReady() ? '' : 'open'}><summary>GitHub ${ghReady() ? '<span>· connected</span>' : '<span>· not set up</span>'}</summary>
-    <p class="small">Finished workouts are saved as files in <b>data/workouts/</b> of your repo. Use a fine-grained token
-      limited to that one repo, with <b>Contents: read and write</b> and an expiry date. It stays in this browser only.</p>
-    <div class="gh">
-      <label>Repo <input id="ghRepo" value="${esc(gh.repo)}" autocapitalize="off" spellcheck="false"></label>
-      <label>Branch <input id="ghBranch" value="${esc(gh.branch)}" autocapitalize="off" spellcheck="false"></label>
-      <label>Token <input id="ghToken" type="password" placeholder="${gh.token ? 'saved — leave empty to keep' : 'github_pat_…'}" autocomplete="off"></label>
-    </div>
-    <div class="actions"><button class="btn" data-act="ghsave">Save</button>
-      <button class="btn ghost" data-act="ghpull">Load from GitHub</button>
-      ${gh.token ? '<button class="btn ghost" data-act="ghforget">Forget token</button>' : ''}</div></details>
-    <div class="box gh"><h3>Food</h3>
-      <p class="small">Daily targets. Protein counts as done at "done at"; kcal is a range; fat is a minimum.</p>
-      <div class="tgrid">
-        <label>🥩 protein from, g <input id="pMin" inputmode="numeric" value="${esc(prot && prot.range ? prot.range[0] : '')}"></label>
-        <label>to, g <input id="pMax" inputmode="numeric" value="${esc(prot && prot.range ? prot.range[1] : '')}"></label>
-        <label>done at, g <input id="pTarget" inputmode="numeric" value="${esc(prot && prot.target || '')}" placeholder="g"></label>
-        <label>🔥 kcal from <input id="kMin" inputmode="numeric" value="${esc(prot && prot.kcal ? prot.kcal[0] : '')}"></label>
-        <label>to <input id="kMax" inputmode="numeric" value="${esc(prot && prot.kcal ? prot.kcal[1] : '')}"></label>
-        <label>🧈 fat at least, g <input id="fMin" inputmode="numeric" value="${esc(prot && prot.fat || '')}"></label>
-        <label class="full">💧 water a day, ml <input id="wTarget" inputmode="numeric" value="${esc(prot && prot.water || '')}"></label>
-        ${cups().map((c, i) => `<label>drink ${i + 1} <input data-cupn="${i}" value="${esc(c.n)}" aria-label="Drink ${i + 1} name"></label>`).join('')}
-        ${cups().map((c, i) => `<label>ml <input data-cupml="${i}" inputmode="numeric" value="${esc(c.ml)}" aria-label="Drink ${i + 1} ml"></label>`).join('')}
-        <label class="full">Celebrate a streak of … days at the protein target <input id="pStreak" inputmode="numeric" value="${esc(streakGoal())}" placeholder="7"></label></div>
-      <div class="actions"><button class="btn ghost" data-act="ptarget">Save</button></div>
-      <h3 style="margin-top:14px">My meals</h3>
-      ${meals().length ? meals().map((m, i) => `<div class="nline"><span class="nt">☆ ${esc(m.name)}<span class="small"> · ${esc(m.src)}${
+    <div class="box cal"><div class="calh"><button class="calnav" data-hmon="1" aria-label="Month before">‹</button>
+      <b>${m.toLocaleDateString('en-GB', { month:'long', year:y === now.getFullYear() ? undefined : 'numeric' })}</b>
+      <span class="chips2"><span>${inMonth.length} workout${inMonth.length === 1 ? '' : 's'}</span>${hours ? `<span>${hours < 10 ? f1(hours) : Math.round(hours)} h</span>` : ''}</span>
+      <button class="calnav" data-hmon="-1" aria-label="Next month" ${isNow ? 'disabled' : ''}>›</button></div>
+      <div class="calg">${WEEK.map(w => `<span class="cw">${w}</span>`).join('')}${'<span></span>'.repeat(lead)}${Array.from({ length:nDays }, (_, i) => i + 1).map(d =>
+        `<span class="cd ${on.has(d) ? 'on' : ''} ${isNow && d === today ? 'today' : ''} ${isNow && d > today ? 'later' : ''}">${d}</span>`).join('')}</div></div>`;
+  h += `<div class="sec"><b>Workouts</b><span>${history.length} in all</span></div>`;
+  if(!history.length) h += `<p class="empty">No finished workouts yet.</p>`;
+  [...history].reverse().forEach(s => {
+    const p = PLAN[s.day], d = new Date(s.startedAt);
+    const sets = s.slots.reduce((n, x) => n + x.sets.filter(t => t.done).length, 0);
+    const mins = s.finishedAt && s.startedAt ? Math.round((s.finishedAt - s.startedAt) / 60000) : null;
+    const dblock = `<span class="db"><span>${d.toLocaleDateString('en-GB', { weekday:'short' }).toUpperCase()}</span><b>${d.getDate()}</b></span>`;
+    const title = `<span class="ht"><b>${p ? p.title : esc(s.day)}</b><span class="kc">${[mins ? `${mins} min` : '', `${sets} sets`, d.getMonth() !== mo || d.getFullYear() !== y ? dateTxt(s.startedAt) : ''].filter(Boolean).join(' · ')}</span></span>`;
+    if(logEdit && logEdit.id === s.id){ h += `<div class="box hcard on"><div class="hsum">${dblock}${title}<span class="bdg">changing</span></div>${editBox(s)}</div>`; return; }
+    // personal records: a best set above every earlier session of that exercise
+    const prs = s.slots.filter(x => { const t = x.sets.filter(q => q.done); if(!t.length) return false;
+      const before = history.filter(o => o.startedAt < s.startedAt).flatMap(o => o.slots.filter(z => z.name === x.name).flatMap(z => z.sets.filter(q => q.done).map(q => score(q, x.name, o.bw))));
+      return before.length && score(best(t, x.name, s.bw), x.name, s.bw) > Math.max(...before) * 1.005; }).length;
+    h += `<details class="hcard" ${detK('h:' + s.id)}><summary class="hsum">${dblock}${title}${prs ? `<span class="bdg best">${prs} PR</span>` : ''}${CHEV}</summary>
+      <div class="hbody">${s.slots.filter(x => x.sets.some(t => t.done)).map(x => {
+        const ex = p && p.ex.find(e => e.name === x.name || e.alts.includes(x.name)), done = x.sets.filter(t => t.done), b = best(done, x.name, s.bw);
+        return `<div class="hx"><b>${esc(x.name)}</b><span class="hsets">${done.map(t => `<span class="${t === b ? 'top' : ''}">${esc(setTxt(t, ex, x.name, s.bw))}</span>`).join('')}</span></div>`;
+      }).join('')}
+      ${s.notes ? `<p class="small">${esc(s.notes)}</p>` : ''}
+      <div class="hacts"><button class="btn ghost" data-editsess="${s.id}">Edit sets</button><button class="btn bad" data-delsess="${s.id}">Delete</button></div></div></details>`;
+  });
+  $main.innerHTML = h;
+}
+
+// ---------- Settings (look: the approved canvas, round 2, 2026-10-28) ----------
+// Grouped lists like the phone's own settings: a row says what is set; tap it to change it there.
+const srow = (k, icon, label, value, body, open = false) => `<details class="srow" ${detK(k, open)}><summary>${icon}<span class="sl">${label}</span><span class="sv">${value}</span>${CHEV}</summary><div class="sbody">${body}</div></details>`;
+const sic = (cls, inner) => `<span class="sic ${cls}">${inner}</span>`;
+const sgroup = (title, rows, extra = '') => `<div class="sgt"><span>${title}</span>${extra}</div><div class="box sgroup">${rows}</div>`;
+function renderSettings(){
+  const P = prot || {}, fmt = n => (+n).toLocaleString('en');
+  let h = `<p class="small">${syncText()}</p>`;
+  h += sgroup('You', `<div class="srow flat"><span class="sic blue">${svgI('<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M9 10a3 3 0 0 1 6 0M12 10l1.5-2"/>')}</span>
+      <span class="sl">Body weight<span class="kc">for pull-ups and body-weight sets</span></span>
+      <span class="stp small2"><button class="sb" data-bwstep="-1" aria-label="Less body weight">−</button><input id="bw" inputmode="decimal" value="${esc(bodyweight)}" placeholder="kg" aria-label="Body weight, kg"><button class="sb" data-bwstep="1" aria-label="More body weight">+</button></span></div>`);
+  h += sgroup('Daily targets',
+    srow('t:p', sic('green', 'P'), 'Protein', P.target ? `done at ${P.target} g` : 'not set', `<p class="small">Counts as done at "done at"; fine up to "to".</p>
+      <div class="tgrid"><label>from, g <input id="pMin" inputmode="numeric" value="${esc(P.range ? P.range[0] : '')}"></label>
+        <label>to, g <input id="pMax" inputmode="numeric" value="${esc(P.range ? P.range[1] : '')}"></label>
+        <label>done at, g <input id="pTarget" inputmode="numeric" value="${esc(P.target || '')}" placeholder="g"></label>
+        <label class="full">Celebrate a streak of … days <input id="pStreak" inputmode="numeric" value="${esc(streakGoal())}" placeholder="7"></label></div>
+      <button class="btn" data-act="ptarget">Save</button>`)
+    + srow('t:k', sic('amber', 'K'), 'Calories', P.kcal ? `${fmt(P.kcal[0])}–${fmt(P.kcal[1])}` : 'not set', `<div class="tgrid">
+        <label>from <input id="kMin" inputmode="numeric" value="${esc(P.kcal ? P.kcal[0] : '')}"></label><label>to <input id="kMax" inputmode="numeric" value="${esc(P.kcal ? P.kcal[1] : '')}"></label></div>
+      <button class="btn" data-act="ptarget">Save</button>`)
+    + srow('t:f', sic('violet', 'F'), 'Fat', P.fat ? `at least ${P.fat} g` : 'not set', `<div class="tgrid"><label class="full">at least, g <input id="fMin" inputmode="numeric" value="${esc(P.fat || '')}"></label></div>
+      <button class="btn" data-act="ptarget">Save</button>`)
+    + srow('t:w', sic('water', svgI('<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>')), 'Water', P.water ? `${litres(P.water)} L` : 'not set', `<div class="tgrid">
+        <label class="full">a day, ml <input id="wTarget" inputmode="numeric" value="${esc(P.water || '')}"></label></div>
+      <button class="btn" data-act="ptarget">Save</button>`));
+  h += sgroup('Food', srow('t:c', sic('water', svgI('<path d="M7 3h10l-1.5 17a1.5 1.5 0 0 1-1.5 1.4h-4.6A1.5 1.5 0 0 1 8 20z"/>')), 'Drink buttons', esc(cups().map(c => `${c.n} ${c.ml}`).join(' · ')),
+      `<div class="tgrid">${cups().map((c, i) => `<label>drink ${i + 1} <input data-cupn="${i}" value="${esc(c.n)}" aria-label="Drink ${i + 1} name"></label><label>ml <input data-cupml="${i}" inputmode="numeric" value="${esc(c.ml)}" aria-label="Drink ${i + 1} ml"></label><span></span>`).join('')}</div>
+      <button class="btn" data-act="ptarget">Save</button>`)
+    + srow('t:m', sic('green', '☆'), 'My meals', `${meals().length}`, meals().length ? meals().map((m, i) => `<div class="nline"><span class="nt">☆ ${esc(m.name)}<span class="small"> · ${esc(m.src)}${
         [m.g != null ? `${m.g} g protein` : '', m.kcal != null ? `${m.kcal} kcal` : '', m.fat != null ? `${m.fat} g fat` : ''].filter(Boolean).map(x => ' · ' + x).join('')}</span></span>
         <button class="link x" data-mdel="${i}" aria-label="Remove ${esc(m.name)} from My meals">✕</button></div>`).join('')
-      : '<p class="small">None yet. In Daily → Food → + Meal or snack…, tick ☆ Keep in My meals.</p>'}</div>
-    ${supp ? `<details class="sess" id="suppEdit"><summary>Supplements <span>· ${supp.items.length} on the list</span></summary>
-      <p class="small">Each one has its own reminder time and days (no time = no reminder, tick it whenever).
-        Those due at the same time come in one notification. Doses stay until you change them here.</p>
-      ${supp.items.map((x, n) => `<div class="box"><div class="supped"><input data-sname="${n}" value="${esc(x.name)}" aria-label="Name" placeholder="Name">
-          <input data-sdose="${n}" value="${esc(x.dose)}" aria-label="Dose" placeholder="Dose"><button class="x" data-sdel="${n}" aria-label="Remove ${esc(x.name)}">×</button></div>
-        <label class="small">Reminder <input class="slotTime" type="time" data-stime="${n}" value="${esc(x.time || '')}" style="width:auto"> ${x.time ? '' : '(none)'}</label>
-        <div class="sdays">${WEEK.map((w, d) => `<button class="chip" data-sday="${n}.${d + 1}" aria-pressed="${(x.days || []).includes(d + 1)}" aria-label="${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d]}">${w}</button>`).join('')}</div></div>`).join('')}
-      <button class="link" data-sadd="1">+ add a supplement</button>
-      <div class="actions"><button class="btn" data-act="suppsave">Save supplements</button></div></details>` : ''}
-    ${reminderBox()}
-    <div class="box"><h3>Backup</h3><p class="small">Export a backup now and then — it can be imported into the app later.</p>
-      <div class="actions"><button class="btn ghost" data-act="backup">Backup</button>
-      <button class="btn ghost" data-act="restore">Restore</button></div></div>`;
+      : '<p class="small">None yet. In Nutrition → + Meal, tick ☆ Keep in My meals.</p>'));
+  if(supp) h += `<div id="suppEdit">` + sgroup('Supplements', supp.items.map((x, n) => srow('s:' + n,
+      `<span class="stime">${x.time || 'Any'}</span>`, `${esc(x.name || 'New supplement')}<span class="kc">${esc(x.dose || '')}${(x.days || []).length === 7 ? ' · every day' : ` · ${(x.days || []).map(d => ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d - 1]).join(', ') || 'no day'}`}</span>`, '',
+      `<div class="supped"><input data-sname="${n}" value="${esc(x.name)}" aria-label="Name" placeholder="Name"><input class="slotTime" type="time" data-stime="${n}" value="${esc(x.time || '')}" aria-label="Reminder time"></div>
+       <input class="sdose" data-sdose="${n}" value="${esc(x.dose)}" aria-label="Dose" placeholder="Dose">
+       <div class="sdays">${WEEK.map((w, d) => `<button class="chip" data-sday="${n}.${d + 1}" aria-pressed="${(x.days || []).includes(d + 1)}" aria-label="${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d]}">${w}</button>`).join('')}</div>
+       <p class="small">No time = no reminder, tick it whenever. Those due at the same time come in one notification.</p>
+       <div class="hacts"><button class="btn bad" data-sdel="${n}" aria-label="Remove ${esc(x.name)}">Remove</button><button class="btn" data-act="suppsave">Save</button></div>`)).join(''),
+    '<button class="link" data-sadd="1">+ Add</button>') + `</div>`;
+  h += reminderBox();
+  h += sgroup('Sync &amp; backup',
+    srow('gh', `<span class="sdot2 ${ghReady() ? (syncError ? 'wait' : '') : 'off'}"></span>`, `GitHub<span class="kc">${esc(gh.repo)} · ${esc(gh.branch)} · ${ghReady() ? 'connected' : 'not set up'}</span>`, '',
+      `<p class="small">Workouts and daily logs are saved as files in your private repo. Use a fine-grained token limited to that one repo,
+        with <b>Contents: read and write</b> and an expiry date. It stays in this browser only.</p>
+      <div class="gh"><label>Repo <input id="ghRepo" value="${esc(gh.repo)}" autocapitalize="off" spellcheck="false"></label>
+        <label>Branch <input id="ghBranch" value="${esc(gh.branch)}" autocapitalize="off" spellcheck="false"></label>
+        <label>Token <input id="ghToken" type="password" placeholder="${gh.token ? 'saved — leave empty to keep' : 'github_pat_…'}" autocomplete="off"></label></div>
+      <button class="btn" data-act="ghsave">Save</button>`, !ghReady())
+    + `<button class="srow act" data-act="ghpull">Load from GitHub</button>
+      <button class="srow act" data-act="backup">Export a backup</button>
+      <button class="srow act" data-act="restore">Restore a backup</button>
+      ${gh.token ? '<button class="srow act bad" data-act="ghforget">Forget the token on this phone</button>' : ''}`);
   $main.innerHTML = h;
 }
 
@@ -2350,163 +2470,6 @@ function editBox(s){
       <button class="link x" data-lrm="${i}.${j}" aria-label="Remove set ${j + 1} of ${esc(x.name)}">✕</button></div>`).join('')}
     ${x.sets.length ? `<button class="link" data-ladd="${i}">+ set</button>` : '<span class="small">no sets left</span>'}</div>`).join('')}
     <div class="actions"><button class="btn ghost" data-act="lcancel">Cancel</button><button class="btn" data-act="lsave">Save changes</button></div></div>`;
-}
-function renderHistory(){
-  let h = `<p class="small">${syncText()}</p>`;
-  if(!history.length) h += `<p class="empty">No finished workouts yet.</p>`;
-  [...history].reverse().forEach(s => {
-    if(logEdit && logEdit.id === s.id){
-      h += `<details class="sess" open><summary>${dateTxt(s.startedAt)} · ${PLAN[s.day] ? PLAN[s.day].title : s.day} <span>· changing</span></summary>${editBox(s)}</details>`;
-      return;
-    }
-    const p = PLAN[s.day];
-    const sets = s.slots.reduce((n, x) => n + x.sets.filter(t => t.done).length, 0);
-    const mins = s.finishedAt && s.startedAt ? Math.round((s.finishedAt - s.startedAt) / 60000) : null;
-    h += `<details class="sess"><summary>${dateTxt(s.startedAt)} · ${p ? p.title : s.day} <span>· ${sets} sets${mins ? ` · ${mins} min` : ''}</span></summary><ul>
-      ${s.slots.filter(x => x.sets.some(t => t.done)).map(x => {
-        const ex = p && p.ex.find(e => e.name === x.name || e.alts.includes(x.name));
-        return `<li><b>${esc(x.name)}</b>: ${x.sets.filter(t => t.done).map(t => esc(setTxt(t, ex, x.name, s.bw))).join(' · ')}</li>`;
-      }).join('')}</ul>
-      ${s.notes ? `<p class="small">${esc(s.notes)}</p>` : ''}
-      <p class="lacts"><button class="link" data-editsess="${s.id}">✎ Edit</button><button class="link" data-delsess="${s.id}">Delete this workout</button></p></details>`;
-  });
-  $main.innerHTML = h;
-}
-
-// ---------- Report, top part (user, 2026-10-25): how you're doing, what improved, what's next ----------
-// Consistency first (two weeks of history: showing up is what counts now), then wins, then strength.
-const ringSvg = (frac, txt) => { const r = 30, c = 2 * Math.PI * r, f = Math.max(0, Math.min(1, frac));
-  return `<svg viewBox="0 0 76 76" aria-hidden="true"><circle class="tr" cx="38" cy="38" r="${r}"/>
-    ${f > 0 ? `<circle class="pr" cx="38" cy="38" r="${r}" stroke-dasharray="${(c * f).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 38 38)"/>` : ''}
-    <text class="v" x="38" y="43">${txt}</text></svg>`; };
-// supplements this week: ticks / what was scheduled (today only what is due or already taken)
-// the first day anything was logged — days before it are "not tracked yet", never "missed"
-const firstDay = log => Object.keys(log).filter(k => Object.keys(log[k] || {}).length).sort()[0] || dayKey();
-function suppWeek(){
-  if(!supp) return null;
-  let due = 0, got = 0, now = Date.now(), from = firstDay(suppLog);
-  for(let d = weekStart(now); dayKey(d) <= dayKey(now); d = addDays(d, 1)){
-    const k = dayKey(d), isToday = k === dayKey(now);
-    if(k < from) continue;
-    supp.items.filter(x => !x.optional && (x.days || []).includes(isoDay(d)))
-      .filter(x => !isToday || taken(k, x.id) || itemDue(x, now))
-      .forEach(x => { due++; if(taken(k, x.id)) got++; });
-  }
-  return due ? { due, got } : null;
-}
-// weeks in a row with all 3 workouts (a home workout counts), not counting a week still under way
-function workoutStreak(){
-  let n = 0, w = weekStart(Date.now());
-  const count = w => history.filter(s => s.startedAt >= w && s.startedAt < addDays(w, 7)).length;
-  if(count(w) < 3) w = addDays(w, -7);
-  while(count(w) >= 3){ n++; w = addDays(w, -7); }
-  return n;
-}
-// main lifts: exercises done in at least 2 sessions, most sessions first; best set per session
-function strengthLines(){
-  const by = {};
-  history.forEach(s => s.slots.forEach(x => {
-    const sets = x.sets.filter(t => t.done && t.reps !== '');
-    if(!sets.length || bwOf(x.name) === 'only') return;
-    const b = best(sets, x.name, s.bw);
-    (by[x.name] = by[x.name] || []).push({ at:s.startedAt, set:b, sc:score(b, x.name, s.bw), bw:s.bw });
-  }));
-  return Object.entries(by).filter(([, v]) => v.length >= 2).sort((a, b) => b[1].length - a[1].length || b[1].at - a[1].at).slice(0, 6);
-}
-// A range: a band to stay inside (green), "done at" as a tick, today as a dot, then the week as
-// one cell per day: ✓ in range · ↓ under · ↑ over (symbols, so it never relies on colour alone).
-function rangeRow({ icon, name, unit, lo, hi, done, value, approx, dayVal, from }){
-  const fmt = n => n.toLocaleString('en'), now = Date.now(), wk = weekStart(now);
-  const okAt = done || lo, state = v => v > hi ? 'over' : v >= okAt ? 'ok' : 'under';
-  const min = Math.max(0, Math.floor(lo * 0.6)), max = Math.ceil(hi * 1.2), pos = v => Math.max(0, Math.min(100, (v - min) / (max - min) * 100));
-  const st = state(value), word = { ok:'✓ in range', under:`↓ ${fmt(okAt - value)} ${unit} to go`, over:`↑ ${fmt(value - hi)} ${unit} over` }[st];
-  let cells = '', inR = 0, n = 0;
-  for(let i = 0; i < 7; i++){
-    const d = addDays(wk, i), k = dayKey(d), isToday = k === dayKey(now), wd = new Date(d).toLocaleDateString('en', { weekday:'narrow' });
-    if(k > dayKey(now)){ cells += `<div class="later">${wd}<b>&nbsp;</b></div>`; continue; }
-    if(k < from){ cells += `<div title="${dateTxt(d)}: not tracked yet">${wd}<b>·</b></div>`; continue; }
-    const v = dayVal(k), s2 = state(v), sym = { ok:'✓', under:'↓', over:'↑' }[s2];
-    if(!isToday || s2 !== 'under'){ n++; if(s2 === 'ok') inR++; }   // today counts once it's in range or over
-    cells += `<div class="${s2 === 'ok' ? 'ok' : s2 === 'over' ? 'over' : ''} ${isToday ? 'today' : ''}" title="${dateTxt(d)}: ${fmt(v)} ${unit}">${wd}<b>${sym}</b></div>`;
-  }
-  return `<div class="frow"><div class="rhead"><b>${icon} ${name} today</b><span class="small">${word}</span><span class="rv">${approx}${fmt(value)} ${unit}</span></div>
-    <div class="rbar" role="img" aria-label="${name} today ${fmt(value)} ${unit}; range ${fmt(lo)} to ${fmt(hi)}${done ? `, done at ${fmt(done)}` : ''}">
-      <i class="band" style="left:${pos(lo)}%;width:${pos(hi) - pos(lo)}%"></i>${done && done > lo ? `<i class="dt" style="left:${pos(done)}%"></i>` : ''}
-      <i class="mk ${st}" style="left:${pos(value)}%"></i></div>
-    <div class="rscale"><span style="left:${pos(lo)}%">${fmt(lo)}</span><span style="left:${pos(hi)}%">${fmt(hi)}</span></div>
-    <div class="small">${done && done > lo ? `Done at ${fmt(done)} ${unit} (the tick); fine up to ${fmt(hi)}.` : `Stay between ${fmt(lo)} and ${fmt(hi)}.`}${n ? ` This week: <b>${inR} of ${n} day${n === 1 ? '' : 's'}</b> in range.` : ''}</div>
-    <div class="wk">${cells}</div></div>`;
-}
-function rangeBox(pFrom){
-  const range = prot && prot.range, kc = prot && prot.kcal, target = prot && +prot.target;
-  if(!(range && range[1]) && !(kc && kc[1])) return '';
-  const today = dayKey(), approx = k => protDay(today).some(e => nut(e, k) == null || isEst(e, k)) ? '~' : '';
-  const kFrom = firstDay(Object.fromEntries(Object.entries(protLog).map(([k, v]) => [k, (v || []).filter(e => !e.del && nut(e, 'kcal') != null)])));
-  return `<div class="box rep"><h3>Food ranges</h3><p class="kind">Ranges · stay inside</p>
-    ${range && range[1] ? rangeRow({ icon:'🥩', name:'Protein', unit:'g', lo:+range[0], hi:+range[1], done:target, value:protTotal(today), approx:approx('g'), dayVal:protTotal, from:pFrom }) : ''}
-    ${kc && kc[1] ? rangeRow({ icon:'🔥', name:'kcal', unit:'kcal', lo:+kc[0], hi:+kc[1], value:foodSum(today, 'kcal'), approx:approx('kcal'), dayVal:k => foodSum(k, 'kcal'), from:kFrom }) : ''}</div>`;
-}
-function reportTop(){
-  const now = Date.now(), wk = weekStart(now), target = prot && +prot.target;
-  const wDone = last7(now);
-  // the first day food was logged: days before it are "not tracked yet", never "missed"
-  const pFrom = firstDay(Object.fromEntries(Object.entries(protLog).map(([k, v]) => [k, (v || []).filter(e => !e.del)])));
-  const sw = suppWeek();
-  // Targets (reach at least this) are rings that fill up; ranges (stay between) are bands, below (user, 2026-10-27)
-  const water = prot && +prot.water, wToday = waterTotal(), fatMin = prot && +prot.fat, fToday = foodSum(dayKey(), 'fat');
-  const rings = [
-    `<div class="ring ${wDone >= 3 ? 'full' : ''}">${ringSvg(wDone / 3, `${wDone}/3`)}<div class="lab">Workouts · 7 days</div><div class="sub">${wDone >= 3 ? 'all done ✓' : `${3 - wDone} to go`}</div></div>`,
-    `<div class="ring ${sw && sw.got === sw.due ? 'full' : ''}">${ringSvg(sw ? sw.got / sw.due : 0, sw ? `${Math.round(sw.got / sw.due * 100)}%` : '–')}<div class="lab">Supplements</div><div class="sub">${sw ? `${sw.got} of ${sw.due} taken` : 'none due yet'}</div></div>`,
-    water ? `<div class="ring ${wToday >= water ? 'full' : ''}">${ringSvg(wToday / water, litres(wToday))}<div class="lab">Water today</div><div class="sub">${wToday >= water ? 'reached ✓' : `of ${litres(water)} L`}</div></div>` : '',
-    fatMin ? `<div class="ring ${fToday >= fatMin ? 'full' : ''}">${ringSvg(fToday / fatMin, `${fToday}`)}<div class="lab">Fat today</div><div class="sub">${fToday >= fatMin ? 'minimum ✓' : `at least ${fatMin} g`}</div></div>` : ''].filter(Boolean);
-  let h = `<div class="box rep"><h3>This week</h3><p class="kind">Targets · reach them</p><div class="rings n${rings.length}">${rings.join('')}</div>`;
-  const ws = workoutStreak(), ps = protStreak(), goal = streakGoal();
-  const streaks = [];
-  if(ws) streaks.push(`🔥 <b>${ws} week${ws === 1 ? '' : 's'} in a row</b> with every workout done`);
-  if(target) streaks.push(ps >= goal ? `🔥 <b>${ps} days in a row</b> at ${target} g protein` : ps ? `Protein: <b>${ps} of ${goal} days</b> in a row at ${target} g` : '');
-  h += streaks.filter(Boolean).map(x => `<p class="streak">${x}</p>`).join('') + '</div>';
-  h += rangeBox(pFrom);
-
-  // Wins: the last 7 days, from the data only — no made-up praise
-  const wins = [], since = addDays(now, -7);
-  history.filter(s => s.startedAt >= since).forEach(s => s.slots.forEach(x => {
-    const sets = x.sets.filter(t => t.done); if(!sets.length) return;
-    const b = best(sets, x.name, s.bw), sc = score(b, x.name, s.bw);
-    const before = history.filter(o => o.startedAt < s.startedAt).flatMap(o => o.slots.filter(y => y.name === x.name)
-      .flatMap(y => y.sets.filter(t => t.done).map(t => score(t, x.name, o.bw))));
-    if(before.length && sc > Math.max(...before) * 1.005)
-      wins.push(`<span class="ic">★</span><b>${esc(x.name)}</b>: new best — ${esc(setTxt(b, exFor(x.name), x.name, s.bw))} <span class="small" style="display:inline">(${dateTxt(s.startedAt)})</span>`);
-  }));
-  if(target && ps >= goal) wins.push(`<span class="ic">🔥</span>Protein target <b>${ps} days in a row</b>`);
-  if(ws >= 2) wins.push(`<span class="ic">🔥</span><b>${ws} full weeks</b> of training in a row`);
-  h += `<div class="box rep"><h3>Wins · last 7 days</h3>${wins.length ? `<ul class="wins">${wins.slice(0, 8).map(w => `<li>${w}</li>`).join('')}</ul>`
-    : `<p class="small">No new bests this week yet. ${wDone < 3 ? `${3 - wDone} workout${3 - wDone === 1 ? '' : 's'} left this week — each one is a chance.` : 'Next time: one more rep or the next weight step.'}</p>`}</div>`;
-
-  // Strength: best set per session, one small line per main lift
-  const lines = strengthLines();
-  if(lines.length){
-    h += `<div class="box rep"><h3>Strength</h3><p class="small">Best set of each session (estimated strength), first session → last.</p>`;
-    lines.forEach(([name, v]) => {
-      const lo = Math.min(...v.map(o => o.sc)), hi = Math.max(...v.map(o => o.sc)), W = 120, H = 34, pad = 4;
-      const x = i => v.length === 1 ? W / 2 : pad + i * (W - 2 * pad) / (v.length - 1);
-      const y = sc => hi === lo ? H / 2 : H - pad - (sc - lo) / (hi - lo) * (H - 2 * pad);
-      const pts = v.map((o, i) => `${x(i).toFixed(1)},${y(o.sc).toFixed(1)}`).join(' ');
-      const assistNoBw = loadOf(name) === 'assist' && !bodyweight;
-      const first = v[0], last = v[v.length - 1], pct = Math.round((last.sc / first.sc - 1) * 100);
-      const change = assistNoBw ? `${first.set.kg}→${last.set.kg}` : `${pct > 0 ? '+' : ''}${pct}%`;   // assist: lower is better
-      const tip = o => `${dateTxt(o.at)}: ${setTxt(o.set, exFor(name), name, o.bw)}`;
-      h += `<div class="lift"><span class="nm">${esc(name)}<span class="small">${v.length} sessions · ${esc(setTxt(last.set, exFor(name), name, last.bw))}</span></span>
-        <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(name)}: ${esc(v.map(tip).join('; '))}">
-          <polyline class="ln" points="${pts}"/>
-          <circle class="pt" cx="${x(v.length - 1).toFixed(1)}" cy="${y(last.sc).toFixed(1)}" r="4"/>
-          ${v.map((o, i) => `<circle class="hit" cx="${x(i).toFixed(1)}" cy="${y(o.sc).toFixed(1)}" r="9"><title>${esc(tip(o))}</title></circle>`).join('')}
-        </svg>
-        <span class="ch ${assistNoBw ? 'flat' : pct > 0 ? 'up' : 'flat'}">${esc(change)}${assistNoBw ? '<span class="small">assist kg</span>' : ''}</span></div>`;
-    });
-    h += `<details class="sess"><summary>As a table</summary><ul>${lines.map(([name, v]) =>
-      `<li><b>${esc(name)}</b>: ${v.map(o => esc(`${dateTxt(o.at)} ${setTxt(o.set, exFor(name), name, o.bw)}`)).join(' · ')}</li>`).join('')}</ul></details></div>`;
-  }
-  return h;
 }
 
 // ---------- Today: the dashboard (user, 2026-10-28; look: the redesign canvas) ----------
@@ -2701,69 +2664,141 @@ function kpiHabits(){
 }
 const aboutYou = () => `<div class="about kpis">${kpiTraining()}${kpiHabits()}</div>`;
 
+// ---------- Report (look: the approved canvas, round 2, 2026-10-28) ----------
+// The last 7 days as a grid (one row per habit, one column per day), wins as cards, a workout against the
+// time before (badges, not tables), what to raise next time, and sets per muscle as bars.
+// the first day anything was logged — days before it are "not tracked yet", never "missed"
+const firstDay = log => Object.keys(log).filter(k => Object.keys(log[k] || {}).length).sort()[0] || dayKey();
+// supplements of one day: [taken, due] — required ones scheduled that day; today only those due or taken
+function suppOn(k, now = Date.now()){
+  const isToday = k === dayKey(now), its = supp.items.filter(x => !x.optional && (x.days || []).includes(isoDay(atDay(k))))
+    .filter(x => !isToday || taken(k, x.id) || itemDue(x, now));
+  return [its.filter(x => taken(k, x.id)).length, its.length];
+}
+// weeks in a row with all 3 workouts (a home workout counts), not counting a week still under way
+function workoutStreak(){
+  let n = 0, w = weekStart(Date.now());
+  const count = w => history.filter(s => s.startedAt >= w && s.startedAt < addDays(w, 7)).length;
+  if(count(w) < 3) w = addDays(w, -7);
+  while(count(w) >= 3){ n++; w = addDays(w, -7); }
+  return n;
+}
+// main lifts: exercises done in at least 2 sessions, most sessions first; best set per session
+function strengthLines(){
+  const by = {};
+  history.forEach(s => s.slots.forEach(x => {
+    const sets = x.sets.filter(t => t.done && t.reps !== '');
+    if(!sets.length || bwOf(x.name) === 'only') return;
+    const b = best(sets, x.name, s.bw);
+    (by[x.name] = by[x.name] || []).push({ at:s.startedAt, set:b, sc:score(b, x.name, s.bw), bw:s.bw });
+  }));
+  return Object.entries(by).filter(([, v]) => v.length >= 2).sort((a, b) => b[1].length - a[1].length || b[1].at - a[1].at).slice(0, 6);
+}
+// the next weight to use once every set reached the top of the range
+function nextLoad(ex, name, sets){
+  const bwk = bwOf(name), kg = Math.max(...sets.map(t => parseFloat(t.kg) || 0));
+  if(bandOf(name) || bwk === 'only' || ex.time || bwk === 'plus' && !kg) return nextStep(ex, name, sets);
+  if(loadOf(name) === 'assist') return `assist ${Math.max(0, kg - kgStep(name))} kg`;
+  return `${kg + kgStep(name)} kg${loadOf(name) === 'hand' ? '/hand' : ''}`;
+}
+const CHK = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+
 function renderReport(){
-  if(!history.length){ $main.innerHTML = `<p class="empty">No finished workouts yet. The report appears after your first one.</p>`; return; }
-  const s = history.find(x => x.id === reportId) || history[history.length - 1];
-  const p = PLAN[s.day];
-  const mins = s.finishedAt && s.startedAt ? Math.round((s.finishedAt - s.startedAt) / 60000) : null;
-  const all = s.slots.flatMap(x => x.sets), done = all.filter(t => t.done).length;
+  const now = Date.now(), today = dayKey(now), days = [6, 5, 4, 3, 2, 1, 0].map(n => dayKey(addDays(now, -n)));
+  const target = prot && +prot.target, range = prot && prot.range, kc = prot && prot.kcal, water = prot && +prot.water;
+  const pFrom = firstDay(Object.fromEntries(Object.entries(protLog).map(([k, v]) => [k, (v || []).filter(e => !e.del)])));
+  const sFrom = firstDay(suppLog), wFrom = firstDay(Object.fromEntries(Object.entries(waterLog).map(([k, v]) => [k, (v || []).filter(e => !e.del)])));
+  let h = `<div class="rtop"><button class="chipbtn" data-act="print">${svgI('<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>')}PDF</button></div>`;
 
-  let h = reportTop();
-  h += `<div class="box noprint rep"><h3>Last workout</h3><select id="repSel" aria-label="Workout">${[...history].reverse().map(x =>
-    `<option value="${esc(x.id)}" ${x.id === s.id ? 'selected' : ''}>${dateTxt(x.startedAt)} · ${PLAN[x.day] ? PLAN[x.day].title : esc(x.day)}</option>`).join('')}</select></div>`;
+  // 1. the last 7 days: one row per habit, a cell per day (✓ in range · ↓ under · ↑ over, by symbol and colour)
+  const na = '<span class="c na"></span>';
+  const sym = st => `<span class="c ${st}" title="${{ ok:'in range', under:'under', over:'over' }[st]}">${st === 'ok' ? CHK : st === 'under' ? '↓' : '↑'}</span>`;
+  const rows = [
+    ['Workout', k => { const w = history.filter(s => dayKey(s.startedAt) === k);
+      return w.length ? `<span class="c wk">${w.map(s => PLAN[s.day] ? PLAN[s.day].tab : '·').join('')}</span>` : na; }],
+    target ? ['Protein', k => { if(k < pFrom) return na; const v = protTotal(k), hi = range && range[1] || Infinity;
+      return sym(v > hi ? 'over' : v >= target ? 'ok' : 'under'); }] : null,
+    kc ? ['Calories', k => { if(k < pFrom) return na; const v = foodSum(k, 'kcal'); return sym(v > kc[1] ? 'over' : v >= kc[0] ? 'ok' : 'under'); }] : null,
+    supp ? ['Supplements', k => { if(k < sFrom) return na; const [g, d] = suppOn(k, now); if(!d) return na;
+      return `<span class="c sp ${g >= d ? 'full' : ''}" style="--f:${(.18 + .82 * g / d).toFixed(2)}">${g}/${d}</span>`; }] : null,
+    water ? ['Water', k => { if(k < wFrom) return na; const v = waterTotal(k);
+      return `<span class="c wa ${v >= water ? 'full' : ''}" style="--f:${(.18 + .82 * Math.min(1, v / water)).toFixed(2)}">${litres(v)}</span>`; }] : null].filter(Boolean);
+  const dl = k => new Date(atDay(k)).toLocaleDateString('en-GB', { weekday:'narrow' });
+  h += `<div class="sec"><b>Last 7 days</b><span>${new Date(atDay(days[0])).toLocaleDateString('en-GB', { day:'numeric', month:'short' })} – ${new Date(now).toLocaleDateString('en-GB', { day:'numeric', month:'short' })}</span></div>
+    <div class="box g7"><div class="g7g"><span></span>${days.map(k => `<span class="dl ${k === today ? 'now' : ''}">${dl(k)}</span>`).join('')}
+      ${rows.map(([lb, f]) => `<span class="rl">${lb}</span>${days.map(k => f(k).replace('class="c', `class="c${k === today ? ' now' : ''}`)).join('')}`).join('')}</div>
+      <div class="g7l"><span><i class="ok"></i>in range</span><span><i class="under"></i>↓ under · ↑ over</span><span><i class="na"></i>not tracked</span></div></div>`;
 
-  // 1. The workout, exercise by exercise, against the time before
-  const rows = s.slots.map(x => {
-    const sets = x.sets.filter(t => t.done), ex = exFor(x.name);
-    const count = `<div class="small">${sets.length}/${x.sets.length} sets${sets.length < x.sets.length ? ' · <span class="down">' + (x.sets.length - sets.length) + ' skipped</span>' : ''}</div>`;
-    if(!sets.length) return `<tr><td><b>${esc(x.name)}</b>${count}</td><td>—</td><td class="n">—</td></tr>`;
-    const b = best(sets, x.name, s.bw), sc = score(b, x.name, s.bw), prev = prevFor(x.name, s.startedAt);
-    let vs = '<span class="small">first time</span>';
-    if(prev){
-      const pb = best(prev.sets, x.name, prev.bw), pc = score(pb, x.name, prev.bw);
-      const arrow = sc > pc * 1.005 ? '<span class="up">↑</span>' : sc < pc * .995 ? '<span class="down">↓</span>' : '=';
-      const ever = Math.max(...history.filter(o => o.startedAt < s.startedAt).flatMap(o => o.slots.filter(y => y.name === x.name)
-        .flatMap(y => y.sets.filter(t => t.done).map(t => score(t, x.name, o.bw)))));
-      vs = `${arrow} <span class="small">${esc(setTxt(pb, ex, x.name, prev.bw))}</span>${sc > ever ? '<div class="star">★ best ever</div>' : ''}`;
-    }
-    return `<tr><td><b>${esc(x.name)}</b>${count}</td><td>${esc(setTxt(b, ex, x.name, s.bw))}</td><td class="n">${vs}</td></tr>`;
-  }).join('');
-  h += `<div class="box rep"><h3>${dateTxt(s.startedAt)} · ${p ? p.title : esc(s.day)}</h3>
-    <p class="small">${done} of ${all.length} sets${mins ? ` · ${mins} min` : ''} · desk reset ${resetDone(s) === RESET.length ? '✓' : `${resetDone(s)}/${RESET.length}`}</p>
-    <table><tr><th>Exercise</th><th>Best set</th><th class="n">vs last time</th></tr>${rows}</table>
-    ${s.notes ? `<p class="small">Notes: ${esc(s.notes)}</p>` : ''}</div>`;
+  // 2. wins: the last 7 days, from the data only — no made-up praise
+  const wins = [], since = addDays(now, -7), ws = workoutStreak(), ps = protStreak(), goal = streakGoal(), wDone = last7(now);
+  history.filter(s => s.startedAt >= since).forEach(s => s.slots.forEach(x => {
+    const sets = x.sets.filter(t => t.done); if(!sets.length) return;
+    const b = best(sets, x.name, s.bw), sc = score(b, x.name, s.bw);
+    const before = history.filter(o => o.startedAt < s.startedAt).flatMap(o => o.slots.filter(y => y.name === x.name)
+      .flatMap(y => y.sets.filter(t => t.done).map(t => score(t, x.name, o.bw))));
+    if(before.length && sc > Math.max(...before) * 1.005)
+      wins.push(['pr', `${esc(x.name)} · new best`, `${esc(setTxt(b, exFor(x.name), x.name, s.bw))} · ${dateTxt(s.startedAt)}`]);
+  }));
+  if(target && ps) wins.push(['fire', `Protein target ${ps} day${ps === 1 ? '' : 's'} in a row`, ps >= goal ? `your ${goal}-day streak ✓` : `${goal - ps} more for your ${goal}-day streak`]);
+  if(ws) wins.push(['fire', `${ws} week${ws === 1 ? '' : 's'} in a row`, 'with every workout done']);
+  const WI = { pr:'<path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8"/>', fire:'<path d="M12 3c2 3 5 5 5 9a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 1-8z"/>' };
+  h += `<div class="sec"><b>Wins</b><span>last 7 days</span></div><div class="wins">${wins.length ? wins.slice(0, 8).map(([k, a, b]) =>
+      `<div class="win ${k}"><span class="wi">${svgI(WI[k])}</span><span><b>${a}</b><span class="kc">${b}</span></span></div>`).join('')
+    : `<div class="win none"><span class="wi">${svgI(WI.pr)}</span><span><b>No new bests yet</b><span class="kc">${wDone < 3 ? `${3 - wDone} workout${3 - wDone === 1 ? '' : 's'} to go this week — each one is a chance` : 'next time: one more rep or the next weight step'}</span></span></div>`}</div>`;
 
-  // 2. Next time: exercises whose latest session hit the top of the range on every set
+  // 3. a workout against the time before
+  if(!history.length) h += `<p class="empty">No finished workouts yet. The workout report appears after your first one.</p>`;
+  else {
+    const s = history.find(x => x.id === reportId) || history[history.length - 1], p = PLAN[s.day];
+    const mins = s.finishedAt && s.startedAt ? Math.round((s.finishedAt - s.startedAt) / 60000) : null;
+    const all = s.slots.flatMap(x => x.sets), done = all.filter(t => t.done).length;
+    let ups = 0;
+    const exRows = s.slots.map(x => {
+      const sets = x.sets.filter(t => t.done), ex = exFor(x.name), skip = x.sets.length - sets.length;
+      const count = `${sets.length}/${x.sets.length} sets${skip ? ` · <span class="down">${skip} skipped</span>` : ''}`;
+      if(!sets.length) return `<div class="rx2"><span><b>${esc(x.name)}</b><span class="kc">${count}</span></span><span class="bdg">—</span></div>`;
+      const b = best(sets, x.name, s.bw), sc = score(b, x.name, s.bw), prev = prevFor(x.name, s.startedAt);
+      let badge = '<span class="bdg">first time</span>';
+      if(prev){
+        const pb = best(prev.sets, x.name, prev.bw), pc = score(pb, x.name, prev.bw);
+        const ever = Math.max(...history.filter(o => o.startedAt < s.startedAt).flatMap(o => o.slots.filter(y => y.name === x.name)
+          .flatMap(y => y.sets.filter(t => t.done).map(t => score(t, x.name, o.bw)))));
+        const dk = Math.round(((parseFloat(b.kg) || 0) - (parseFloat(pb.kg) || 0)) * 100) / 100, dr = (+b.reps || 0) - (+pb.reps || 0);
+        if(sc > ever){ ups++; badge = '<span class="bdg best">↑ best ever</span>'; }
+        else if(sc > pc * 1.005){ ups++; badge = `<span class="bdg up">↑ ${dk && loadOf(x.name) !== 'assist' ? `${dk > 0 ? '+' : ''}${dk} kg` : dr ? `+${dr} reps` : 'up'}</span>`; }
+        else badge = sc < pc * .995 ? '<span class="bdg dn">↓ lower</span>' : '<span class="bdg">= same</span>';
+      }
+      return `<div class="rx2"><span><b>${esc(x.name)}</b><span class="kc">${esc(setTxt(b, ex, x.name, s.bw))} · ${count}</span></span>${badge}</div>`;
+    }).join('');
+    h += `<div class="sec"><b>Workout</b><select id="repSel" class="chipsel" aria-label="Workout">${[...history].reverse().map(x =>
+        `<option value="${esc(x.id)}" ${x.id === s.id ? 'selected' : ''}>${dateTxt(x.startedAt)} · ${PLAN[x.day] ? PLAN[x.day].title : esc(x.day)}</option>`).join('')}</select></div>
+      <div class="box rwk"><div class="rwt">${p ? p.title : esc(s.day)} · ${dateTxt(s.startedAt)}</div>
+        <div class="stats">
+          <div><b>${mins ?? '–'}<small> min</small></b><span>${p ? `plan ${planMins(s.day)}` : 'time'}</span></div>
+          <div><b>${done}<small>/${all.length}</small></b><span>sets</span></div>
+          <div><b class="${ups ? 'good' : ''}">${ups}</b><span>up vs last</span></div>
+          <div><b>${resetDone(s) === RESET.length ? '✓' : `${resetDone(s)}<small>/${RESET.length}</small>`}</b><span>desk reset</span></div></div>
+        ${exRows}${s.notes ? `<p class="small">Notes: ${esc(s.notes)}</p>` : ''}</div>`;
+  }
+
+  // 4. next time: exercises whose latest session hit the top of the range on every set
   const next = [], listed = new Set();   // ab wheel and split squat are in B and at home: list them once
   ALL.forEach(d => PLAN[d].ex.forEach(ex => {
     const last = [ex.name, ...ex.alts].map(n => ({ n, l:lastFor(n) })).filter(o => o.l).sort((a, b) => b.l.at - a.l.at)[0];
     if(last && !listed.has(last.n) && listed.add(last.n) && last.l.sets.length >= ex.sets && last.l.sets.every(t => +t.reps >= topOf(ex, last.n)))
-      next.push(`<li><b>${esc(last.n)}</b> (${PLAN[d].title}) — ${nextStep(ex, last.n, last.l.sets)}</li>`);
+      next.push(`<div class="nx"><span class="ni">${svgI('<path d="M12 19V5M5 12l7-7 7 7"/>', 2.6)}</span><span><b>${esc(last.n)}</b><span class="kc">${PLAN[d].title}</span></span><b class="nv">${esc(nextLoad(ex, last.n, last.l.sets))}</b></div>`);
   }));
-  h += `<div class="box rep"><h3>Next time</h3>${next.length ? `<ul>${next.join('')}</ul>`
+  h += `<div class="sec"><b>Next time</b></div><div class="box nxt">${next.length ? next.join('')
     : '<p class="small">Nothing to raise yet — keep adding reps until every set reaches the top of its range.</p>'}</div>`;
 
-  // 3. This week against last week: sessions and hard sets per muscle group
-  const wk = weekStart(Date.now()), prevWk = addDays(wk, -7);
-  const tally = (from, to) => {
-    const ses = history.filter(o => o.startedAt >= from && o.startedAt < to), g = {};
-    ses.forEach(o => o.slots.forEach(x => { const mg = exFor(x.name)?.mg || 'Other'; g[mg] = (g[mg] || 0) + x.sets.filter(t => t.done).length; }));
-    return { n:ses.length, g, reset:ses.filter(o => resetDone(o) === RESET.length).length };
-  };
-  const a = tally(wk, addDays(wk, 7)), b = tally(prevWk, wk);
-  // habit streak: weeks in a row where every workout started with the full desk reset
-  let streak = 0;
-  for(let w = a.n ? wk : prevWk; ; w = addDays(w, -7)){
-    const x = tally(w, addDays(w, 7));
-    if(!x.n || x.reset < x.n) break;
-    streak++;
-  }
-  h += `<div class="box rep"><h3>This week</h3>
-    <p class="small">${a.n} of 3 workouts done (last week ${b.n}).</p>
-    <p class="small">Desk reset: ${a.reset} of ${a.n} workouts (last week ${b.reset} of ${b.n})${streak ? ` · <b>${streak} week${streak === 1 ? '' : 's'} in a row</b>` : ''}.</p>
-    <table><tr><th>Sets per muscle</th><th class="n">This week</th><th class="n">Last week</th></tr>
-    ${GROUPS.concat(a.g.Other || b.g.Other ? ['Other'] : []).map(g => `<tr><td>${g}</td><td class="n">${a.g[g] || 0}</td><td class="n">${b.g[g] || 0}</td></tr>`).join('')}</table></div>
-    <div class="actions noprint"><button class="btn ghost" data-act="print">Save as PDF</button></div>`;
+  // 5. sets per muscle: the last 7 days against the 7 before
+  const tally = (from, to) => { const g = {};
+    history.filter(o => o.startedAt >= from && o.startedAt < to).forEach(o => o.slots.forEach(x => { const mg = exFor(x.name)?.mg || 'Other'; g[mg] = (g[mg] || 0) + x.sets.filter(t => t.done).length; }));
+    return g; };
+  const end = dayStart(addDays(now, 1)), a = tally(addDays(end, -7), end), b = tally(addDays(end, -14), addDays(end, -7));
+  const groups = GROUPS.concat(a.Other || b.Other ? ['Other'] : []), top = Math.max(1, ...groups.map(g => Math.max(a[g] || 0, b[g] || 0)));
+  h += `<div class="sec"><b>Sets per muscle</b><span class="lgd"><i class="a"></i>7 days <i class="b"></i>before</span></div>
+    <div class="box mus">${groups.map(g => `<div class="mr"><span>${g}</span><span class="mb"><i class="a" style="width:${((a[g] || 0) / top * 100).toFixed(0)}%"></i><i class="b" style="width:${((b[g] || 0) / top * 100).toFixed(0)}%"></i></span><b>${a[g] || 0}</b></div>`).join('')}</div>`;
   $main.innerHTML = h;
 }
 
@@ -2986,6 +3021,11 @@ document.addEventListener('click', e => {
     const base = parseFloat(s[f] !== '' && s[f] != null ? s[f] : box && box.placeholder) || 0;
     const v = Math.max(0, base + +dir * (f === 'kg' ? kgStep(slot.name) : 1));
     s[f] = String(Math.round(v * 100) / 100); save(); render(); return;
+  }
+  if(t.dataset.hmon){ histMonth = Math.max(0, histMonth + +t.dataset.hmon); render(); return; }
+  if(t.dataset.bwstep){
+    const v = Math.max(0, (parseFloat(bodyweight) || 0) + +t.dataset.bwstep * .5);
+    bodyweight = String(Math.round(v * 10) / 10); store.set('fb3.bw', bodyweight); render(); return;
   }
   if(t.dataset.addset){ draft(view, true).slots[+t.dataset.addset].sets.push(newSet()); save(); render(); return; }
   // − on a set not done (user, 2026-10-28): remove it, instead of typing 0 to close the exercise
