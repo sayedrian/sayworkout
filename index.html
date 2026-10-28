@@ -392,9 +392,9 @@ nav#tabs button .dot{top:6px;right:8px;background:var(--done)}
 /* bottom tab bar */
 #bnav{position:fixed;left:0;right:0;bottom:0;z-index:9;background:rgba(17,20,26,.97);border-top:1px solid var(--line);
   padding:0 0 env(safe-area-inset-bottom);backdrop-filter:blur(10px)}
-#bnav .in{max-width:640px;margin:0 auto;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+#bnav .in{max-width:640px;margin:0 auto;display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
 #bnav button{position:relative;border:0;background:none;color:#7B8391;min-height:64px;display:flex;flex-direction:column;align-items:center;
-  justify-content:center;gap:3px;font-size:12px;font-weight:650}
+  justify-content:center;gap:3px;font-size:11px;font-weight:650;padding:0 2px;min-width:0;overflow:hidden;white-space:nowrap}
 #bnav button[aria-current="true"]{color:var(--ink)}
 #bnav svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 #bnav .dot{position:absolute;top:10px;left:calc(50% + 10px);width:8px;height:8px;border-radius:4px;background:var(--hint)}
@@ -546,7 +546,10 @@ details[open]>summary .chev{transform:rotate(90deg)}
 .spad{padding:0 0 12px;margin:0}
 
 /* Report: a 7-day grid, wins as cards, workout badges, next weights, sets per muscle */
-.rtop{display:flex;justify-content:flex-end;margin:4px 0 -14px}
+.rtop{display:flex;align-items:center;gap:8px;margin:4px 0 0}
+.seg2{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:14px;background:var(--card)}
+.seg2 button{min-height:40px;border:0;border-radius:10px;background:none;color:var(--muted);font-weight:750;font-size:15px}
+.seg2 button[aria-selected="true"]{background:var(--accent);color:#fff}
 .chipbtn{display:flex;align-items:center;gap:6px;min-height:40px;padding:0 14px;border:0;border-radius:12px;background:var(--card);color:#C9CED6;font-size:14px;font-weight:700}
 .chipbtn svg{width:16px;height:16px}
 .g7{padding:14px 12px 10px}
@@ -724,18 +727,11 @@ textarea{background:var(--input);border:0;border-radius:14px;color:var(--ink)}
 <header>
   <div class="wrap">
     <div class="top">
-      <button class="icon" id="back" aria-label="Back to the workout" hidden>←</button>
       <h1 id="title">Full Body 3</h1>
       <span class="prog" id="prog"></span>
       <span class="sdot" id="sdot" hidden></span>
       <!-- training clock while a workout runs; green = the screen is kept on -->
       <span class="pill" id="wake" hidden>☀ <span class="clock" id="clock"></span></span>
-      <button class="icon" id="more" aria-label="Menu" aria-expanded="false">⋯</button>
-    </div>
-    <div class="menu" id="menu" hidden>
-      <button data-tab="history">History</button>
-      <button data-tab="report">Report</button>
-      <button data-tab="settings">Settings</button>
     </div>
     <nav id="tabs"></nav>
   </div>
@@ -2002,7 +1998,7 @@ const setTxt = (s, ex, name, bw) => {
 // ---------- Render ----------
 const $main = document.getElementById('main');
 // Workouts are the tabs; History, Report and Settings sit behind the ⋯ menu, with ← back to the workout.
-const PAGES = { history:'History', report:'Report', settings:'Settings' };
+const PAGES = { history:'Progress', report:'Progress', settings:'Settings' };
 // Tab icons, drawn here (no files; user, 2026-10-25): the letter says which workout and a small
 // symbol under it the equipment — a dumbbell for the gym, a band for home; the daily tab is broccoli.
 const ICON = {
@@ -2014,35 +2010,33 @@ const NAVI = {
   dash:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>',
   train:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/></svg>',
   fuel:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21c-4.5 0-8-3.4-8-8 0-4 3-7 6-7 1 0 1.5.4 2 .4S13 6 14 6c3 0 6 3 6 7 0 4.6-3.5 8-8 8z"/><path d="M12 6.4C12 4.5 13 3 15 2.5"/></svg>',
+  prog:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M7 16v-4M12 16V7M17 16v-6"/></svg>',
+  set:'<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
 };
-let lastDay = view;          // where ← goes back to
 let lastTrain = null;        // the workout tab last open (Train goes back to it)
+let lastProg = 'report';     // Report or History, the one last open in Progress
 const opened = new Set();    // folded cards the user tapped open again (until the tab changes)
-// Sections (user, 2026-10-28): the dashboard opens first; Workout holds the A B C H tabs, Nutrition the
-// daily cards; ⌂ goes back to the dashboard from either. History, Report and Settings stay behind ⋯.
+// Sections (user, 2026-10-28): the tab bar is the whole map — Today (opens first), Train (A B C H),
+// Nutrition, Progress (Report and History, one switch apart) and Settings. No ⋯ menu, no ← back.
 function render(){
-  const page = PAGES[view], workout = !!PLAN[view];
-  if(!page) lastDay = view;
+  const page = PAGES[view], workout = !!PLAN[view], prog = view === 'report' || view === 'history';
   document.getElementById('tabs').hidden = !workout;
-  document.getElementById('back').hidden = !page;
-  // the tab bar: Today, Train (the workout running, else the one you were on, else the next), Nutrition
+  // Train opens the workout running, else the one you were on, else the next; Progress the part last open
   const runD = ALL.find(d => drafts[d]?.startedAt), trainD = runD || (PLAN[view] ? view : PLAN[lastTrain] ? lastTrain : defaultDay());
+  if(workout) lastTrain = view;
+  if(prog) lastProg = view;
   document.getElementById('bnavIn').innerHTML =
     `<button id="dash" data-tab="dash" aria-current="${view === 'dash'}">${NAVI.dash}Today</button>`
     + `<button data-tab="${trainD}" aria-current="${workout}" aria-label="Train">${NAVI.train}Train${runD ? '<span class="dot run"></span>' : ''}</button>`
-    + `<button data-tab="fuel" aria-current="${view === 'fuel'}">${NAVI.fuel}Nutrition${suppDue() ? '<span class="dot"></span>' : ''}</button>`;
-  if(workout) lastTrain = view;
+    + `<button data-tab="fuel" aria-current="${view === 'fuel'}">${NAVI.fuel}Nutrition${suppDue() ? '<span class="dot"></span>' : ''}</button>`
+    + `<button data-tab="${lastProg}" aria-current="${prog}" aria-label="Progress">${NAVI.prog}Progress</button>`
+    + `<button data-tab="settings" aria-current="${view === 'settings'}">${NAVI.set}Settings</button>`;
   document.getElementById('title').textContent = page || (view === 'fuel' ? 'Nutrition' : view === 'dash' ? 'Today' : PLAN[view].title);
   const run = d => drafts[d]?.startedAt ? '<span class="dot"></span>' : '';
   document.getElementById('tabs').innerHTML =
     ALL.map(d => `<button data-tab="${d}" aria-current="${view===d}" aria-label="${PLAN[d].title}"><span class="big">${PLAN[d].tab}</span>${d === 'home' ? ICON.band : ICON.dumbbell}${run(d)}</button>`).join('');
-  document.querySelectorAll('#menu [data-tab]').forEach(b => b.setAttribute('aria-current', b.dataset.tab === view));
   view === 'history' ? renderHistory() : view === 'settings' ? renderSettings() : view === 'report' ? renderReport() : view === 'fuel' ? renderFuel() : view === 'dash' ? renderDash() : renderDay(view);
   tickClock(); runDemos();
-}
-function showMenu(on){
-  document.getElementById('menu').hidden = !on;
-  document.getElementById('more').setAttribute('aria-expanded', on);
 }
 
 // a folded block: ✓ and green when done, else its number; one line under the name
@@ -2370,7 +2364,7 @@ function renderHistory(){
   const hours = inMonth.reduce((n, s) => n + (s.finishedAt && s.startedAt ? (s.finishedAt - s.startedAt) / 36e5 : 0), 0);
   const on = new Set(inMonth.map(s => new Date(s.startedAt).getDate())), lead = (m.getDay() + 6) % 7, nDays = new Date(y, mo + 1, 0).getDate();
   const isNow = histMonth === 0, today = now.getDate();
-  let h = `<p class="small">${syncText()}</p>
+  let h = `<div class="rtop">${progSeg()}</div><p class="small">${syncText()}</p>
     <div class="box cal"><div class="calh"><button class="calnav" data-hmon="1" aria-label="Month before">‹</button>
       <b>${m.toLocaleDateString('en-GB', { month:'long', year:y === now.getFullYear() ? undefined : 'numeric' })}</b>
       <span class="chips2"><span>${inMonth.length} workout${inMonth.length === 1 ? '' : 's'}</span>${hours ? `<span>${hours < 10 ? f1(hours) : Math.round(hours)} h</span>` : ''}</span>
@@ -2703,12 +2697,14 @@ function nextLoad(ex, name, sets){
 }
 const CHK = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 
+const progSeg = () => `<div class="seg2" role="tablist">${[['report', 'Report'], ['history', 'History']].map(([k, l]) =>
+  `<button data-tab="${k}" role="tab" aria-selected="${view === k}">${l}</button>`).join('')}</div>`;
 function renderReport(){
   const now = Date.now(), today = dayKey(now), days = [6, 5, 4, 3, 2, 1, 0].map(n => dayKey(addDays(now, -n)));
   const target = prot && +prot.target, range = prot && prot.range, kc = prot && prot.kcal, water = prot && +prot.water;
   const pFrom = firstDay(Object.fromEntries(Object.entries(protLog).map(([k, v]) => [k, (v || []).filter(e => !e.del)])));
   const sFrom = firstDay(suppLog), wFrom = firstDay(Object.fromEntries(Object.entries(waterLog).map(([k, v]) => [k, (v || []).filter(e => !e.del)])));
-  let h = `<div class="rtop"><button class="chipbtn" data-act="print">${svgI('<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>')}PDF</button></div>`;
+  let h = `<div class="rtop">${progSeg()}<button class="chipbtn" data-act="print">${svgI('<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>')}PDF</button></div>`;
 
   // 1. the last 7 days: one row per habit, a cell per day (✓ in range · ↓ under · ↑ over, by symbol and colour)
   const na = '<span class="c na"></span>';
@@ -2826,12 +2822,9 @@ document.addEventListener('focusout', e => { if(e.target.matches && e.target.mat
 
 document.addEventListener('click', e => {
   if(pressed){ pressed = false; return; }
-  const t = e.target.closest('button'); if(!t){ showMenu(false); return; }
-  if(t.id === 'more'){ showMenu(document.getElementById('menu').hidden); return; }
-  showMenu(false);
+  const t = e.target.closest('button'); if(!t) return;
   buzzFor(t);
   if(t.dataset.tab){ if(t.dataset.tab !== view){ opened.clear(); noteOpen = false; suppView = null; protEdit = null; protForm = false; pMeal = null; gutEdit = null; logEdit = null; } view = t.dataset.tab; store.set('fb3.view', view); render(); scrollTo(0, 0); return; }
-  if(t.id === 'back'){ view = lastDay; render(); scrollTo(0, 0); return; }
   if(t.dataset.unfold){ const k = t.dataset.unfold; opened.add(/^\d+$/.test(k) ? +k : k); render(); return; }
   if(t.dataset.fold){ const k = t.dataset.fold; opened.delete(/^\d+$/.test(k) ? +k : k); render(); return; }
   if(t.dataset.rest){ adjustRest(t.dataset.rest); return; }
