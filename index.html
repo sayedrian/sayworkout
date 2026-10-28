@@ -98,6 +98,8 @@ nav button .dot{position:absolute;top:6px;right:8px;width:7px;height:7px;border-
 .row{display:grid;grid-template-columns:28px 1fr 1fr 56px;gap:8px;align-items:center;padding:4px}
 .row.head{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding-bottom:0}
 .row .i{text-align:center;color:var(--muted);font-size:14px}
+.row .rm{width:28px;height:28px;border:1px solid var(--line);border-radius:50%;background:var(--card);padding:0;font-size:18px;line-height:1;color:var(--muted)}
+.setbtns{align-items:center}
 .row input{width:100%;min-width:0;border:1px solid transparent;background:var(--input);border-radius:9px;
   padding:9px 8px;text-align:center;font-size:17px;font-variant-numeric:tabular-nums}
 .rrow{display:grid;grid-template-columns:1fr 56px;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--line);font-size:14px}
@@ -155,6 +157,12 @@ textarea{width:100%;min-height:70px;border:1px solid var(--line);background:var(
 details.sess{background:var(--card);border:1px solid var(--line);border-radius:14px;margin:10px 0;padding:0 14px}
 details.sess summary{padding:12px 0;cursor:pointer;font-weight:600}
 details.sess summary span{font-weight:400;color:var(--muted);font-size:13px}
+.lacts{display:flex;gap:18px}
+.ledit .lex{border-top:1px solid var(--line);padding:8px 0}
+.lset{display:flex;align-items:flex-end;gap:8px;margin-top:6px}
+.lset label{flex:1;font-size:11px;color:var(--muted)}
+.lset input{display:block;width:100%;border:1px solid var(--line);background:var(--input);border-radius:9px;padding:7px;font-size:15px;color:var(--ink)}
+.lset>.small{width:14px;padding-bottom:9px}
 .sess ul{margin:0 0 10px;padding-left:18px;font-size:14px}
 .sess li{margin:3px 0}
 .empty{color:var(--muted);text-align:center;padding:30px 0}
@@ -238,6 +246,7 @@ details.sess summary span{font-weight:400;color:var(--muted);font-size:13px}
 button.pline{width:100%;border:0;border-top:1px solid var(--line);background:none;text-align:left;color:var(--ink);font-size:15px}
 button.pline:first-child{border-top:0}
 .pline.on{background:var(--input);border-radius:9px}
+.pkeep{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted)}.pkeep input{width:auto;margin:0}
 /* report: rings, wins, strength sparklines */
 .rings{display:grid;grid-template-columns:repeat(auto-fit,minmax(64px,1fr));gap:6px;text-align:center}
 .rings.n4 .ring svg{width:64px;height:64px}
@@ -317,9 +326,16 @@ nav button .lb{font-size:11px;font-weight:650;line-height:1;font-variant-numeric
 .gnow button{display:flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:10px;font-size:15px;font-weight:650}
 .gnow .poo{flex:1;font-size:17px;border-color:var(--accent);color:var(--accent)}
 .gnow .poo span{font-size:26px;line-height:1}
-.gnow [aria-pressed]{flex-direction:column;gap:0;min-width:64px;font-size:12px;font-weight:500;color:var(--muted)}
-.gnow [aria-pressed] span{font-size:22px;line-height:1.1}
-.gnow [aria-pressed="true"]{border-color:var(--hint);background:var(--hint-bg);color:var(--hint)}
+.gnow .sym{flex-direction:column;gap:0;min-width:62px;padding:8px 4px;font-size:12px;font-weight:500;color:var(--muted)}
+.gnow .sym span{font-size:22px;line-height:1.1}
+.glvl{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:4px}
+.glvl button{display:flex;flex-direction:column;align-items:center;border:2px solid transparent;background:var(--card);border-radius:10px;padding:8px 2px;font-size:13px;color:var(--ink)}
+.glvl span{font-size:18px;line-height:1.3;letter-spacing:-2px}
+.glvl button[aria-pressed="true"]{border-color:var(--accent);font-weight:700}
+.lrow{display:flex;align-items:stretch;border-top:1px solid var(--line)}
+.lrow>.gline,.lrow>.pline{flex:1;min-width:0;border-top:0}
+.link.x{flex:0 0 auto;padding:8px 4px 8px 14px;color:var(--muted);font-size:16px}
+.gline .si{font-size:18px}
 .gedit{background:var(--input);border-radius:12px;padding:10px;margin:6px 0}
 .gedit .top{display:flex;align-items:center;gap:8px;font-size:15px}
 .gedit .top input{width:auto;border:1px solid var(--line);background:var(--card);border-radius:9px;padding:6px;font-size:15px;color:var(--ink)}
@@ -331,7 +347,7 @@ nav button .lb{font-size:11px;font-weight:650;line-height:1;font-variant-numeric
 .bris button[aria-pressed="true"]{border-color:var(--accent);color:var(--ink);font-weight:700}
 .bscale{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);padding:0 4px}
 .bscale b{color:var(--done);font-weight:600}
-.gtags{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:8px}
+.gtags{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:8px}
 .gtags button{display:flex;flex-direction:column;align-items:center;border:2px solid transparent;background:var(--card);border-radius:10px;padding:5px 2px;font-size:11px;color:var(--muted);line-height:1.2}
 .gtags span{font-size:22px;line-height:1.2}
 .gtags button[aria-pressed="true"]{border-color:var(--hint);background:var(--hint-bg);color:var(--hint);font-weight:650}
@@ -677,6 +693,10 @@ let protLast = store.get('fb3.protlast', {});         // last grams per source
 let protDirty = store.get('fb3.protdirty', { plan:false, days:[] });
 let protSrc = store.get('fb3.protsrc', 'Powder');     // the source picked last
 let protEdit = null;                                   // id of the entry being changed (tap it in the list)
+// My meals (user, 2026-10-28): a meal kept with ☆ shows in the dropdown and fills the form with its name and
+// numbers. Kept in the food plan (data/protein/plan.json, meals:[{name, src, g, kcal, fat}]), so every phone has it.
+let pMeal = null;                                      // the meal just picked from the dropdown
+const meals = () => (prot && prot.meals) || [];
 const saveProt = () => { ['prot', 'protlog', 'protlast', 'protdirty', 'protsrc', 'foodlast'].forEach(k => store.set('fb3.' + k,
   { prot, protlog:protLog, protlast:protLast, protdirty:protDirty, protsrc:protSrc, foodlast:foodLast }[k])); };
 const protDay = (day = dayKey()) => (protLog[day] || []).filter(e => !e.del);
@@ -730,6 +750,13 @@ function mergeEntries(a = [], b = []){
   return [...m.values()].sort((x, y) => x.at - y.at);
 }
 
+// The same thing again within minutes is usually a double tap (user, 2026-10-28: two 💩 three minutes
+// apart): ask before adding it. `list` is what that day already has, `at` the time of the new one.
+function okAgain(list, at, ms, what){
+  const r = list.filter(e => Math.abs(e.at - at) < ms).sort((a, b) => b.at - a.at)[0];
+  return !r || confirm(`Another ${what}? You logged one at ${hhmm(r.at)}.`);
+}
+
 // two copies of a day's ticks → per item, the later change wins
 function mergeDay(a = {}, b = {}){
   const out = { ...a };
@@ -744,9 +771,14 @@ function mergeDay(a = {}, b = {}){
 // Days: data/gut/days/<date>.json, {entries:[{id, t, at, type, tags, del}], flags:{bloat:{t, on}, gas:{t, on}},
 // notes:[{id, t, at, text, del}], note:{t, text}} — entries and notes merge like protein (latest t wins, a removed one
 // stays as del), flags like supplement ticks. `note` is the old one-per-day note: shown as the first note (id 'note').
+// Symptoms (user, 2026-10-28): gas, bloating and cramps are logged when they happen, each with how bad (1 a little,
+// 2 a lot, 3 crazy), as sym:[{id, t, at, k, lvl, del}] merged like entries — the time is what lines them up with the
+// food log in reviews. They replace the once-a-day flags; days saved with flags still show them.
 const GUT_DIR = 'data/gut';
-const GTAGS = [['strain', '😣', 'Strained'], ['empty', '⏳', 'Not empty'], ['pain', '😖', 'Pain'], ['blood', '🩸', 'Blood']];
+const GTAGS = [['urgent', '🏃', 'Urgent'], ['strain', '😣', 'Strained'], ['empty', '⏳', 'Not empty'], ['pain', '😖', 'Pain'], ['blood', '🩸', 'Blood']];
 const GFLAGS = [['bloat', '🎈', 'Bloated'], ['gas', '💨', 'Gas']];
+const GSYM = [['gas', '💨', 'Gas'], ['bloat', '🎈', 'Bloated'], ['cramp', '🌀', 'Cramps']];
+const GLVL = ['', 'a little', 'a lot', 'crazy'];
 const BTXT = ['', 'Hard lumps', 'Lumpy', 'Cracked', 'Smooth', 'Soft blobs', 'Mushy', 'Watery'];
 // the seven Bristol shapes, drawn small
 const BSVG = ['',
@@ -760,7 +792,7 @@ const BSVG = ['',
 const bIcon = n => `<svg viewBox="0 0 32 20" aria-hidden="true">${BSVG[n] || ''}</svg>`;
 let gutLog = store.get('fb3.gutlog', {});             // {'2026-10-26': {entries:[…], flags:{…}}}
 let gutDirty = store.get('fb3.gutdirty', { days:[] });
-let gutEdit = null;                                    // id of the entry open for details
+let gutEdit = null;                                    // id of the entry (or symptom) open for details
 const saveGut = () => { store.set('fb3.gutlog', gutLog); store.set('fb3.gutdirty', gutDirty); };
 const gutDay = (day = dayKey()) => ((gutLog[day] || {}).entries || []).filter(e => !e.del);
 const gutFlag = (day, k) => !!(gutLog[day] && gutLog[day].flags && gutLog[day].flags[k] && gutLog[day].flags[k].on);
@@ -771,6 +803,8 @@ function gutTouch(day, fn){
   saveGut();
 }
 const gutChange = (day, e) => gutTouch(day, g => { g.entries = [...g.entries.filter(x => x.id !== e.id), { ...e, t:Date.now() }]; });
+const symDay = (day = dayKey()) => ((gutLog[day] || {}).sym || []).filter(e => !e.del);
+const symChange = (day, e) => gutTouch(day, g => { g.sym = [...(g.sym || []).filter(x => x.id !== e.id), { ...e, t:Date.now() }]; });
 const gutSetFlag = (day, k, on) => gutTouch(day, g => { g.flags = { ...g.flags, [k]:{ t:Date.now(), on } }; });
 function gutNotes(day){
   const g = gutLog[day] || {}, list = g.notes || [];
@@ -781,6 +815,7 @@ const gutNoteChange = (day, n) => gutTouch(day, g => { g.notes = [...(g.notes ||
 let noteDraft = store.get('fb3.notedraft', {});        // {day: text typed but not added yet}
 // a day as saved: notes and the old note only when there are any
 const gutShape = (g = {}) => ({ entries:mergeEntries(g.entries), flags:g.flags || {},
+  ...(g.sym && g.sym.length ? { sym:mergeEntries(g.sym) } : {}),
   ...(g.notes && g.notes.length ? { notes:mergeEntries(g.notes) } : {}), ...(g.note ? { note:g.note } : {}) });
 const laterNote = (a, b) => !a ? b : !b ? a : (b.t || 0) > (a.t || 0) ? b : a;
 
@@ -1722,7 +1757,7 @@ function renderDay(day){
           const ref = last ? (last.sets[j] || last.sets[last.sets.length-1]) : null;
           const lastKg = ref && ref.kg !== '' && ref.kg != null ? ref.kg : '';
           return `<div class="row ${s.done ? 'done' : ''}">
-            <span class="i">${j+1}</span>
+            ${!s.done && doneCount > 0 ? `<button class="i rm" data-rmset="${i}.${j}" aria-label="Remove set ${j+1} (not done)">−</button>` : `<span class="i">${j+1}</span>`}
             ${band ? `<span class="bwcell">${esc(s.done ? (band === 'loop' ? s.band || '–' : s.kg || '–') : (band === 'loop' ? picked[0] || '–' : bandKg(slot.name, picked) || '–'))}</span>`
               : bwk === 'only' ? '<span class="bwcell">BW</span>'
               : `<input inputmode="decimal" data-i="${i}" data-j="${j}" data-f="kg" data-last="${esc(lastKg)}" value="${esc(s.kg)}" placeholder="${lastKg !== '' ? esc(lastKg) : bwk ? 'BW' : '–'}" aria-label="Set ${j+1} ${headOf(slot.name)}">`}
@@ -1733,7 +1768,7 @@ function renderDay(day){
           </div>`;}).join('')}
       </div>
       <div class="setbtns"><button class="link" data-addset="${i}">+ set</button>
-        ${slot.sets.length > 1 && !slot.sets[slot.sets.length-1].done ? `<button class="link" data-delset="${i}">− set</button>` : ''}</div>
+        ${doneCount > 0 && doneCount < slot.sets.length ? '<span class="small">− removes a set you won’t do</span>' : ''}</div>
     </article>`;
   });
 
@@ -1806,8 +1841,8 @@ function protCard(day, now, isToday){
   const kc = prot && prot.kcal, fatMin = prot && +prot.fat, kcal = foodSum(day, 'kcal'), fat = foodSum(day, 'fat');
   const approx = k => protDay(day).some(e => nut(e, k) == null || isEst(e, k)) ? '~' : '';   // some of it still to estimate
   // the form adds food, or changes the entry tapped in the list
-  const ed = protEdit && protDay(day).find(e => e.id === protEdit), src = ed ? ed.src : protSrc, form = protForm || !!ed;
-  const last = ed || { g:protLast[src], ...(foodLast[src] || {}) };
+  const ed = protEdit && protDay(day).find(e => e.id === protEdit), src = ed ? ed.src : pMeal ? pMeal.src : protSrc, form = protForm || !!ed;
+  const last = ed || pMeal || { g:protLast[src], ...(foodLast[src] || {}) };
   let h = `<div class="box card"><h3>Food <span class="st ${target && total >= target ? 'ok' : ''}">${total}${target ? ` / ${target}` : ''} g</span></h3>
     ${target ? `<div class="pbar ${total >= target ? 'full' : ''}"><i style="width:${pct}%"></i></div>
       <div class="small">🥩 ${total >= target ? `✓ Protein target reached${range && range[1] ? ` · fine up to ${range[1]} g` : ''}` : `${target - total} g to go`}</div>`
@@ -1818,13 +1853,15 @@ function protCard(day, now, isToday){
       <button class="other" data-act="pform">+ Meal or snack…</button></div>`;
   else h += `<div class="padd">
       <div class="full small"><b>${ed ? 'Changing an entry' : 'Add food'}</b> · what you ate; the numbers you know (the rest is estimated later)</div>
-      <select id="pSrc" aria-label="Source">${PSRC.map(x => `<option ${x === src ? 'selected' : ''}>${x}</option>`).join('')}</select>
+      <select id="pSrc" aria-label="Source">${PSRC.map(x => `<option ${x === src ? 'selected' : ''}>${x}</option>`).join('')}
+        ${meals().length ? `<optgroup label="My meals">${meals().map((m, i) => `<option value="meal:${i}">☆ ${esc(m.name)}</option>`).join('')}</optgroup>` : ''}</select>
       <input id="pAt" type="time" value="${hhmm(ed ? ed.at : isToday ? now : atDay(day))}" aria-label="Time">
-      <input id="pText" class="full" value="${esc(ed && ed.text || '')}" placeholder="What was it? e.g. lentils with chicken, 1 plate" aria-label="What was it">
+      <input id="pText" class="full" value="${esc(ed && ed.text || pMeal && pMeal.name || '')}" placeholder="What was it? e.g. lentils with chicken, 1 plate" aria-label="What was it">
       <div class="full pnums">
         <label>🥩 protein g<input id="pG" inputmode="decimal" value="${esc(last.g ?? '')}" aria-label="Protein grams"></label>
         <label>🔥 kcal<input id="pK" inputmode="decimal" value="${esc(last.kcal ?? '')}" aria-label="kcal"></label>
         <label>🧈 fat g<input id="pF" inputmode="decimal" value="${esc(last.fat ?? '')}" aria-label="Fat grams"></label></div>
+      <label class="full pkeep"><input type="checkbox" id="pKeep"> ☆ Keep in My meals (the list above), with these numbers</label>
       <button class="btn" data-act="padd" style="padding:9px">${ed ? 'Save' : 'Add'}</button>
       <button class="btn ghost" data-act="pcancel" style="padding:9px">Cancel</button>
       ${ed ? `<button class="btn ghost full" data-pdel="${esc(ed.id)}" style="padding:9px;color:var(--bad)">Remove</button>` : ''}
@@ -1838,10 +1875,11 @@ function protCard(day, now, isToday){
   if(list.length) h += opened.has('pent') || ed || !isToday
     ? `<button class="foldline plain" data-fold="pent">${list.length} entr${list.length === 1 ? 'y' : 'ies'} · tap one to change it <span class="more">hide ▴</span></button>`
       + list.map(e => { const more = [num(e, 'kcal', ' kcal'), num(e, 'fat', ' g fat')].filter(Boolean).join(' · ');
-        return `<button class="pline ${e.id === protEdit ? 'on' : ''}" data-pedit="${esc(e.id)}" aria-label="Change ${esc(e.src)} ${esc(e.text || '')}">
+        return `<div class="lrow"><button class="pline ${e.id === protEdit ? 'on' : ''}" data-pedit="${esc(e.id)}" aria-label="Change ${esc(e.src)} ${esc(e.text || '')}">
         <span class="small">${hhmm(e.at)}</span>
         <span>${esc(e.src)}${e.text ? `<span class="small">${esc(e.text)}</span>` : ''}${more ? `<span class="small">${more}</span>` : ''}</span>
-        <span class="g">${num(e, 'g', ' g') || '~'}</span><span class="small">✎</span></button>`; }).join('')
+        <span class="g">${num(e, 'g', ' g') || '~'}</span><span class="small">✎</span></button>
+        <button class="link x" data-pdel="${esc(e.id)}" aria-label="Remove ${esc(e.src)} at ${hhmm(e.at)}">✕</button></div>`; }).join('')
     : `<button class="foldline plain" data-unfold="pent">${list.length} entr${list.length === 1 ? 'y' : 'ies'} ${isToday ? 'today' : 'that day'} <span class="more">show ▾</span></button>`;
   return h + '</div>';
 }
@@ -1859,18 +1897,19 @@ function waterCard(day, isToday){
   if(list.length) h += opened.has('went') || !isToday
     ? `<button class="foldline plain" data-fold="went">${list.length} drink${list.length === 1 ? '' : 's'} <span class="more">hide ▴</span></button>`
       + list.map(e => `<div class="nline"><span class="small">${hhmm(e.at)}</span><span class="nt">💧 ${esc(e.ml)} ml</span>
-        <button class="link" data-wdel="${esc(e.id)}" aria-label="Remove the drink at ${hhmm(e.at)}">✕</button></div>`).join('')
+        <button class="link x" data-wdel="${esc(e.id)}" aria-label="Remove the drink at ${hhmm(e.at)}">✕</button></div>`).join('')
     : `<button class="foldline plain" data-unfold="went">${list.length} drink${list.length === 1 ? '' : 's'} ${isToday ? 'today' : 'that day'} <span class="more">show ▾</span></button>`;
   return h + '</div>';
 }
 
 // Gut: 💩 logs one now and opens its details (type and icons, each saved on tap; ✓ closes);
-// tap an entry to open it again. Bloating and gas: one tap for the day.
+// 💨 🎈 🌀 log a symptom now and ask how bad (one tap picks it and closes). Poos and symptoms share one
+// timeline; tap a line to change it, ✕ removes it (with Undo).
 function gutCard(day, isToday){
-  const list = gutDay(day).sort((a, b) => a.at - b.at), ed = gutEdit && list.find(e => e.id === gutEdit);
+  const list = gutDay(day), syms = symDay(day), ed = gutEdit && list.find(e => e.id === gutEdit), es = gutEdit && syms.find(e => e.id === gutEdit);
   let h = `<div class="box card"><h3>Gut <span class="st">${list.length ? `💩 ${list.length}` : ''}</span></h3>
     <div class="gnow"><button class="poo" data-act="gnew" aria-label="Log a poo ${isToday ? 'now' : 'that day'}"><span>💩</span>+ ${isToday ? 'Now' : 'Log'}</button>
-      ${GFLAGS.map(([k, ic, lb]) => `<button data-gflag="${k}" aria-pressed="${gutFlag(day, k)}"><span>${ic}</span>${lb}</button>`).join('')}</div>`;
+      ${GSYM.map(([k, ic, lb]) => `<button class="sym" data-gsym="${k}" aria-label="Log ${lb.toLowerCase()} ${isToday ? 'now' : 'that day'}"><span>${ic}</span>${lb}</button>`).join('')}</div>`;
   if(ed) h += `<div class="gedit">
       <div class="top">💩 <input type="time" data-gutat="${esc(ed.id)}" value="${hhmm(ed.at)}" aria-label="Time">
         <button class="link" data-gdel="${esc(ed.id)}" style="color:var(--bad)">Remove</button>
@@ -1878,12 +1917,26 @@ function gutCard(day, isToday){
       <div class="bris">${[1, 2, 3, 4, 5, 6, 7].map(n => `<button class="${n > 5 ? 'w' : ''}" data-gtype="${n}" aria-pressed="${ed.type === n}" aria-label="Type ${n}: ${BTXT[n]}" title="${BTXT[n]}">${bIcon(n)}${n}</button>`).join('')}</div>
       <div class="bscale"><span>hard</span><b>normal</b><span>loose</span></div>
       <div class="gtags">${GTAGS.map(([k, ic, lb]) => `<button data-gtag="${k}" aria-pressed="${(ed.tags || []).includes(k)}"><span>${ic}</span>${lb}</button>`).join('')}</div></div>`;
-  h += list.filter(e => e.id !== gutEdit).map(e => `<button class="gline" data-gedit="${esc(e.id)}" aria-label="Change the one at ${hhmm(e.at)}">
-      <span class="small">${hhmm(e.at)}</span>${e.type ? bIcon(e.type) + `<span>${e.type} · ${BTXT[e.type]}</span>` : '<span class="small">💩 tap to add the type</span>'}
-      <span class="tg">${GTAGS.filter(([k]) => (e.tags || []).includes(k)).map(([, ic]) => ic).join('')}</span></button>`).join('');
-  if(!list.length && !isToday) h += `<p class="small">None logged that day.</p>`;
+  if(es){ const [, ic, lb] = GSYM.find(x => x[0] === es.k) || ['', '❔', es.k];
+    h += `<div class="gedit">
+      <div class="top">${ic} ${esc(lb)} <input type="time" data-symat="${esc(es.id)}" value="${hhmm(es.at)}" aria-label="Time">
+        <button class="link" data-symdel="${esc(es.id)}" style="color:var(--bad)">Remove</button>
+        <button class="btn" data-act="gdone">✓</button></div>
+      <div class="small">How bad?</div>
+      <div class="glvl">${[1, 2, 3].map(n => `<button data-symlvl="${n}" aria-pressed="${es.lvl === n}"><span>${ic.repeat(n)}</span>${GLVL[n]}</button>`).join('')}</div></div>`; }
+  const line = (e, inner, del) => `<div class="lrow"><button class="gline" data-gedit="${esc(e.id)}" aria-label="Change the one at ${hhmm(e.at)}">${inner}</button>
+      <button class="link x" ${del}="${esc(e.id)}" aria-label="Remove the one at ${hhmm(e.at)}">✕</button></div>`;
+  h += [...list.map(e => ({ e, poo:true })), ...syms.map(e => ({ e }))].filter(x => x.e.id !== gutEdit).sort((a, b) => a.e.at - b.e.at)
+    .map(({ e, poo }) => { if(poo) return line(e, `<span class="small">${hhmm(e.at)}</span>${e.type ? bIcon(e.type) + `<span>${e.type} · ${BTXT[e.type]}</span>` : '<span class="small">💩 tap to add the type</span>'}
+      <span class="tg">${GTAGS.filter(([k]) => (e.tags || []).includes(k)).map(([, ic]) => ic).join('')}</span>`, 'data-gdel');
+      const [, ic, lb] = GSYM.find(x => x[0] === e.k) || ['', '❔', e.k];
+      return line(e, `<span class="small">${hhmm(e.at)}</span><span class="si">${ic}</span><span>${esc(lb)}${e.lvl ? ` · ${GLVL[e.lvl]}` : ' · <span class="small">tap to say how bad</span>'}</span>`, 'data-symdel'); }).join('');
+  // days saved before symptoms had times: the old once-a-day ticks
+  h += GFLAGS.filter(([k]) => gutFlag(day, k)).map(([k, ic, lb]) => `<div class="nline"><span class="small">all day</span><span class="nt">${ic} ${lb}</span>
+      <button class="link x" data-gflag="${k}" aria-label="Remove ${lb.toLowerCase()} that day">✕</button></div>`).join('');
+  if(!list.length && !syms.length && !isToday) h += `<p class="small">None logged that day.</p>`;
   h += gutNotes(day).map(n => `<div class="nline"><span class="small">${hhmm(n.at)}</span><span class="nt">📝 ${esc(n.text)}</span>
-      <button class="link" data-ndel="${esc(n.id)}" aria-label="Remove the note at ${hhmm(n.at)}">✕</button></div>`).join('');
+      <button class="link x" data-ndel="${esc(n.id)}" aria-label="Remove the note at ${hhmm(n.at)}">✕</button></div>`).join('');
   return h + `<div class="nadd"><textarea class="gnote" data-gnote="1" rows="2" placeholder="📝 Note ${isToday ? '' : 'for that day '}— food, stress, travel… whenever it comes to mind" aria-label="New note">${esc(noteDraft[day] || '')}</textarea>
     <button class="btn" data-act="nadd">Add</button></div></div>`;
 }
@@ -1930,7 +1983,12 @@ function renderSettings(){
         ${cups().map((c, i) => `<label>drink ${i + 1} <input data-cupn="${i}" value="${esc(c.n)}" aria-label="Drink ${i + 1} name"></label>`).join('')}
         ${cups().map((c, i) => `<label>ml <input data-cupml="${i}" inputmode="numeric" value="${esc(c.ml)}" aria-label="Drink ${i + 1} ml"></label>`).join('')}
         <label class="full">Celebrate a streak of … days at the protein target <input id="pStreak" inputmode="numeric" value="${esc(streakGoal())}" placeholder="7"></label></div>
-      <div class="actions"><button class="btn ghost" data-act="ptarget">Save</button></div></div>
+      <div class="actions"><button class="btn ghost" data-act="ptarget">Save</button></div>
+      <h3 style="margin-top:14px">My meals</h3>
+      ${meals().length ? meals().map((m, i) => `<div class="nline"><span class="nt">☆ ${esc(m.name)}<span class="small"> · ${esc(m.src)}${
+        [m.g != null ? `${m.g} g protein` : '', m.kcal != null ? `${m.kcal} kcal` : '', m.fat != null ? `${m.fat} g fat` : ''].filter(Boolean).map(x => ' · ' + x).join('')}</span></span>
+        <button class="link x" data-mdel="${i}" aria-label="Remove ${esc(m.name)} from My meals">✕</button></div>`).join('')
+      : '<p class="small">None yet. In Daily → Food → + Meal or snack…, tick ☆ Keep in My meals.</p>'}</div>
     ${supp ? `<details class="sess" id="suppEdit"><summary>Supplements <span>· ${supp.items.length} on the list</span></summary>
       <p class="small">Each one has its own reminder time and days (no time = no reminder, tick it whenever).
         Those due at the same time come in one notification. Doses stay until you change them here.</p>
@@ -1947,10 +2005,27 @@ function renderSettings(){
   $main.innerHTML = h;
 }
 
+// Edit a finished workout (user, 2026-10-28): its sets as boxes, − removes one, + adds one; Save changes
+// marks it edited, and the next sync writes it over its file in the repo.
+let logEdit = null;                                     // {id, slots} — a copy being changed
+const LFIELDS = [['kg', 'kg'], ['reps', 'reps'], ['l', 'sec L'], ['r', 'sec R']];
+function editBox(s){
+  return `<div class="ledit">${logEdit.slots.map((x, i) => !x.sets.length && !s.slots[i].sets.some(t => t.done) ? '' : `<div class="lex"><b>${esc(x.name)}</b>
+    ${x.sets.map((t, j) => `<div class="lset"><span class="small">${j + 1}</span>
+      ${LFIELDS.filter(([f]) => t[f] !== undefined && !(f === 'kg' && t.band)).map(([f, lb]) => `<label>${lb}<input data-le="${i}.${j}.${f}" inputmode="decimal" value="${esc(t[f])}"></label>`).join('')}
+      ${t.band ? `<span class="small">${esc(t.band)}</span>` : ''}
+      <button class="link x" data-lrm="${i}.${j}" aria-label="Remove set ${j + 1} of ${esc(x.name)}">✕</button></div>`).join('')}
+    ${x.sets.length ? `<button class="link" data-ladd="${i}">+ set</button>` : '<span class="small">no sets left</span>'}</div>`).join('')}
+    <div class="actions"><button class="btn ghost" data-act="lcancel">Cancel</button><button class="btn" data-act="lsave">Save changes</button></div></div>`;
+}
 function renderHistory(){
   let h = `<p class="small">${syncText()}</p>`;
   if(!history.length) h += `<p class="empty">No finished workouts yet.</p>`;
   [...history].reverse().forEach(s => {
+    if(logEdit && logEdit.id === s.id){
+      h += `<details class="sess" open><summary>${dateTxt(s.startedAt)} · ${PLAN[s.day] ? PLAN[s.day].title : s.day} <span>· changing</span></summary>${editBox(s)}</details>`;
+      return;
+    }
     const p = PLAN[s.day];
     const sets = s.slots.reduce((n, x) => n + x.sets.filter(t => t.done).length, 0);
     const mins = s.finishedAt && s.startedAt ? Math.round((s.finishedAt - s.startedAt) / 60000) : null;
@@ -1960,7 +2035,7 @@ function renderHistory(){
         return `<li><b>${esc(x.name)}</b>: ${x.sets.filter(t => t.done).map(t => esc(setTxt(t, ex, x.name, s.bw))).join(' · ')}</li>`;
       }).join('')}</ul>
       ${s.notes ? `<p class="small">${esc(s.notes)}</p>` : ''}
-      <p><button class="link" data-delsess="${s.id}">Delete this workout</button></p></details>`;
+      <p class="lacts"><button class="link" data-editsess="${s.id}">✎ Edit</button><button class="link" data-delsess="${s.id}">Delete this workout</button></p></details>`;
   });
   $main.innerHTML = h;
 }
@@ -2194,7 +2269,7 @@ document.addEventListener('click', e => {
   const t = e.target.closest('button'); if(!t){ showMenu(false); return; }
   if(t.id === 'more'){ showMenu(document.getElementById('menu').hidden); return; }
   showMenu(false);
-  if(t.dataset.tab){ if(t.dataset.tab !== view){ opened.clear(); suppView = null; protEdit = null; protForm = false; gutEdit = null; } view = t.dataset.tab; store.set('fb3.view', view); render(); scrollTo(0, 0); return; }
+  if(t.dataset.tab){ if(t.dataset.tab !== view){ opened.clear(); suppView = null; protEdit = null; protForm = false; pMeal = null; gutEdit = null; logEdit = null; } view = t.dataset.tab; store.set('fb3.view', view); render(); scrollTo(0, 0); return; }
   if(t.id === 'back'){ view = lastDay; render(); scrollTo(0, 0); return; }
   if(t.dataset.unfold){ const k = t.dataset.unfold; opened.add(/^\d+$/.test(k) ? +k : k); render(); return; }
   if(t.dataset.fold){ opened.delete(t.dataset.fold); render(); return; }
@@ -2217,6 +2292,7 @@ document.addEventListener('click', e => {
     const day = sDay(), src = t.dataset.pquick, g = +protLast[src], id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     const fl = foodLast[src] || {}, e = { id, at:day === dayKey() ? Date.now() : atDay(day), src, g,
       ...(fl.kcal != null ? { kcal:fl.kcal } : {}), ...(fl.fat != null ? { fat:fl.fat } : {}) };
+    if(!okAgain(protDay(day).filter(x => x.src === src), e.at, 2 * 60000, src === 'Powder' ? 'shake' : src.toLowerCase())) return;
     protChange(day, e); render(); sync();
     undoToast(`+${g} g ${src}`, () => protChange(day, { ...e, del:true }));
     return;
@@ -2224,6 +2300,7 @@ document.addEventListener('click', e => {
   if(t.dataset.cup){
     const day = sDay(), c = cups()[+t.dataset.cup]; if(!c) return;
     const e = { id:Date.now().toString(36) + Math.random().toString(36).slice(2, 6), at:day === dayKey() ? Date.now() : atDay(day), ml:+c.ml };
+    if(!okAgain(waterDay(day).filter(x => +x.ml === e.ml), e.at, 2 * 60000, `${c.n.toLowerCase()} of water`)) return;
     waterChange(day, e); render(); sync();
     undoToast(`💧 +${e.ml} ml`, () => waterChange(day, { ...e, del:true }));
     return;
@@ -2244,8 +2321,26 @@ document.addEventListener('click', e => {
   }
   if(t.dataset.act === 'gnew'){
     const day = sDay(), e = { id:Date.now().toString(36) + Math.random().toString(36).slice(2, 6), at:day === dayKey() ? Date.now() : atDay(day), tags:[] };
+    if(!okAgain(gutDay(day), e.at, 10 * 60000, '💩')) return;
     gutChange(day, e); gutEdit = e.id; render(); sync();
     undoToast(`💩 logged ${hhmm(e.at)}`, () => { gutChange(day, { ...e, del:true }); gutEdit = null; });
+    return;
+  }
+  if(t.dataset.gsym){
+    const day = sDay(), k = t.dataset.gsym, [, ic, lb] = GSYM.find(x => x[0] === k);
+    const e = { id:Date.now().toString(36) + Math.random().toString(36).slice(2, 6), at:day === dayKey() ? Date.now() : atDay(day), k, lvl:null };
+    if(!okAgain(symDay(day).filter(x => x.k === k), e.at, 10 * 60000, `${ic} ${lb.toLowerCase()}`)) return;
+    symChange(day, e); gutEdit = e.id; render(); sync();
+    undoToast(`${ic} ${lb} logged ${hhmm(e.at)}`, () => { symChange(day, { ...e, del:true }); gutEdit = null; });
+    return;
+  }
+  if(t.dataset.symlvl){
+    const day = sDay(), e = symDay(day).find(x => x.id === gutEdit); if(!e) return;
+    symChange(day, { ...e, lvl:+t.dataset.symlvl }); gutEdit = null; render(); sync(); return;
+  }
+  if(t.dataset.symdel){
+    const day = sDay(), e = symDay(day).find(x => x.id === t.dataset.symdel), [, ic, lb] = GSYM.find(x => x[0] === (e && e.k)) || ['', '❔', ''];
+    if(e){ symChange(day, { ...e, del:true }); if(gutEdit === e.id) gutEdit = null; render(); sync(); undoToast(`${ic} ${lb} ${hhmm(e.at)} removed`, () => symChange(day, { ...e, del:false })); }
     return;
   }
   if(t.dataset.act === 'nadd'){
@@ -2262,7 +2357,7 @@ document.addEventListener('click', e => {
     return;
   }
   if(t.dataset.act === 'gdone'){ gutEdit = null; render(); return; }
-  if(t.dataset.gedit){ gutEdit = t.dataset.gedit; render(); return; }
+  if(t.dataset.gedit){ gutEdit = gutEdit === t.dataset.gedit ? null : t.dataset.gedit; render(); return; }
   if(t.dataset.gflag){ const day = sDay(), k = t.dataset.gflag; gutSetFlag(day, k, !gutFlag(day, k)); render(); sync(); return; }
   if(t.dataset.gtype || t.dataset.gtag){
     const day = sDay(), e = gutDay(day).find(x => x.id === gutEdit); if(!e) return;
@@ -2276,7 +2371,13 @@ document.addEventListener('click', e => {
   }
   if(t.dataset.gdel){
     const day = sDay(), e = gutDay(day).find(x => x.id === t.dataset.gdel);
-    if(e){ gutChange(day, { ...e, del:true }); gutEdit = null; render(); sync(); undoToast(`💩 ${hhmm(e.at)} removed`, () => gutChange(day, { ...e, del:false })); }
+    if(e){ gutChange(day, { ...e, del:true }); if(gutEdit === e.id) gutEdit = null; render(); sync(); undoToast(`💩 ${hhmm(e.at)} removed`, () => gutChange(day, { ...e, del:false })); }
+    return;
+  }
+  if(t.dataset.mdel){
+    const m = meals()[+t.dataset.mdel]; if(!m) return;
+    const put = list => { prot = { ...prot, meals:list }; protDirty.plan = true; saveProt(); render(); sync(); };
+    put(meals().filter(x => x !== m)); undoToast(`☆ ${m.name} removed`, () => put([...meals(), m].sort((a, b) => a.name.localeCompare(b.name))));
     return;
   }
   if(t.dataset.pedit){ protEdit = protEdit === t.dataset.pedit ? null : t.dataset.pedit; render(); scrollTo(0, 0); return; }
@@ -2334,7 +2435,29 @@ document.addEventListener('click', e => {
   }
   if(t.dataset.demo){ demoOpen = demoOpen === t.dataset.demo ? null : t.dataset.demo; render(); return; }
   if(t.dataset.addset){ draft(view, true).slots[+t.dataset.addset].sets.push(newSet()); save(); render(); return; }
-  if(t.dataset.delset){ draft(view, true).slots[+t.dataset.delset].sets.pop(); save(); render(); return; }
+  // − on a set not done (user, 2026-10-28): remove it, instead of typing 0 to close the exercise
+  if(t.dataset.rmset){
+    const [i, j] = t.dataset.rmset.split('.').map(Number), day = view, slot = draft(day, true).slots[i], [gone] = slot.sets.splice(j, 1);
+    save(); render();
+    undoToast(`Set ${j + 1} removed`, () => { const sl = drafts[day] && drafts[day].slots[i]; if(sl){ sl.sets.splice(j, 0, gone); save(); } });
+    return;
+  }
+  if(t.dataset.editsess){
+    const s = history.find(x => x.id === t.dataset.editsess); if(!s) return;
+    logEdit = { id:s.id, slots:s.slots.map(x => ({ ...x, sets:x.sets.filter(y => y.done).map(y => ({ ...y })) })) };
+    render(); return;
+  }
+  if(t.dataset.lrm){ const [i, j] = t.dataset.lrm.split('.').map(Number); logEdit.slots[i].sets.splice(j, 1); render(); return; }
+  if(t.dataset.ladd){ const x = logEdit.slots[+t.dataset.ladd]; x.sets.push({ ...x.sets[x.sets.length - 1] }); render(); return; }
+  if(t.dataset.act === 'lcancel'){ logEdit = null; render(); return; }
+  if(t.dataset.act === 'lsave'){
+    const s = history.find(x => x.id === logEdit.id);
+    if(s){
+      if(logEdit.slots.some(x => x.sets.some(y => LFIELDS.some(([f]) => y[f] !== undefined && y[f] !== '' && !(f === 'kg' && y.band) && !(+y[f] >= 0))))){ toast('Numbers only in the boxes'); return; }
+      s.slots = logEdit.slots; s.edited = true; s.synced = false; save(); toast('Changes saved ✓'); sync();
+    }
+    logEdit = null; render(); return;
+  }
   if(t.dataset.delsess){
     if(confirm('Delete this workout from the log?')){
       const gone = history.find(s => s.id === t.dataset.delsess);
@@ -2390,17 +2513,24 @@ document.addEventListener('click', e => {
     if(at > Date.now()){ toast('That time hasn’t come yet'); return; }
     const src = document.getElementById('pSrc').value;
     const vals = { ...(g !== null ? { g } : {}), ...(kcal !== null ? { kcal } : {}), ...(fat !== null ? { fat } : {}), ...(text ? { text } : {}) };
-    const ed = protEdit && protDay(day).find(e => e.id === protEdit);
+    const ed = protEdit && protDay(day).find(e => e.id === protEdit), keep = document.getElementById('pKeep');
+    if(keep && keep.checked){
+      if(!text){ toast('Write the meal’s name to keep it'); return; }
+      const m = { name:text, src, ...(g !== null ? { g } : {}), ...(kcal !== null ? { kcal } : {}), ...(fat !== null ? { fat } : {}) };
+      prot = { ...(prot || {}), meals:[...meals().filter(x => x.name.toLowerCase() !== text.toLowerCase()), m].sort((a, b) => a.name.localeCompare(b.name)) };
+      protDirty.plan = true; saveProt();
+    }
+    pMeal = null;
     if(ed){ const { text:_t, g:_g, kcal:_k, fat:_f, ...rest } = ed; protChange(day, { ...rest, at, src, ...vals }); protEdit = null; toast('Changed'); }
     else {
       if(g !== null) protLast[src] = String(g);
       foodLast[src] = { ...(kcal !== null ? { kcal } : {}), ...(fat !== null ? { fat } : {}) };
       protChange(day, { id:Date.now().toString(36) + Math.random().toString(36).slice(2, 6), at, src, ...vals });
-      protForm = false; toast(g ? `+${g} g protein` : 'Added');
+      protForm = false; toast(`${g ? `+${g} g protein` : 'Added'}${keep && keep.checked ? ' · ☆ kept in My meals' : ''}`);
     }
     render(); sync();
   }
-  if(act === 'pcancel'){ protEdit = null; protForm = false; render(); }
+  if(act === 'pcancel'){ protEdit = null; protForm = false; pMeal = null; render(); }
   if(act === 'pform'){ protForm = true; render(); const g = document.getElementById('pG'); if(g) g.focus(); }
   if(act === 'ptarget'){
     const int = id => { const v = parseInt(document.getElementById(id).value, 10); return v > 0 ? v : undefined; };
@@ -2441,13 +2571,20 @@ document.addEventListener('input', e => {
     save(); tickClock();
   }
   if(t.id === 'notes'){ draft(view, true).notes = t.value; save(); }
+  if(t.dataset.le && logEdit){ const [i, j, f] = t.dataset.le.split('.'); logEdit.slots[+i].sets[+j][f] = t.value.replace(',', '.').trim(); }
   if(t.id === 'bw'){ bodyweight = t.value.replace(',', '.').trim(); store.set('fb3.bw', bodyweight); }
   if(t.dataset.gnote){ noteDraft[sDay()] = t.value; store.set('fb3.notedraft', noteDraft); }   // kept until Add
 });
 document.addEventListener('change', e => {
   const t = e.target;
   if(t.id === 'repSel'){ reportId = t.value; render(); }
-  if(t.id === 'pSrc' && !protEdit){ protSrc = t.value; saveProt(); render(); }
+  if(t.id === 'pSrc' && t.value.startsWith('meal:')){
+    const m = meals()[+t.value.slice(5)];
+    if(m && protEdit){ ['pText', 'pG', 'pK', 'pF'].forEach((id, n) => { const v = [m.name, m.g, m.kcal, m.fat][n]; document.getElementById(id).value = v ?? ''; }); t.value = m.src; }
+    else if(m){ pMeal = m; render(); }
+    return;
+  }
+  if(t.id === 'pSrc' && !protEdit){ protSrc = t.value; pMeal = null; saveProt(); render(); }
   // the time box of a taken supplement: correct when it was taken
   if(t.dataset.suppat && /^\d\d:\d\d$/.test(t.value) && taken(sDay(), t.dataset.suppat)){
     const day = sDay(), at = atDay(day, t.value);
@@ -2461,6 +2598,11 @@ document.addEventListener('change', e => {
     const day = sDay(), e = gutDay(day).find(x => x.id === t.dataset.gutat), at = atDay(day, t.value);
     if(at > Date.now()){ toast('That time hasn’t come yet'); render(); return; }
     if(e){ gutChange(day, { ...e, at }); render(); sync(); }
+  }
+  if(t.dataset.symat && /^\d\d:\d\d$/.test(t.value)){
+    const day = sDay(), e = symDay(day).find(x => x.id === t.dataset.symat), at = atDay(day, t.value);
+    if(at > Date.now()){ toast('That time hasn’t come yet'); render(); return; }
+    if(e){ symChange(day, { ...e, at }); render(); sync(); }
   }
   if(t.dataset.swap){ draft(view, true).slots[+t.dataset.swap].name = t.value; save(); render(); }
   if(t.id === 'importFile' && t.files[0]){
@@ -2738,11 +2880,12 @@ async function sync(){
       deleted = deleted.filter(x => x.path !== d.path); store.set('fb3.deleted', deleted);
     }
     for(const s of history.filter(s => !s.synced)){
-      const { synced, ...body } = s, path = pathFor(s);
+      const { synced, edited, ...body } = s, path = pathFor(s);
       const existing = await api(path + `?ref=${gh.branch}`);   // already there from an earlier, half-finished upload
-      if(!existing) await api(path, { method:'PUT', body:JSON.stringify({
-        message:`Log ${PLAN[s.day]?.title || s.day} workout ${path.slice(14, 24)}`, content:b64enc(JSON.stringify(body, null, 2)), branch:gh.branch }) });
-      s.synced = true; save();
+      if(!existing || edited) await api(path, { method:'PUT', body:JSON.stringify({
+        message:`${existing ? 'Correct' : 'Log'} ${PLAN[s.day]?.title || s.day} workout ${path.slice(14, 24)}`, content:b64enc(JSON.stringify(body, null, 2)),
+        branch:gh.branch, ...(existing ? { sha:existing.sha } : {}) }) });
+      s.synced = true; delete s.edited; save();
     }
     // and the other way: workouts saved from another phone (or a new phone) come in by themselves
     const added = await pullNew();
@@ -2845,6 +2988,7 @@ async function syncGut(){
     const path = `${GUT_DIR}/days/${day}.json`, f = await api(path + `?ref=${gh.branch}`);
     const remote = f ? JSON.parse(b64dec(f.content)) : {}, mine = gutLog[day] || {};
     const merged = gutShape({ entries:mergeEntries(remote.entries, mine.entries), flags:mergeDay(remote.flags, mine.flags),
+      sym:mergeEntries(remote.sym, mine.sym),
       notes:mergeEntries(remote.notes, mine.notes), note:laterNote(remote.note, mine.note) });
     if(JSON.stringify(merged) !== JSON.stringify(gutShape(mine))){ gutLog[day] = merged; changed = true; }
     if(gutDirty.days.includes(day) && JSON.stringify(merged) !== JSON.stringify(gutShape(remote)))
