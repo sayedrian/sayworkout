@@ -939,10 +939,7 @@ const GROUPS = ['Quads','Hamstrings & glutes','Chest','Back','Shoulders','Arms',
 const PER_HAND = new Set(['Weighted dead bug','Flat dumbbell press','Dumbbell press','Chest-supported dumbbell row',
   'One-arm dumbbell row','Dumbbell lateral raise','Seated dumbbell shoulder press','Bulgarian split squat','Walking lunge',
   'Step-up','Rear-delt dumbbell fly','Hammer curl','Dumbbell curl','Incline dumbbell press','Dumbbell RDL','Heavy one-arm dumbbell hold']);
-// a typed-in name (not in the plan) with "dumbbell" in it is weighed per hand, like the plan's dumbbell lifts
-const KNOWN = new Set(Object.values(PLAN).flatMap(p => p.ex.flatMap(e => [e.name, ...e.alts])));
-const loadOf = name => /assisted/i.test(name) ? 'assist'
-  : PER_HAND.has(name) || (!KNOWN.has(name) && /dumbbell/i.test(name)) ? 'hand' : 'total';
+const loadOf = name => /assisted/i.test(name) ? 'assist' : PER_HAND.has(name) ? 'hand' : 'total';
 const LOAD_HEAD = { total:'kg total', hand:'kg / hand', assist:'assist kg' };
 // Body-weight exercises (2026-10-16): 'only' → no weight box at all; 'plus' → body weight, extra kg optional.
 const BW_ONLY = new Set(['Ab wheel rollout','Barbell rollout','Swiss ball rollout','Hollow hold','Dead bug',
@@ -1196,7 +1193,7 @@ function blank(day){
 }
 // a slot starts on the variant done most recently (e.g. assisted pull-up instead of pulldown)
 function lastUsed(ex){
-  const used = namesOf(ex).map(n => ({ n, l:lastFor(n) })).filter(o => o.l).sort((a, b) => b.l.at - a.l.at)[0];
+  const used = [ex.name, ...ex.alts].map(n => ({ n, l:lastFor(n) })).filter(o => o.l).sort((a, b) => b.l.at - a.l.at)[0];
   return used ? used.n : ex.name;
 }
 function newSet(){ return { kg:'', reps:'', done:false }; }
@@ -1236,15 +1233,8 @@ function prevFor(name, before){
 }
 function exFor(name){
   for(const d of ALL){ const e = PLAN[d].ex.find(e => e.name === name || e.alts.includes(name)); if(e) return e; }
-  const of = typedSlots().find(x => x.name === name)?.of;
-  return of && of !== name ? exFor(of) : null;
+  return null;
 }
-// A name typed in instead of picked (user, 2026-10-30): the slot keeps its plan exercise in `of`,
-// so the report counts the right muscle group and the menu offers the name again next time.
-const OTHER = '__other';
-let typing = null;    // index of the exercise whose name box is open
-const typedSlots = () => history.concat(Object.values(drafts)).flatMap(s => s.slots || []).filter(x => x.of);
-const namesOf = ex => [...new Set([ex.name, ...ex.alts, ...typedSlots().filter(x => x.of === ex.name).map(x => x.name)])];
 // kg actually moved; for assisted machines body weight − assist (null if body weight unknown)
 function lifted(s, name, bw){
   const kg = parseFloat(s.kg);
@@ -2108,8 +2098,7 @@ function renderDay(day){
   p.ex.forEach((ex, i) => {
     const slot = d.slots[i], last = lastFor(slot.name);
     const doneCount = slot.sets.filter(s => s.done).length;
-    const options = [...new Set([...namesOf(ex), slot.name])].map(n => `<option ${n===slot.name?'selected':''}>${esc(n)}</option>`).join('')
-      + `<option value="${OTHER}">Other… type a name</option>`;
+    const options = [ex.name, ...ex.alts].map(n => `<option ${n===slot.name?'selected':''}>${esc(n)}</option>`).join('');
     const load = loadOf(slot.name), bwk = bwOf(slot.name), band = bandOf(slot.name), picked = slot.band || [];
     const tm = timedOf(ex, slot.name);
     let hint = '';
@@ -2145,9 +2134,6 @@ function renderDay(day){
       <div class="ex-head"><div class="num">${i+1}</div>
         <div class="ex-title">
           <div class="pick"><select data-swap="${i}" aria-label="Exercise (tap to swap)">${options}</select></div>
-          ${typing === i ? `<div class="nadd"><input id="swName" class="gnote" maxlength="60" enterkeyhint="done" placeholder="Exercise you did instead"
-            aria-label="Exercise name" value="${slot.of ? esc(slot.name) : ''}"><button class="btn" data-act="swname">Use</button>
-            <button class="btn ghost" data-act="swcancel">Cancel</button></div>` : ''}
           <div class="rx">${rxOf(ex, slot.name)} · rest ${restTxt(ex.rest)} ${slot.name !== ex.name ? '· <span class="swap">swapped</span>' : ''}</div>
         </div>${foldUp(i)}${HOW[slot.name] || DEMO[slot.name] ? `<button class="vid" data-demo="${esc(slot.name)}" aria-expanded="${demoOpen === slot.name}" aria-label="How to do ${esc(slot.name)}" title="How to do it"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="3.5"/><path d="M10 9.2v5.6l4.8-2.8z"/></svg></button>` : ''}</div>
       <p class="cue">${esc(cueLine(slot.name, ex.cue))}</p>
@@ -2423,7 +2409,7 @@ function renderHistory(){
       return before.length && score(best(t, x.name, s.bw), x.name, s.bw) > Math.max(...before) * 1.005; }).length;
     h += `<details class="hcard" ${detK('h:' + s.id)}><summary class="hsum">${dblock}${title}${prs ? `<span class="bdg best">${prs} PR</span>` : ''}${CHEV}</summary>
       <div class="hbody">${s.slots.filter(x => x.sets.some(t => t.done)).map(x => {
-        const ex = exFor(x.name), done = x.sets.filter(t => t.done), b = best(done, x.name, s.bw);
+        const ex = p && p.ex.find(e => e.name === x.name || e.alts.includes(x.name)), done = x.sets.filter(t => t.done), b = best(done, x.name, s.bw);
         return `<div class="hx"><b>${esc(x.name)}</b><span class="hsets">${done.map(t => `<span class="${t === b ? 'top' : ''}">${esc(setTxt(t, ex, x.name, s.bw))}</span>`).join('')}</span></div>`;
       }).join('')}
       ${s.notes ? `<p class="small">${esc(s.notes)}</p>` : ''}
@@ -2914,8 +2900,6 @@ document.addEventListener('click', e => {
     });
     return;
   }
-  if(t.dataset.act === 'swname'){ typedName(); return; }
-  if(t.dataset.act === 'swcancel'){ typing = null; render(); return; }
   if(t.dataset.act === 'wother'){ waterOther = !waterOther; render(); const w = document.getElementById('wMl'); if(w) w.focus(); return; }
   if(t.dataset.act === 'wadd'){
     const day = sDay(), ml = parseInt(document.getElementById('wMl').value, 10);
@@ -3217,20 +3201,6 @@ document.addEventListener('input', e => {
   if(t.dataset.pf){ profile = { ...profile, [t.dataset.pf]:t.value.replace(/[^\d.]/g, '') }; store.set('fb3.profile', profile); }
   if(t.dataset.gnote){ noteDraft[sDay()] = t.value; store.set('fb3.notedraft', noteDraft); }   // kept until Add
 });
-// a slot's exercise: picked from the menu, or typed (a known name in other capitals counts as that one)
-function swapTo(i, name){
-  const slot = draft(view, true).slots[i], ex = PLAN[view].ex[i];
-  name = [...KNOWN].find(n => n.toLowerCase() === name.toLowerCase()) || name;
-  slot.name = name;
-  if(name === ex.name || ex.alts.includes(name)) delete slot.of; else slot.of = ex.name;
-  typing = null; save(); render();
-}
-function typedName(){
-  const name = (document.getElementById('swName')?.value || '').trim().replace(/\s+/g, ' ');
-  if(!name){ toast('Type the exercise name'); return; }
-  swapTo(typing, name);
-}
-document.addEventListener('keydown', e => { if(e.key === 'Enter' && e.target.id === 'swName'){ e.preventDefault(); typedName(); } });
 document.addEventListener('change', e => {
   const t = e.target;
   if(t.id === 'repSel'){ reportId = t.value; render(); }
@@ -3260,8 +3230,7 @@ document.addEventListener('change', e => {
     if(at > Date.now()){ toast('That time hasn’t come yet'); render(); return; }
     if(e){ symChange(day, { ...e, at }); render(); sync(); }
   }
-  if(t.dataset.swap && t.value === OTHER){ typing = +t.dataset.swap; render(); document.getElementById('swName')?.focus(); return; }
-  if(t.dataset.swap){ swapTo(+t.dataset.swap, t.value); }
+  if(t.dataset.swap){ draft(view, true).slots[+t.dataset.swap].name = t.value; save(); render(); }
   if(t.id === 'importFile' && t.files[0]){
     t.files[0].text().then(txt => {
       const data = JSON.parse(txt), ids = new Set(history.map(s => s.id));
