@@ -351,6 +351,11 @@ nav button .lb{font-size:11px;font-weight:650;line-height:1;font-variant-numeric
 .pick::after{content:'▾';color:var(--accent);font-size:15px}
 .unitnote{font-size:12px;color:var(--muted);padding:0 14px 4px}
 .bands{display:flex;flex-wrap:wrap;gap:6px;padding:4px 14px 6px}
+.addex{width:100%;margin:4px 0 10px}
+.addform .chips3{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 8px}
+.addname{font-size:19px;font-weight:800;color:var(--ink)}
+.addform .addn{display:flex;align-items:center;gap:10px;margin:6px 0 8px}.addform .addn .btn{flex:0 0 48px;min-height:44px;padding:0;font-size:20px}
+.addform .addn b{font-size:20px;min-width:24px;text-align:center;font-variant-numeric:tabular-nums}
 .chip{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 11px;font-size:13px}
 .chip .sw{width:12px;height:12px;border-radius:50%;border:1px solid var(--muted)}
 .chip .kg{opacity:.7;font-size:12px}
@@ -936,10 +941,12 @@ const GROUPS = ['Quads','Hamstrings & glutes','Chest','Back','Shoulders','Arms',
 // How weight is entered (the user's rule, 2026-10-15):
 // one weight shared by both sides (barbell, machine, cable) → the total;
 // dumbbells → what one hand holds; assisted machines → the assist, and what you lift = body weight − assist.
+const KNOWN = new Set(Object.values(PLAN).flatMap(p => p.ex.flatMap(e => [e.name, ...e.alts])));
 const PER_HAND = new Set(['Weighted dead bug','Flat dumbbell press','Dumbbell press','Chest-supported dumbbell row',
   'One-arm dumbbell row','Dumbbell lateral raise','Seated dumbbell shoulder press','Bulgarian split squat','Walking lunge',
   'Step-up','Rear-delt dumbbell fly','Hammer curl','Dumbbell curl','Incline dumbbell press','Dumbbell RDL','Heavy one-arm dumbbell hold']);
-const loadOf = name => /assisted/i.test(name) ? 'assist' : PER_HAND.has(name) ? 'hand' : 'total';
+const loadOf = name => { const w = addedW(name);
+  return w ? (w === 'hand' ? 'hand' : w === 'assist' ? 'assist' : 'total') : /assisted/i.test(name) ? 'assist' : PER_HAND.has(name) ? 'hand' : 'total'; };
 const LOAD_HEAD = { total:'kg total', hand:'kg / hand', assist:'assist kg' };
 // Body-weight exercises (2026-10-16): 'only' → no weight box at all; 'plus' → body weight, extra kg optional.
 const BW_ONLY = new Set(['Ab wheel rollout','Barbell rollout','Swiss ball rollout','Hollow hold','Dead bug',
@@ -955,7 +962,25 @@ function timedOf(ex, name){
   const t = TIMED[name];
   return t ? { min:t[0], max:t[1], sides:false } : null;
 }
-const bwOf = name => BW_ONLY.has(name) ? 'only' : BW_PLUS.has(name) ? 'plus' : null;
+const bwOf = name => { const w = addedW(name);
+  return w ? (w === 'bw' ? 'only' : w === 'bwplus' ? 'plus' : null) : BW_ONLY.has(name) ? 'only' : BW_PLUS.has(name) ? 'plus' : null; };
+// Exercises added under the last one (user, 2026-10-30): the plan's exercises stay as they are; an added one is
+// an extra slot with `add:{w, mg}` — how it is weighed (ADD_W) and, if picked, its muscle group (for the report)
+const ADD_W = [['total','kg total'], ['hand','kg / hand'], ['leg','each leg'], ['bw','body weight'], ['bwplus','body weight + kg'],
+  ['assist','assist kg'], ['sec','seconds']];
+// the latest setup of an added name (the plan's own names always keep the plan's rules)
+function addedCfg(name){
+  if(KNOWN.has(name)) return null;
+  for(const d of Object.values(drafts)){ const x = (d.slots || []).find(x => x.add && x.name === name); if(x) return x.add; }
+  for(let i = history.length - 1; i >= 0; i--){ const x = history[i].slots.find(x => x.add && x.name === name); if(x) return x.add; }
+  return null;
+}
+const addedW = name => addedCfg(name)?.w || null;
+// an added slot as an exercise: no rep range, so no "top of the range" hint; seconds are timed like a plank
+const addedEx = x => ({ name:x.name, sets:x.sets.length, rest:90, alts:[], cue:'', mg:x.add.mg || 'Other', added:true,
+  ...(x.add.w === 'sec' ? { time:true, min:30, max:60 } : {}) });
+// a workout's exercises: the plan's, then the added ones
+const exList = (day, d) => PLAN[day].ex.concat((d ? d.slots.slice(PLAN[day].ex.length) : []).map(addedEx));
 const headOf = name => bandOf(name) ? (bandOf(name) === 'loop' ? 'band' : 'band kg') : bwOf(name) === 'only' ? 'body weight'
   : bwOf(name) === 'plus' ? '+' + LOAD_HEAD[loadOf(name)] : LOAD_HEAD[loadOf(name)];
 
@@ -1233,7 +1258,8 @@ function prevFor(name, before){
 }
 function exFor(name){
   for(const d of ALL){ const e = PLAN[d].ex.find(e => e.name === name || e.alts.includes(name)); if(e) return e; }
-  return null;
+  const cfg = addedCfg(name);
+  return cfg ? addedEx({ name, add:cfg, sets:[] }) : null;
 }
 // kg actually moved; for assisted machines body weight − assist (null if body weight unknown)
 function lifted(s, name, bw){
@@ -1991,6 +2017,7 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':
 const range = ex => ex.min === ex.max ? ex.min : `${ex.min}–${ex.max}`;
 const rx = ex => `${ex.sets} × ${range(ex)}${ex.time ? ' s' : ''}${ex.side ? ' / ' + (ex.sideWord || 'side') : ''}`;
 const rxOf = (ex, name) => { const tm = timedOf(ex, name);
+  if(ex.added) return `${ex.sets} sets${ex.time ? ' · seconds' : addedW(name) === 'leg' ? ' · reps / leg' : ''} · added`;
   return tm && !ex.time ? `${ex.sets} × ${range(tm)} s` : rx(ex); };
 const topOf = (ex, name) => (timedOf(ex, name) || ex).max;
 // seconds of a timed set: per side "L 45s / R 38s", else "45s"
@@ -2008,6 +2035,39 @@ const setTxt = (s, ex, name, bw) => {
   if(load === 'assist'){ const l = lifted(s, name, bw); return `assist ${s.kg} kg${l != null ? ` (lift ${l})` : ''} × ${amt}`; }
   return `${s.kg} kg${load === 'hand' ? '/hand' : ''} × ${amt}`;
 };
+
+// "+ Add exercise" under the last one: name, how it is weighed, sets, muscle (optional) — or one tap on one added before
+let addForm = null;   // {name, w, n, mg} while the form is open
+const ADD_MG = ['Chest','Back','Shoulders','Arms','Quads','Hamstrings & glutes','Core','Calves'];
+// exercises added before, latest first (this workout's first), not already in today's list
+function addedBefore(day, d){
+  const have = new Set(d.slots.map(x => x.name)), seen = new Map();
+  [...history].reverse().sort((a, b) => (b.day === day) - (a.day === day)).forEach(s => s.slots.forEach(x => {
+    if(x.add && !have.has(x.name) && !seen.has(x.name)) seen.set(x.name, { name:x.name, add:x.add, n:x.sets.length || 3 }); }));
+  return [...seen.values()].slice(0, 6);
+}
+function addBox(day, d){
+  const again = addedBefore(day, d);
+  if(!addForm) return `<button class="btn ghost addex" data-act="addopen">＋ Add exercise</button>`;
+  const f = addForm, chip = (k, v, label, on) => `<button class="chip" data-${k}="${esc(v)}" aria-pressed="${on}">${esc(label)}</button>`;
+  return `<div class="box addform"><h3>Add exercise</h3>
+    ${again.length ? `<p class="small">Added before — one tap:</p><div class="chips3">${again.map((a, k) => `<button class="chip" data-addagain="${k}">＋ ${esc(a.name)}</button>`).join('')}</div>` : ''}
+    <input id="addName" class="gnote" maxlength="60" enterkeyhint="done" placeholder="Exercise name" aria-label="Exercise name" value="${esc(f.name)}">
+    <p class="small">Weighed as</p><div class="chips3">${ADD_W.map(([k, l]) => chip('addw', k, l, f.w === k)).join('')}</div>
+    <div class="addn"><span class="small">Sets</span><button class="btn ghost" data-addn="-1" aria-label="One set less">−</button><b>${f.n}</b>
+      <button class="btn ghost" data-addn="1" aria-label="One set more">+</button></div>
+    <p class="small">Muscle (optional)</p><div class="chips3">${ADD_MG.map(g => chip('addmg', g, g, f.mg === g)).join('')}</div>
+    <div class="actions"><button class="btn ghost" data-act="addcancel">Cancel</button><button class="btn" data-act="addex">Add</button></div></div>`;
+}
+// the new slot goes after the last one; a plan exercise typed in (any capitals) keeps the plan's rules
+function addExercise(day, name, add, n){
+  const known = [...KNOWN].find(k => k.toLowerCase() === name.toLowerCase());
+  const d = draft(day, true), same = d.slots.find(x => x.name.toLowerCase() === name.toLowerCase());
+  if(same){ toast(`${same.name} is already in this workout`); return false; }
+  d.slots.push({ name:known || name, add:{ w:add.w, ...(add.mg ? { mg:add.mg } : {}) }, sets:Array.from({ length:n }, newSet) });
+  opened.add(d.slots.length - 1); addForm = null; save(); render();
+  return true;
+}
 
 // ---------- Render ----------
 const $main = document.getElementById('main');
@@ -2035,7 +2095,7 @@ const opened = new Set();    // folded cards the user tapped open again (until t
 // Nutrition, Progress (Report and History, one switch apart) and Settings. No ⋯ menu, no ← back.
 // change tab (and scroll to one of its sections: an element id), clearing what was open on the tab left
 function goTo(v, sec){
-  if(v !== view){ opened.clear(); noteOpen = false; suppView = null; protEdit = null; protForm = false; pMeal = null; gutEdit = null; logEdit = null; }
+  if(v !== view){ opened.clear(); noteOpen = false; suppView = null; protEdit = null; protForm = false; pMeal = null; gutEdit = null; logEdit = null; addForm = null; }
   view = v; store.set('fb3.view', view); render();
   const el = sec && document.getElementById(sec);
   if(el){ const top = el.getBoundingClientRect().top + scrollY - document.querySelector('header').offsetHeight - 8; scrollTo(0, Math.max(0, top)); el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 900); }
@@ -2095,7 +2155,7 @@ function renderDay(day){
       ${demoOpen === r.name ? howBox(r.name) : ''}</div>`).join('')}
     <div class="small">Hip flexors are the stretch that matters most. ${day === 'home' ? 'Start every set with the same band and distance as last time.' : 'Warm-up sets only for exercise 1.'}</div></div>`;
 
-  p.ex.forEach((ex, i) => {
+  exList(day, d).forEach((ex, i) => {
     const slot = d.slots[i], last = lastFor(slot.name);
     const doneCount = slot.sets.filter(s => s.done).length;
     const options = [ex.name, ...ex.alts].map(n => `<option ${n===slot.name?'selected':''}>${esc(n)}</option>`).join('');
@@ -2133,9 +2193,9 @@ function renderDay(day){
     h += `<article class="ex ${doneCount >= slot.sets.length ? 'complete' : ''}">
       <div class="ex-head"><div class="num">${i+1}</div>
         <div class="ex-title">
-          <div class="pick"><select data-swap="${i}" aria-label="Exercise (tap to swap)">${options}</select></div>
+          ${ex.added ? `<div class="addname">${esc(slot.name)}</div>` : `<div class="pick"><select data-swap="${i}" aria-label="Exercise (tap to swap)">${options}</select></div>`}
           <div class="rx">${rxOf(ex, slot.name)} · rest ${restTxt(ex.rest)} ${slot.name !== ex.name ? '· <span class="swap">swapped</span>' : ''}</div>
-        </div>${foldUp(i)}${HOW[slot.name] || DEMO[slot.name] ? `<button class="vid" data-demo="${esc(slot.name)}" aria-expanded="${demoOpen === slot.name}" aria-label="How to do ${esc(slot.name)}" title="How to do it"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="3.5"/><path d="M10 9.2v5.6l4.8-2.8z"/></svg></button>` : ''}</div>
+        </div>${ex.added ? `<button class="foldup" data-addrm="${i}" aria-label="Remove ${esc(slot.name)}">✕</button>` : ''}${foldUp(i)}${HOW[slot.name] || DEMO[slot.name] ? `<button class="vid" data-demo="${esc(slot.name)}" aria-expanded="${demoOpen === slot.name}" aria-label="How to do ${esc(slot.name)}" title="How to do it"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="19" height="14" rx="3.5"/><path d="M10 9.2v5.6l4.8-2.8z"/></svg></button>` : ''}</div>
       <p class="cue">${esc(cueLine(slot.name, ex.cue))}</p>
       ${demoOpen === slot.name ? howBox(slot.name) : ''}
       ${hint ? `<div class="hint">${esc(hint)}</div>` : ''}
@@ -2144,7 +2204,7 @@ function renderDay(day){
       ${band ? `<div class="bands">${BANDS[band].list.map(([c, col, kg]) =>
         `<button class="chip" data-band="${i}.${esc(c)}" aria-pressed="${picked.includes(c)}"><span class="sw" style="background:${col}"></span>${esc(c)}${kg ? ` <span class="kg">${kg}</span>` : ''}</button>`).join('')}</div>` : ''}
       <div class="sets">
-        <div class="row head"><span></span><span>${headOf(slot.name)}</span><span>${tm ? (tm.sides ? 'sec L · R' : 'sec') : 'reps'}</span><span></span></div>
+        <div class="row head"><span></span><span>${headOf(slot.name)}</span><span>${tm ? (tm.sides ? 'sec L · R' : 'sec') : ex.added && addedW(slot.name) === 'leg' ? 'reps / leg' : 'reps'}</span><span></span></div>
         ${slot.sets.map((s, j) => {
           const ref = last ? (last.sets[j] || last.sets[last.sets.length-1]) : null;
           const lastKg = ref && ref.kg !== '' && ref.kg != null ? ref.kg : '';
@@ -2155,7 +2215,7 @@ function renderDay(day){
               : stepper(i, j, 'kg', s.done, `<input inputmode="decimal" data-i="${i}" data-j="${j}" data-f="kg" data-last="${esc(lastKg)}" value="${esc(s.kg)}" placeholder="${lastKg !== '' ? esc(lastKg) : bwk ? 'BW' : '–'}" aria-label="Set ${j+1} ${headOf(slot.name)}">`)}
             ${tm && tm.sides ? `<span class="lr">${['l', 'r'].map(f => secCell(i, j, s, f, ref ? ref[f] || ref.reps : tm.max)).join('')}</span>`
               : tm ? secCell(i, j, s, 'reps', ref ? ref.reps : tm.max)
-              : stepper(i, j, 'reps', s.done, `<input inputmode="numeric" data-i="${i}" data-j="${j}" data-f="reps" value="${esc(s.reps)}" placeholder="${ref ? esc(ref.reps) : ex.max}" aria-label="Set ${j+1} reps">`)}
+              : stepper(i, j, 'reps', s.done, `<input inputmode="numeric" data-i="${i}" data-j="${j}" data-f="reps" value="${esc(s.reps)}" placeholder="${ref ? esc(ref.reps) : ex.max ?? '–'}" aria-label="Set ${j+1} reps">`)}
             <button class="tick" data-tick="${i}.${j}" aria-label="Set ${j+1} done">✓</button>
           </div>`;}).join('')}
       </div>
@@ -2163,6 +2223,8 @@ function renderDay(day){
         ${doneCount > 0 && doneCount < slot.sets.length ? '<span class="small">− removes a set you won’t do</span>' : ''}</div>
     </article>`;
   });
+
+  h += addBox(day, d);
 
   if(day === 'home'){
     const cool = d.cool || [];
@@ -3092,7 +3154,24 @@ document.addEventListener('click', e => {
     }
     return;
   }
+  if(t.dataset.addw){ addForm.w = t.dataset.addw; render(); return; }
+  if(t.dataset.addmg){ addForm.mg = addForm.mg === t.dataset.addmg ? null : t.dataset.addmg; render(); return; }
+  if(t.dataset.addn){ addForm.n = Math.min(10, Math.max(1, addForm.n + +t.dataset.addn)); render(); return; }
+  if(t.dataset.addagain){ const a = addedBefore(view, draft(view, true))[+t.dataset.addagain]; if(a) addExercise(view, a.name, a.add, a.n); return; }
+  if(t.dataset.addrm){
+    const i = +t.dataset.addrm, day = view, [gone] = draft(day, true).slots.splice(i, 1);
+    save(); render();
+    undoToast(`${gone.name} removed`, () => { const d = drafts[day]; if(d) d.slots.splice(i, 0, gone); save(); });
+    return;
+  }
   const act = t.dataset.act;
+  if(act === 'addopen'){ addForm = { name:'', w:'total', n:3, mg:null }; render(); document.getElementById('addName')?.focus(); return; }
+  if(act === 'addcancel'){ addForm = null; render(); return; }
+  if(act === 'addex'){
+    const name = addForm.name.trim().replace(/\s+/g, ' ');
+    if(!name){ toast('Type the exercise name'); return; }
+    addExercise(view, name, addForm, addForm.n); return;
+  }
   if(act === 'start'){ begin(view, false); save(); render(); return; }
   if(act === 'finish'){
     const d = drafts[view];
@@ -3196,11 +3275,13 @@ document.addEventListener('input', e => {
     save(); tickClock();
   }
   if(t.id === 'notes'){ draft(view, true).notes = t.value; save(); }
+  if(t.id === 'addName' && addForm) addForm.name = t.value;
   if(t.dataset.le && logEdit){ const [i, j, f] = t.dataset.le.split('.'); logEdit.slots[+i].sets[+j][f] = t.value.replace(',', '.').trim(); }
   if(t.id === 'bw'){ bodyweight = t.value.replace(',', '.').trim(); store.set('fb3.bw', bodyweight); }
   if(t.dataset.pf){ profile = { ...profile, [t.dataset.pf]:t.value.replace(/[^\d.]/g, '') }; store.set('fb3.profile', profile); }
   if(t.dataset.gnote){ noteDraft[sDay()] = t.value; store.set('fb3.notedraft', noteDraft); }   // kept until Add
 });
+document.addEventListener('keydown', e => { if(e.key === 'Enter' && e.target.id === 'addName'){ e.preventDefault(); document.querySelector('[data-act="addex"]')?.click(); } });
 document.addEventListener('change', e => {
   const t = e.target;
   if(t.id === 'repSel'){ reportId = t.value; render(); }
@@ -3244,7 +3325,7 @@ document.addEventListener('change', e => {
 
 // A set was just ticked (or timed): fill in what was left empty, then start the rest timer.
 function setDone(day, i, j){
-  const d = draft(day, true), slot = d.slots[i], s = slot.sets[j], ex = PLAN[day].ex[i];
+  const d = draft(day, true), slot = d.slots[i], s = slot.sets[j], list = exList(day, d), ex = list[i];
   const box = f => day === view ? document.querySelector(`[data-i="${i}"][data-j="${j}"][data-f="${f}"]`) : null;
   const sugg = f => box(f) ? box(f).placeholder || box(f).dataset.sugg || '' : '';
   // one tap if the numbers match last time: take the greyed-in values (body-weight exercises have none)
@@ -3259,7 +3340,7 @@ function setDone(day, i, j){
   if(bandOf(slot.name)){ const c = slot.band || []; s.band = c.join('+'); s.kg = bandKg(slot.name, c); }
   const lastSet = slot.sets.every(x => x.done);
   if(lastSet && day === view) opened.delete(i);
-  startRest(ex.rest, lastSet ? `Next: ${PLAN[day].ex[i+1]?.name || 'finish'}` : `${slot.name} · set ${j+2}`);
+  startRest(ex.rest, lastSet ? `Next: ${list[i+1]?.name || 'finish'}` : `${slot.name} · set ${j+2}`);
 }
 // a per-side hold counts as its weaker side for the range and progress ("every set at the top")
 function sideMin(s){
@@ -3278,7 +3359,7 @@ const $hold = document.getElementById('hold');
 function holdPlan(day, key){
   const [kind, a, b, c] = key.split('.'), sides = ['Left', 'Right'];
   if(kind === 'set'){   // 'set.i.j.r' = right side first
-    const ex = PLAN[day].ex[+a], slot = draft(day, true).slots[+a], tm = timedOf(ex, slot.name);
+    const d = draft(day, true), ex = exList(day, d)[+a], slot = d.slots[+a], tm = timedOf(ex, slot.name);
     return { title:`${slot.name} · set ${+b + 1}`, min:tm.min, max:tm.max, steps:!tm.sides ? [''] : c === 'r' ? ['Right', 'Left'] : sides };
   }
   const r = (kind === 'reset' ? resetFor(day) : COOL)[+a], rounds = r.rounds || 1;
