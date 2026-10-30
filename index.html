@@ -377,7 +377,7 @@ nav button .lb{font-size:11px;font-weight:650;line-height:1;font-variant-numeric
   --bg:#0E1116; --card:#171B22; --ink:#F2F4F7; --muted:#959DAA; --line:#232934; --input:#222834;
   --accent:#3A7BFF; --accent-ink:#ffffff; --done:#3DD68C; --done-bg:#12241A; --done-ink:#0E1116;
   --hint:#F5A524; --hint-bg:#2A2112; --bar:#F2F4F7; --bar-ink:#0E1116; --bad:#FF8A7A;
-  --water:#4FB3FF; --water-bg:#16263A; --fat:#B18CFF; --soft:#A3AAB6; --chip:#222834;
+  --water:#4FB3FF; --water-bg:#16263A; --coffee:#C08457; --coffee-bg:#2A1F17; --fat:#B18CFF; --soft:#A3AAB6; --chip:#222834;
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){ --bg:#0E1116; --card:#171B22 } }
 body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:calc(100px + env(safe-area-inset-bottom))}
@@ -718,6 +718,56 @@ textarea{background:var(--input);border:0;border-radius:14px;color:var(--ink)}
 .cups button{background:var(--water-bg);color:#9AD4FF;min-height:56px;border-radius:16px}
 .cups span{font-size:12px}
 .water .nadd,.water .foldline{margin-top:10px}
+/* quick adds (approved mock-up, 2026-10-30); own class names: .c / .over are the Report grid's */
+.qt{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.q{background:var(--card);border-radius:20px;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.q .qb{border:0;background:none;color:var(--ink);text-align:left;padding:12px 12px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.ql{display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:var(--soft)}
+.ql svg{width:15px;height:15px}.ql .ch{margin-left:auto;color:#5C6472;font-size:15px;line-height:1}
+.qv{font-size:28px;font-weight:800;letter-spacing:-.01em;font-variant-numeric:tabular-nums;line-height:1.1;margin-top:4px;white-space:nowrap}
+.qv small{font-size:14px;color:var(--muted);font-weight:650}
+.qc{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.q .bar{position:relative;display:block;height:6px;border-radius:3px;margin-top:8px}
+.q .bar b{display:block;height:6px;border-radius:3px}
+.q .bar .lim{position:absolute;top:-3px;width:2px;height:12px;border-radius:1px;background:#E1E4EA}
+.qp{min-height:52px;margin:0 6px 6px;border:0;border-radius:14px;font-size:17px;font-weight:800;transition:transform .08s}
+.qp:active{transform:scale(.95)}
+.q-p .ql svg{color:var(--done)}.q-p .bar{background:#1E3527}.q-p .bar b{background:var(--done)}.q-p .qp{background:var(--done);color:#0E1116}
+.q-w .ql svg{color:var(--water)}.q-w .bar{background:var(--water-bg)}.q-w .bar b{background:var(--water)}.q-w .qp{background:var(--water);color:#0E1116}
+.q-c .ql svg{color:var(--coffee)}.q-c .bar{background:var(--coffee-bg)}.q-c .bar b{background:var(--coffee)}.q-c .qp{background:var(--coffee-bg);color:#E7B98F}
+.q-c.qover{box-shadow:inset 0 0 0 2px var(--hint)}
+.q-c.qover .qv{color:var(--hint)}.q-c.qover .qc{color:var(--hint);font-weight:700}.q-c.qover .bar b{background:var(--hint)}
+.q-c.qover .qp{background:var(--hint-bg);color:var(--hint)}
+.bump{animation:bump .35s ease-out}@keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.06)}100%{transform:scale(1)}}
+.acts{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.ar{display:flex;align-items:center;gap:12px;border-radius:18px;padding:8px 8px 8px 12px;min-height:64px;background:var(--card)}
+.ar .ai{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;flex:none}
+.ar .ai svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.ar .at{flex:1;min-width:0;display:flex;flex-direction:column;border:0;background:none;color:var(--ink);text-align:left;padding:0}
+.ar .at b{font-size:16px;font-weight:750;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ar .at span{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ar .go{min-height:48px;min-width:84px;padding:0 16px;border:0;border-radius:14px;font-size:15px;font-weight:800}
+.ar.due{background:var(--hint-bg);box-shadow:inset 0 0 0 1px #5A4316}
+.ar.due .ai{background:var(--hint);color:#2A2112}.ar.due .at span{color:var(--hint);font-weight:700}
+.ar.due .go{background:var(--hint);color:#1B1408}
+.ar.nx .ai{background:#1E2A45;color:#7FB0FF}.ar.nx .go{background:var(--accent);color:#fff}
+.ar.nx.ok .ai{background:var(--done-bg);color:var(--done)}.ar.nx.ok .go{background:var(--chip);color:var(--ink)}
+/* coffee: water's card in coffee colours */
+.coffee .glass.mug{border-color:var(--coffee);border-radius:8px 8px 16px 16px}.coffee .glass.mug i{background:#8A5A36}
+.coffee.over .glass.mug{border-color:var(--hint)}.coffee.over .glass.mug i{background:#B77A16}
+.coffee .cups button{background:var(--coffee-bg);color:#E7B98F}.coffee .cups .other{background:var(--chip);color:var(--soft)}
+.sec .st.over{color:var(--hint);font-weight:700}
+.limline{display:flex;align-items:center;gap:8px;margin:12px 0 0;font-size:13px;color:var(--hint);font-weight:700;background:var(--hint-bg);border-radius:12px;padding:8px 10px}
+/* gut: last time and a day */
+.gstats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.gs{background:#1F1813;border-radius:16px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.gs .gl{font-size:12px;font-weight:700;color:#C9A78A}
+.gs .gv{font-size:28px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums}
+.gs .gv small{font-size:14px;color:var(--muted);font-weight:650}
+.gs .gc{font-size:12px;color:var(--muted)}
+.g14{display:flex;align-items:flex-end;gap:3px;height:22px;margin-top:6px}
+.g14 i{flex:1;border-radius:2px;background:var(--coffee);min-height:3px}.g14 i.z{background:#3A2E25;height:3px!important}
+.wnotes .nadd .btn[disabled]{background:var(--chip);color:#5C6472}
 .gut{padding:14px}
 .gnow{display:grid;grid-template-columns:1.4fr repeat(3,minmax(0,1fr));gap:8px;margin:0 0 8px}
 .gnow button{min-height:72px;border:0;border-radius:16px;background:var(--chip);color:#C9CED6;flex-direction:column;gap:4px;font-size:13px;font-weight:700;padding:6px 2px}
@@ -1104,6 +1154,42 @@ function waterChange(day, e){
   waterLog[day] = [...(waterLog[day] || []).filter(x => x.id !== e.id), { ...e, t:Date.now() }];
   if(!waterDirty.days.includes(day)) waterDirty.days.push(day);
   saveWater();
+}
+// ---------- Coffee (user, 2026-10-30) ----------
+// +50 ml a tap (one shot) on the dashboard or in Nutrition, Other… for an exact amount. A daily limit
+// (prot.coffee in ml, Settings → Daily targets; 0 = none) turns it amber when passed — a limit, not a goal.
+// Days: data/coffee/days/<date>.json, {entries:[{id, t, at, ml, del}]} — merged like water.
+const COFFEE_DIR = 'data/coffee', COFFEE_LIMIT = 300;
+let coffeeLog = store.get('fb3.coffeelog', {});
+let coffeeDirty = store.get('fb3.coffeedirty', { days:[] });
+let coffeeOther = false;                               // the exact-amount box is open
+const saveCoffee = () => { store.set('fb3.coffeelog', coffeeLog); store.set('fb3.coffeedirty', coffeeDirty); };
+const coffeeDay = (day = dayKey()) => (coffeeLog[day] || []).filter(e => !e.del);
+const coffeeTotal = (day = dayKey()) => coffeeDay(day).reduce((n, e) => n + (+e.ml || 0), 0);
+const coffeeLimit = () => prot && prot.coffee != null ? +prot.coffee : COFFEE_LIMIT;
+function coffeeChange(day, e){
+  coffeeLog[day] = [...(coffeeLog[day] || []).filter(x => x.id !== e.id), { ...e, t:Date.now() }];
+  if(!coffeeDirty.days.includes(day)) coffeeDirty.days.push(day);
+  saveCoffee();
+}
+const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+// Quick adds on the dashboard (user, 2026-10-30): one tap = one step. Quick taps on the same tile, while its
+// Undo bar shows, grow one entry ("+15 g"), so the day's list doesn't fill with 5 g lines; Undo takes them all back.
+const QUICK = {
+  p:{ step:5, put:(day, e, n) => protChange(day, { ...e, src:'Quick add', g:n }), what:n => `+${n} g protein`, now:() => `${protTotal()} g today` },
+  w:{ step:100, put:(day, e, n) => waterChange(day, { ...e, ml:n }), what:n => `+${n} ml water`, now:() => `${litres(waterTotal())} L today` },
+  c:{ step:50, put:(day, e, n) => coffeeChange(day, { ...e, ml:n }), what:n => `+${n} ml coffee`, now:() => `${coffeeTotal()} ml today` },
+};
+const QUICK_MS = 5000;
+let quick = null;                                      // {k, day, id, at, n, t}: the entry the last taps grew
+function quickAdd(k){
+  const Q = QUICK[k], day = dayKey(), now = Date.now();
+  const same = quick && quick.k === k && quick.day === day && now - quick.t < QUICK_MS && undoFn;
+  const e = same ? { id:quick.id, at:quick.at } : { id:newId(), at:now }, n = (same ? quick.n : 0) + Q.step;
+  Q.put(day, e, n); quick = { k, day, ...e, n, t:now };
+  render(); sync();
+  const tile = document.querySelector(`.q[data-q="${k}"]`); if(tile){ tile.classList.remove('bump'); void tile.offsetWidth; tile.classList.add('bump'); }
+  undoToast(`${Q.what(n)} · ${Q.now()}`, () => { Q.put(day, { ...e, del:true }, n); quick = null; });
 }
 // the protein streak worth celebrating (user, 2026-10-25: editable, 7 days to start with)
 const streakGoal = () => (prot && +prot.streak) || 7;
@@ -2069,6 +2155,14 @@ function addExercise(day, name, add, n){
   return true;
 }
 
+// A workout's notes: one line each, "HH:MM text" (older workouts: one block of text, shown as it is)
+const noteLines = n => String(n || '').split('\n').filter(l => l.trim());
+function addWorkoutNote(day){
+  const d = drafts[day], txt = d && (d.noteDraft || '').trim().replace(/\s*\n\s*/g, ' ');
+  if(!txt) return;
+  d.notes = [...noteLines(d.notes), `${hhmm(Date.now())} ${txt}`].join('\n'); d.noteDraft = ''; save();
+}
+
 // ---------- Render ----------
 const $main = document.getElementById('main');
 // Workouts are the tabs; History, Report and Settings sit behind the ⋯ menu, with ← back to the workout.
@@ -2238,8 +2332,13 @@ function renderDay(day){
         <button class="tick" data-cool="${k}" aria-label="${esc(r.name)} done">✓</button>
         ${demoOpen === r.name ? howBox(r.name) : ''}</div>`).join('')}</div>`;
   }
-  h += `<div class="box"><h3>Notes</h3>
-      <textarea id="notes" placeholder="How did it feel? Anything to change?">${esc(d.notes)}</textarea></div>
+  const notes = noteLines(d.notes);
+  h += `<div class="box wnotes"><h3>Notes${notes.length ? ` <span class="small">${notes.length}</span>` : ''}</h3>
+      ${notes.map((l, k) => { const m = l.match(/^(\d\d:\d\d) (.*)$/);
+        return `<div class="nline"><span class="small">${m ? m[1] : ''}</span><span class="nt">${esc(m ? m[2] : l)}</span>
+          <button class="link x" data-wnrm="${k}" aria-label="Remove this note">✕</button></div>`; }).join('')}
+      <div class="nadd"><textarea id="noteNew" class="gnote" rows="2" placeholder="How did it feel? Anything to change?" aria-label="New note">${esc(d.noteDraft || '')}</textarea>
+        <button class="btn" data-act="wnadd" ${(d.noteDraft || '').trim() ? '' : 'disabled'}>Add</button></div></div>
     <div class="actions"><button class="btn ghost" data-act="discard">Clear day</button>
       <button class="btn" data-act="finish">Finish workout</button></div>
     <div class="box small">Stop each set ~2 reps short of failure (machines and raises can go closer).
@@ -2264,7 +2363,7 @@ function renderFuel(){
   $main.innerHTML = `${dayNav(day, isToday)}<p class="focus">${isToday ? 'Today · ' : ''}${dateTxt(noon)}</p>
     ${F.hero}${F.add}${F.list ? `<div class="box flog">${F.list}</div>` : ''}
     ${secHead('secS', 'Supplements', S.st, S.ok)}<div class="box card supp">${S.now ? `<div class="nowbox">${S.now}</div>` : ''}${S.later}</div>
-    ${waterCard(day, isToday)}${gutCard(day, isToday)}
+    ${waterCard(day, isToday)}${coffeeCard(day, isToday)}${gutCard(day, isToday)}
     <p class="small">Doses, reminders, food targets and drink sizes are in ⋯ → Settings. ${syncText()}</p>`;
 }
 function suppCard(day, now, isToday, noon){
@@ -2380,12 +2479,44 @@ function waterCard(day, isToday){
   return h + '</div>';
 }
 
+// Coffee (look: the approved mock-up, 2026-10-30): a mug filling to the limit, amber once over it, said in words too
+function coffeeCard(day, isToday){
+  const tot = coffeeTotal(day), lim = coffeeLimit(), over = lim > 0 && tot > lim, pct = lim ? Math.round(tot / lim * 100) : 0;
+  let h = `${secHead('secC', 'Coffee', `${tot}${lim ? ` / ${lim}` : ''} ml`, false).replace('class="st ', `class="st ${over ? 'over' : ''} `)}<div class="box card water coffee ${over ? 'over' : ''}">
+    <div class="wrow">${lim ? `<span class="glass mug"><i style="height:${Math.min(100, pct)}%"></i><b>${pct}%</b></span>` : ''}
+    <div class="cups"><button data-act="cshot"><b>+50 ml</b><span>one shot</span></button>
+      <button class="other" data-act="cother"><b>Other</b><span>ml</span></button></div></div>`;
+  if(over) h += `<p class="limline">⚠ ${tot - lim} ml over your limit of ${lim} ml</p>`;
+  if(coffeeOther) h += `<div class="nadd"><input id="cMl" class="gnote" inputmode="numeric" placeholder="ml" aria-label="Millilitres of coffee">
+      <button class="btn" data-act="cadd">Add</button></div>`;
+  const list = coffeeDay(day).sort((a, b) => a.at - b.at);
+  if(list.length) h += opened.has('cent') || !isToday
+    ? `<button class="foldline plain" data-fold="cent">${list.length} coffee${list.length === 1 ? '' : 's'} <span class="more">hide ▴</span></button>`
+      + list.map(e => `<div class="nline"><span class="small">${hhmm(e.at)}</span><span class="nt">☕ ${esc(e.ml)} ml</span>
+        <button class="link x" data-cdel="${esc(e.id)}" aria-label="Remove the coffee at ${hhmm(e.at)}">✕</button></div>`).join('')
+    : `<button class="foldline plain" data-unfold="cent">${list.length} coffee${list.length === 1 ? '' : 's'} ${isToday ? 'today' : 'that day'} <span class="more">show ▾</span></button>`;
+  return h + '</div>';
+}
+// 💩 last time and a day on average (user, 2026-10-30): above the buttons, in Gut only
+function gutStats(){
+  const last = Object.keys(gutLog).sort().reverse().map(k => gutDay(k).sort((a, b) => b.at - a.at)[0]).find(Boolean);
+  const pd = pastDays(gutLog), per = pd.map(k => gutDay(k).length);
+  if(!last && !pd.length) return '';
+  const ago = last ? Date.now() - last.at : 0, agoTxt = ago < 3600e3 ? `${Math.max(1, Math.round(ago / 60e3))} min ago` : ago < 48 * 3600e3 ? `${Math.round(ago / 3600e3)} h ago` : `${Math.round(ago / 864e5)} days ago`;
+  const top = Math.max(1, ...per);
+  return `<div class="gstats">
+    <div class="gs"><span class="gl">💩 Last</span><span class="gv">${last ? hhmm(last.at) : '–'}</span>
+      <span class="gc">${last ? `${dayKey(last.at) === dayKey() ? '' : dateTxt(last.at) + ' · '}${agoTxt}${last.type ? ` · type ${last.type}` : ''}` : 'none yet'}</span></div>
+    <div class="gs"><span class="gl">A day</span><span class="gv">${pd.length ? f1(avg(per)) : '–'}<small> avg</small></span>
+      <span class="gc">${pd.length ? `last ${pd.length} day${pd.length === 1 ? '' : 's'}` : 'from tomorrow'}</span>
+      ${pd.length ? `<span class="g14" aria-hidden="true">${per.map(n => `<i class="${n ? '' : 'z'}" style="height:${Math.round(n / top * 100)}%"></i>`).join('')}</span>` : ''}</div></div>`;
+}
 // Gut: 💩 logs one now and opens its details (type and icons, each saved on tap; ✓ closes);
 // 💨 🎈 🌀 log a symptom now and ask how bad (one tap picks it and closes). Poos and symptoms share one
 // timeline; tap a line to change it, ✕ removes it (with Undo).
 function gutCard(day, isToday){
   const list = gutDay(day), syms = symDay(day), ed = gutEdit && list.find(e => e.id === gutEdit), es = gutEdit && syms.find(e => e.id === gutEdit);
-  let h = `${secHead('secG', 'Gut', [list.length ? `${list.length} today` : '', syms.length ? `${syms.length} symptom${syms.length === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · '))}<div class="box card gut">
+  let h = `${secHead('secG', 'Gut', [list.length ? `${list.length} today` : '', syms.length ? `${syms.length} symptom${syms.length === 1 ? '' : 's'}` : ''].filter(Boolean).join(' · '))}<div class="box card gut">${gutStats()}
     <div class="gnow"><button class="poo" data-act="gnew" aria-label="Log a poo ${isToday ? 'now' : 'that day'}"><span class="pe">💩</span>${isToday ? 'Log now' : 'Log'}</button>
       ${GSYM.map(([k, ic, lb]) => `<button class="sym" data-gsym="${k}" aria-label="Log ${lb.toLowerCase()} ${isToday ? 'now' : 'that day'}">${svgI(GSYMI[k], 2)}${lb}</button>`).join('')}</div>`;
   if(ed) h += `<div class="gedit">
@@ -2514,6 +2645,10 @@ function renderSettings(){
       <button class="btn" data-act="ptarget">Save</button>`)
     + srow('t:w', sic('aqua', svgI('<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>')), 'Water', P.water ? `${litres(P.water)} L` : 'not set', `<div class="tgrid">
         <label class="full">a day, ml <input id="wTarget" inputmode="numeric" value="${esc(P.water || '')}"></label></div>
+      <button class="btn" data-act="ptarget">Save</button>`)
+    + srow('t:cf', sic('amber', svgI('<path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16"/>')), 'Coffee limit',
+      coffeeLimit() ? `${coffeeLimit()} ml` : 'none', `<div class="tgrid">
+        <label class="full">a day, ml (0 = no limit; the tile turns amber above it) <input id="cLimit" inputmode="numeric" value="${esc(coffeeLimit())}"></label></div>
       <button class="btn" data-act="ptarget">Save</button>`));
   h += sgroup('Food', srow('t:c', sic('aqua', svgI('<path d="M7 3h10l-1.5 17a1.5 1.5 0 0 1-1.5 1.4h-4.6A1.5 1.5 0 0 1 8 20z"/>')), 'Drink buttons', esc(cups().map(c => `${c.n} ${c.ml}`).join(' · ')),
       `<div class="tgrid">${cups().map((c, i) => `<label>drink ${i + 1} <input data-cupn="${i}" value="${esc(c.n)}" aria-label="Drink ${i + 1} name"></label><label>ml <input data-cupml="${i}" inputmode="numeric" value="${esc(c.ml)}" aria-label="Drink ${i + 1} ml"></label><span></span>`).join('')}</div>
@@ -2600,30 +2735,32 @@ function renderDash(){
   const doneToday = history.filter(x => dayKey(x.startedAt) === today);
   const mins = history.filter(x => x.finishedAt && x.startedAt).map(x => (x.finishedAt - x.startedAt) / 60000).filter(m => m >= 15 && m <= 180);
   let h = `<p class="focus">${new Date(now).toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'short' })}</p>`;
-  // hero: the workout to do (or running, or done today)
-  const w = run || next, P = PLAN[w], sets = run ? drafts[run].slots.flatMap(x => x.sets) : [];
-  const hdone = !run && doneToday.length;
-  h += `<div class="hero ${hdone ? 'ok' : ''}"><div class="ht"><div><span class="eb">${run ? 'In progress' : hdone ? 'Done today' : 'Next workout'}</span>
-      <b>${hdone ? esc(doneToday.map(x => PLAN[x.day] ? PLAN[x.day].title : x.day).join(', ')) : P.title}</b><span class="sub">${esc(hdone ? `Next: ${P.title}` : P.focus)}</span></div>
-      <span class="hi">${NAVI.train}</span></div>
-    <div class="chips">${run ? `<span>${sets.filter(x => x.done).length} of ${sets.length} sets</span>` : `<span>${P.ex.length} exercises</span>`}${mins.length ? `<span>~${Math.round(avg(mins))} min</span>` : ''}<span>${wk} of 3 in 7 days</span></div>
-    <button class="hb" data-tab="${w}" aria-label="${run ? 'Continue' : 'Open'} ${P.title}">${run ? 'Continue workout' : hdone ? `Open ${P.title}` : 'Start workout'}</button></div>`;
-  // what is due now, with Take
+  // quick adds first (user, 2026-10-30; look: the approved mock-up): the top of a tile opens its section, + adds
+  const lim = coffeeLimit(), cml = coffeeTotal(), over = lim > 0 && cml > lim;
+  const qt = (k, cls, go, icon, label, val, unit, cap, frac, plus, extra = '') => `<div class="q ${cls}" data-q="${k}">
+      <button class="qb" data-go="${go}" aria-label="Open ${label} in Nutrition"><span class="ql">${svgI(icon, 2.2)}${label}<span class="ch">›</span></span>
+        <span class="qv">${val}<small>${unit}</small></span><span class="qc">${cap}</span>
+        <span class="bar"><b style="width:${Math.min(100, Math.round(frac * 100))}%"></b>${extra}</span></button>
+      <button class="qp" data-quick="${k}" aria-label="Add ${plus} ${label.toLowerCase()}">+${plus}</button></div>`;
+  h += `<div class="qt">${qt('p', 'q-p', 'fuel#secP', '<path d="M7 14a5 5 0 1 0 10 0c0-4-5-10-5-10S7 10 7 14z"/>', 'Protein', g, ' g', target ? `of ${target} g` : 'no goal set', target ? g / target : 0, '5 g')}
+    ${qt('w', 'q-w', 'fuel#secW', '<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>', 'Water', litres(wml), ' L', water ? `of ${litres(water)} L` : 'no goal set', water ? wml / water : 0, '100 ml')}
+    ${qt('c', 'q-c' + (over ? ' qover' : ''), 'fuel#secC', '<path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16M8 3.5c0 1.2 1 1.2 1 2.5M12 3.5c0 1.2 1 1.2 1 2.5"/>',
+      'Coffee', cml, ' ml', !lim ? 'no limit' : over ? `${cml - lim} over ${lim}` : cml === lim ? 'limit reached' : `of ${lim} max`,
+      lim ? cml / (lim / .86) : 0, '50 ml', lim ? '<i class="lim" style="left:86%"></i>' : '')}</div>`;
+  // then what is due, and the next workout: one row each, same shape (the big card is gone)
+  h += '<div class="acts">';
   if(due.length){
     const tm = due[0].time, its = due.filter(x => x.time === tm);
-    h += `<div class="duebar"><span class="di">${svgI('<rect x="3" y="8.5" width="18" height="7" rx="3.5" transform="rotate(-35 12 12)"/><path d="M9.2 8.6l5.6 6.8"/>', 2.2)}</span>
-      <button class="dt" data-go="fuel#secS"><span class="eb">Due ${tm}</span><b>${esc(its.map(x => x.name).join(' + '))}</b></button>
-      <button class="take" ${its.length > 1 ? `data-suppslot="${tm}"` : `data-supp="${esc(its[0].id)}"`} aria-label="Take ${esc(its.map(x => x.name).join(' + '))}">Take</button></div>`;
+    h += `<div class="ar due"><span class="ai">${svgI('<rect x="3" y="8.5" width="18" height="7" rx="3.5" transform="rotate(-35 12 12)"/><path d="M9.2 8.6l5.6 6.8"/>', 2.2)}</span>
+      <button class="at" data-go="fuel#secS"><span>Due ${tm} · ${got} of ${req.length} today</span><b>${esc(its.map(x => x.name).join(' + '))}</b></button>
+      <button class="go" ${its.length > 1 ? `data-suppslot="${tm}"` : `data-supp="${esc(its[0].id)}"`} aria-label="Take ${esc(its.map(x => x.name).join(' + '))}">Take</button></div>`;
   }
-  // today: four rings
-  const rt = (go, frac, col, txt, big, unit, lab) => `<button class="rt" data-go="${go}">${ring(frac, col, txt)}<span><b>${big}<small>${unit}</small></b><span class="kc">${lab}</span></span></button>`;
-  const rts = [
-    target ? rt('fuel#secP', g / target, '#3DD68C', `${Math.round(g / target * 100)}%`, g, ' g', `Protein · goal ${target}`) : '',
-    water ? rt('fuel#secW', wml / water, '#4FB3FF', `${Math.round(wml / water * 100)}%`, litres(wml), ' L', `Water · goal ${litres(water)}`) : '',
-    supp ? rt('fuel#secS', req.length ? got / req.length : 1, '#F5A524', `${got}/${req.length}`, got, ` of ${req.length}`, 'Supplements') : '',
-    rt('history#hist', wk / 3, '#3A7BFF', `${wk}/3`, wk, ' of 3', 'Workouts · 7 days')].filter(Boolean);
-  h += `<div class="sec"><b>Today</b><span>${[target && g >= target, water && wml >= water, supp && got === req.length, wk >= 3].filter(Boolean).length} of ${rts.length} done</span></div>
-    <div class="rts">${rts.join('')}</div>`;
+  const w = run || next, P = PLAN[w], sets = run ? drafts[run].slots.flatMap(x => x.sets) : [], hdone = !run && doneToday.length;
+  h += `<div class="ar nx ${hdone ? 'ok' : ''}"><span class="ai">${hdone ? CHECK : NAVI.train}</span>
+      <button class="at" data-tab="${w}"><span>${run ? `In progress · ${sets.filter(x => x.done).length} of ${sets.length} sets`
+        : hdone ? `Done today: ${esc(doneToday.map(x => PLAN[x.day] ? PLAN[x.day].title : x.day).join(', '))}` : `Next · ${wk} of 3 in 7 days`}</span>
+        <b>${P.title}${!run && mins.length ? ` · ~${Math.round(avg(mins))} min` : ''}</b></button>
+      <button class="go" data-tab="${w}" aria-label="${run ? 'Continue' : 'Open'} ${P.title}">${run ? 'Continue' : hdone ? 'Open' : 'Start'}</button></div></div>`;
   h += `<div class="sec"><b>About you</b><button class="link" data-tab="report">See all</button></div><div class="about kpis">${kpiTraining()}${kpiHabits()}</div>`;
   // strength: one line per main lift
   const lines = strengthLines();
@@ -2953,6 +3090,30 @@ document.addEventListener('click', e => {
     });
     return;
   }
+  if(t.dataset.quick){ quickAdd(t.dataset.quick); return; }
+  // coffee in Nutrition: +50 ml (one shot) or Other… for an exact amount; ✕ removes one (with Undo)
+  if(t.dataset.act === 'cshot' || t.dataset.act === 'cadd'){
+    const day = sDay(), ml = t.dataset.act === 'cshot' ? 50 : parseInt(document.getElementById('cMl').value, 10);
+    if(!(ml > 0 && ml <= 2000)){ toast('Enter the millilitres'); return; }
+    const e = { id:newId(), at:day === dayKey() ? Date.now() : atDay(day), ml };
+    coffeeChange(day, e); coffeeOther = false; render(); sync();
+    undoToast(`☕ +${ml} ml`, () => coffeeChange(day, { ...e, del:true }));
+    return;
+  }
+  if(t.dataset.act === 'cother'){ coffeeOther = !coffeeOther; render(); document.getElementById('cMl')?.focus(); return; }
+  if(t.dataset.cdel){
+    const day = sDay(), e = coffeeDay(day).find(x => x.id === t.dataset.cdel);
+    if(e){ coffeeChange(day, { ...e, del:true }); render(); sync(); undoToast(`☕ ${e.ml} ml removed`, () => coffeeChange(day, { ...e, del:false })); }
+    return;
+  }
+  // workout notes (user, 2026-10-30): typed, then Add → a line with its time; ✕ removes one (with Undo)
+  if(t.dataset.act === 'wnadd'){ addWorkoutNote(view); render(); return; }
+  if(t.dataset.wnrm){
+    const day = view, d = draft(day, true), lines = noteLines(d.notes), k = +t.dataset.wnrm, [gone] = lines.splice(k, 1);
+    d.notes = lines.join('\n'); save(); render();
+    undoToast('Note removed', () => { const x = drafts[day]; if(x){ const l = noteLines(x.notes); l.splice(k, 0, gone); x.notes = l.join('\n'); save(); } });
+    return;
+  }
   if(t.dataset.cup){
     const day = sDay(), c = cups()[+t.dataset.cup]; if(!c) return;
     const e = { id:Date.now().toString(36) + Math.random().toString(36).slice(2, 6), at:day === dayKey() ? Date.now() : atDay(day), ml:+c.ml };
@@ -3174,6 +3335,7 @@ document.addEventListener('click', e => {
   }
   if(act === 'start'){ begin(view, false); save(); render(); return; }
   if(act === 'finish'){
+    if(drafts[view]) addWorkoutNote(view);   // text left in the box is a note too, never lost
     const d = drafts[view];
     const filled = d ? d.slots.flatMap(x => x.sets).filter(s => !s.done && s.reps !== '') : [];
     if(!d || !d.slots.some(x => x.sets.some(s => s.done))){
@@ -3246,7 +3408,8 @@ document.addEventListener('click', e => {
     if(range === null || kcal === null){ toast('"From" must be below "to"'); return; }
     const cs = cups().map((c, i) => ({ n:document.querySelector(`[data-cupn="${i}"]`).value.trim(), ml:parseInt(document.querySelector(`[data-cupml="${i}"]`).value, 10) }));
     if(cs.some(c => !c.n || !(c.ml > 0))){ toast('Every drink needs a name and its ml'); return; }
-    prot = { ...(prot || {}), target:g, streak:n, range, kcal, fat:int('fMin'), water:int('wTarget'), cups:cs };
+    const cl = parseInt(document.getElementById('cLimit').value, 10);
+    prot = { ...(prot || {}), target:g, streak:n, range, kcal, fat:int('fMin'), water:int('wTarget'), coffee:cl >= 0 ? cl : COFFEE_LIMIT, cups:cs };
     protDirty.plan = true; saveProt(); toast('Food targets saved'); render(); sync();
   }
   if(act === 'suppsave'){
@@ -3274,7 +3437,7 @@ document.addEventListener('input', e => {
     if(t.dataset.f === 'l' || t.dataset.f === 'r') sideMin(s);
     save(); tickClock();
   }
-  if(t.id === 'notes'){ draft(view, true).notes = t.value; save(); }
+  if(t.id === 'noteNew'){ draft(view, true).noteDraft = t.value; save(); document.querySelector('[data-act="wnadd"]').disabled = !t.value.trim(); }
   if(t.id === 'addName' && addForm) addForm.name = t.value;
   if(t.dataset.le && logEdit){ const [i, j, f] = t.dataset.le.split('.'); logEdit.slots[+i].sets[+j][f] = t.value.replace(',', '.').trim(); }
   if(t.id === 'bw'){ bodyweight = t.value.replace(',', '.').trim(); store.set('fb3.bw', bodyweight); }
@@ -3508,7 +3671,7 @@ function beep(n = 3, freq = 880){
 function tickClock(){
   const d = drafts[view], el = document.getElementById('clock'), prog = document.getElementById('prog');
   // sync dot: green = everything is in GitHub, orange = waiting (no signal, or a GitHub problem)
-  const dot = document.getElementById('sdot'), waiting = !!syncError || history.some(s => !s.synced) || suppDirty.plan || suppDirty.days.length > 0 || protDirty.plan || protDirty.days.length > 0 || gutDirty.days.length > 0 || waterDirty.days.length > 0;
+  const dot = document.getElementById('sdot'), waiting = !!syncError || history.some(s => !s.synced) || suppDirty.plan || suppDirty.days.length > 0 || protDirty.plan || protDirty.days.length > 0 || gutDirty.days.length > 0 || waterDirty.days.length > 0 || coffeeDirty.days.length > 0;
   dot.hidden = !ghReady(); dot.classList.toggle('wait', waiting); dot.title = syncText();
   const all = d && d.startedAt && !PAGES[view] ? d.slots.flatMap(x => x.sets) : [];
   prog.textContent = all.length ? `${all.filter(s => s.done).length}/${all.length} sets` : '';
@@ -3605,16 +3768,18 @@ async function sync(){
     if(await syncProt()) renderSoon();
     if(await syncGut()) renderSoon();
     if(await syncWater()) renderSoon();
+    if(await syncCoffee()) renderSoon();
     if(await pullPastDays(`${SUPP_DIR}`, suppLog, (d, j) => { suppLog[d] = j.taken || {}; }) + await pullPastDays(`${PROT_DIR}`, protLog, (d, j) => { protLog[d] = j.entries || []; })
       + await pullPastDays(GUT_DIR, gutLog, (d, j) => { gutLog[d] = gutShape(j); })
-      + await pullPastDays(WATER_DIR, waterLog, (d, j) => { waterLog[d] = j.entries || []; })){
-      saveSupp(); saveProt(); saveGut(); saveWater(); if(view === 'report') renderSoon();
+      + await pullPastDays(WATER_DIR, waterLog, (d, j) => { waterLog[d] = j.entries || []; })
+      + await pullPastDays(COFFEE_DIR, coffeeLog, (d, j) => { coffeeLog[d] = j.entries || []; })){
+      saveSupp(); saveProt(); saveGut(); saveWater(); saveCoffee(); if(view === 'report') renderSoon();
     }
   }catch(e){ syncError = e.message.startsWith('GitHub') ? e.message : 'no connection — will retry.'; }
   syncing = false;
   if(view === 'history' || view === 'settings' || view === 'fuel' || view === 'report') renderSoon(); else tickClock();
   // ticked while this sync was running: go again
-  if(!syncError && (suppDirty.plan || suppDirty.days.length || protDirty.plan || protDirty.days.length || gutDirty.days.length || waterDirty.days.length)) setTimeout(sync, 1500);
+  if(!syncError && (suppDirty.plan || suppDirty.days.length || protDirty.plan || protDirty.days.length || gutDirty.days.length || waterDirty.days.length || coffeeDirty.days.length)) setTimeout(sync, 1500);
 }
 // Supplements: the list (this phone's edit goes up, otherwise GitHub's comes down) and the ticks
 // of today and of any day changed here, merged both ways. Returns true if anything on screen changed.
@@ -3689,6 +3854,21 @@ async function syncWater(){
       await api(path, { method:'PUT', body:JSON.stringify({ message:`Water ${day}`,
         content:b64enc(JSON.stringify({ date:day, entries:merged }, null, 2) + '\n'), branch:gh.branch, ...(f ? { sha:f.sha } : {}) }) });
     waterDirty.days = waterDirty.days.filter(d => d !== day); saveWater();
+  }
+  return changed;
+}
+// Coffee: as water.
+async function syncCoffee(){
+  let changed = false;
+  for(const day of [...new Set([dayKey(), ...coffeeDirty.days, ...(suppView ? [suppView] : [])])]){
+    const path = `${COFFEE_DIR}/days/${day}.json`, f = await api(path + `?ref=${gh.branch}`);
+    const remote = f ? JSON.parse(b64dec(f.content)).entries || [] : [];
+    const merged = mergeEntries(remote, coffeeLog[day]);
+    if(JSON.stringify(merged) !== JSON.stringify(coffeeLog[day] || [])){ coffeeLog[day] = merged; changed = true; }
+    if(coffeeDirty.days.includes(day) && JSON.stringify(merged) !== JSON.stringify(mergeEntries(remote)))
+      await api(path, { method:'PUT', body:JSON.stringify({ message:`Coffee ${day}`,
+        content:b64enc(JSON.stringify({ date:day, entries:merged }, null, 2) + '\n'), branch:gh.branch, ...(f ? { sha:f.sha } : {}) }) });
+    coffeeDirty.days = coffeeDirty.days.filter(d => d !== day); saveCoffee();
   }
   return changed;
 }
