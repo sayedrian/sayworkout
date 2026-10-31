@@ -865,7 +865,7 @@ const PLAN = {
       alts:['Walking lunge','Step-up']},
     {name:'Machine chest press', sets:3, min:10, max:12, rest:75,
       cue:'Set the seat so the handles are at mid-chest. Fine to push close to the limit.',
-      alts:['Dumbbell press','Weighted push-up']},
+      alts:['Dumbbell press','Barbell bench press','Weighted push-up']},
     {name:'Reverse pec deck', sets:3, min:15, max:15, rest:45,
       cue:'Arms slightly bent, lead with the elbows, squeeze the shoulder blades 1 s. Light and strict.',
       alts:['Rear-delt dumbbell fly','Band pull-apart','Cable face pull']},
@@ -1147,7 +1147,10 @@ let waterDirty = store.get('fb3.waterdirty', { days:[] });
 let waterOther = false;                                // the exact-amount box is open
 const saveWater = () => { store.set('fb3.waterlog', waterLog); store.set('fb3.waterdirty', waterDirty); };
 const waterDay = (day = dayKey()) => (waterLog[day] || []).filter(e => !e.del);
-const waterTotal = (day = dayKey()) => waterDay(day).reduce((n, e) => n + (+e.ml || 0), 0);
+const waterOnly = (day = dayKey()) => waterDay(day).reduce((n, e) => n + (+e.ml || 0), 0);
+// Coffee counts as water (user, 2026-10-31): a normal amount hydrates about like the same amount of water
+// (Killer et al. 2014). waterTotal = drinks + coffee; waterOnly = the drinks alone.
+const waterTotal = (day = dayKey()) => waterOnly(day) + coffeeTotal(day);
 const cups = () => prot && prot.cups && prot.cups.length ? prot.cups : CUPS;
 const litres = ml => (ml / 1000).toLocaleString('en', { maximumFractionDigits:2 });
 function waterChange(day, e){
@@ -1156,7 +1159,7 @@ function waterChange(day, e){
   saveWater();
 }
 // ---------- Coffee (user, 2026-10-30) ----------
-// +50 ml a tap (one shot) on the dashboard or in Nutrition, Other… for an exact amount. A daily limit
+// +80 ml a tap (one Nespresso lungo, user 2026-10-31) on the dashboard or in Nutrition, Other… for an exact amount. A daily limit
 // (prot.coffee in ml, Settings → Daily targets; 0 = none) turns it amber when passed — a limit, not a goal.
 // Days: data/coffee/days/<date>.json, {entries:[{id, t, at, ml, del}]} — merged like water.
 const COFFEE_DIR = 'data/coffee', COFFEE_LIMIT = 320;   // 4 Nespresso lungos (user, 2026-10-31)
@@ -1178,7 +1181,7 @@ const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2
 const QUICK = {
   p:{ step:5, put:(day, e, n) => protChange(day, { ...e, src:'Quick add', g:n }), what:n => `+${n} g protein`, now:() => `${protTotal()} g today` },
   w:{ step:100, put:(day, e, n) => waterChange(day, { ...e, ml:n }), what:n => `+${n} ml water`, now:() => `${litres(waterTotal())} L today` },
-  c:{ step:50, put:(day, e, n) => coffeeChange(day, { ...e, ml:n }), what:n => `+${n} ml coffee`, now:() => `${coffeeTotal()} ml today` },
+  c:{ step:80, put:(day, e, n) => coffeeChange(day, { ...e, ml:n }), what:n => `+${n} ml coffee`, now:() => `${coffeeTotal()} ml today` },
 };
 const QUICK_MS = 5000;
 let quick = null;                                      // {k, day, id, at, n, t}: the entry the last taps grew
@@ -2468,6 +2471,8 @@ function waterCard(day, isToday){
     <div class="wrow">${target ? `<span class="glass"><i style="height:${pct}%"></i><b>${pct}%</b></span>` : ''}
     <div class="cups">${cups().map((c, i) => `<button data-cup="${i}"><b>${esc(c.n)}</b><span>${esc(c.ml)}</span></button>`).join('')}
       <button class="other" data-act="wother"><b>Other</b><span>ml</span></button></div></div>`;
+  const cof = coffeeTotal(day);
+  if(cof) h += `<p class="small wcof">incl. ${cof} ml coffee</p>`;
   if(waterOther) h += `<div class="nadd"><input id="wMl" class="gnote" inputmode="numeric" placeholder="ml" aria-label="Millilitres">
       <button class="btn" data-act="wadd">Add</button></div>`;
   const list = waterDay(day).sort((a, b) => a.at - b.at);
@@ -2484,7 +2489,7 @@ function coffeeCard(day, isToday){
   const tot = coffeeTotal(day), lim = coffeeLimit(), over = lim > 0 && tot > lim, pct = lim ? Math.round(tot / lim * 100) : 0;
   let h = `${secHead('secC', 'Coffee', `${tot}${lim ? ` / ${lim}` : ''} ml`, false).replace('class="st ', `class="st ${over ? 'over' : ''} `)}<div class="box card water coffee ${over ? 'over' : ''}">
     <div class="wrow">${lim ? `<span class="glass mug"><i style="height:${Math.min(100, pct)}%"></i><b>${pct}%</b></span>` : ''}
-    <div class="cups"><button data-act="cshot"><b>+50 ml</b><span>one shot</span></button>
+    <div class="cups"><button data-act="cshot"><b>+80 ml</b><span>one lungo</span></button>
       <button class="other" data-act="cother"><b>Other</b><span>ml</span></button></div></div>`;
   if(over) h += `<p class="limline">⚠ ${tot - lim} ml over your limit of ${lim} ml</p>`;
   if(coffeeOther) h += `<div class="nadd"><input id="cMl" class="gnote" inputmode="numeric" placeholder="ml" aria-label="Millilitres of coffee">
@@ -2746,7 +2751,7 @@ function renderDash(){
     ${qt('w', 'q-w', 'fuel#secW', '<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>', 'Water', litres(wml), ' L', water ? `of ${litres(water)} L` : 'no goal set', water ? wml / water : 0, '100 ml')}
     ${qt('c', 'q-c' + (over ? ' qover' : ''), 'fuel#secC', '<path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16M8 3.5c0 1.2 1 1.2 1 2.5M12 3.5c0 1.2 1 1.2 1 2.5"/>',
       'Coffee', cml, ' ml', !lim ? 'no limit' : over ? `${cml - lim} over ${lim}` : cml === lim ? 'limit reached' : `of ${lim} max`,
-      lim ? cml / (lim / .86) : 0, '50 ml', lim ? '<i class="lim" style="left:86%"></i>' : '')}</div>`;
+      lim ? cml / (lim / .86) : 0, '80 ml', lim ? '<i class="lim" style="left:86%"></i>' : '')}</div>`;
   // then what is due, and the next workout: one row each, same shape (the big card is gone)
   h += '<div class="acts">';
   if(due.length){
@@ -3091,9 +3096,9 @@ document.addEventListener('click', e => {
     return;
   }
   if(t.dataset.quick){ quickAdd(t.dataset.quick); return; }
-  // coffee in Nutrition: +50 ml (one shot) or Other… for an exact amount; ✕ removes one (with Undo)
+  // coffee in Nutrition: +80 ml (one lungo) or Other… for an exact amount; ✕ removes one (with Undo)
   if(t.dataset.act === 'cshot' || t.dataset.act === 'cadd'){
-    const day = sDay(), ml = t.dataset.act === 'cshot' ? 50 : parseInt(document.getElementById('cMl').value, 10);
+    const day = sDay(), ml = t.dataset.act === 'cshot' ? 80 : parseInt(document.getElementById('cMl').value, 10);
     if(!(ml > 0 && ml <= 2000)){ toast('Enter the millilitres'); return; }
     const e = { id:newId(), at:day === dayKey() ? Date.now() : atDay(day), ml };
     coffeeChange(day, e); coffeeOther = false; render(); sync();
