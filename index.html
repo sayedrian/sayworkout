@@ -1159,7 +1159,7 @@ function waterChange(day, e){
 // +50 ml a tap (one shot) on the dashboard or in Nutrition, Other… for an exact amount. A daily limit
 // (prot.coffee in ml, Settings → Daily targets; 0 = none) turns it amber when passed — a limit, not a goal.
 // Days: data/coffee/days/<date>.json, {entries:[{id, t, at, ml, del}]} — merged like water.
-const COFFEE_DIR = 'data/coffee', COFFEE_LIMIT = 300;
+const COFFEE_DIR = 'data/coffee', COFFEE_LIMIT = 320;   // 4 Nespresso lungos (user, 2026-10-31)
 let coffeeLog = store.get('fb3.coffeelog', {});
 let coffeeDirty = store.get('fb3.coffeedirty', { days:[] });
 let coffeeOther = false;                               // the exact-amount box is open
