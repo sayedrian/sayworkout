@@ -692,6 +692,20 @@ textarea{background:var(--input);border:0;border-radius:14px;color:var(--ink)}
 .qadd button,.cups button{min-height:64px;border:0;border-radius:18px;background:var(--done-bg);color:var(--done);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
 .qadd b,.cups b{font-size:15px;font-weight:800}.qadd span{font-size:12px;color:#7FCFA2}
 .qadd .main{background:var(--done);color:var(--done-ink)}.qadd .main span{color:#1F5C3C}
+/* meal photo (user, 2026-10-31; look: the approved mock-up) */
+.qadd .pcam svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.pphoto{display:flex;gap:12px;align-items:stretch}
+.pthumb{flex:none;width:132px;height:132px;border-radius:16px;object-fit:cover;background:#2a2f38}
+.pphacts{flex:1;display:flex;flex-direction:column;gap:8px;justify-content:center;min-width:0}
+.pphacts button{min-height:48px;border:0;border-radius:14px;background:var(--input);color:var(--ink);font-weight:700;font-size:15px}
+.pphacts .rm{color:var(--bad)}.pphacts .pwhy{font-size:13px;color:var(--soft);line-height:1.4}.pphacts .pwhy b{color:#9DB8FF}
+.pchips{display:flex;gap:6px;flex-wrap:wrap}
+.pchips button{border:0;background:var(--chip);border-radius:999px;padding:0 12px;min-height:36px;font-size:13px;color:var(--soft)}
+.pmini{flex:none;width:44px;height:44px;border-radius:10px;object-fit:cover;margin-right:8px;vertical-align:middle}
+.ptag{display:inline-block;border-radius:999px;padding:2px 8px;font-size:11.5px;font-weight:750;margin-top:3px}
+.ptag.pwait{background:var(--hint-bg);color:var(--hint)}.ptag.pest{background:#1B2233;color:#9DB8FF}
+.pline .g.pq{color:var(--hint)}
+.wait-note{font-size:12px;font-weight:700;color:var(--hint)}
 .flog{padding:4px 16px}
 .supp{padding:6px 14px}
 .supp .sline{border-top:1px solid var(--line);padding:10px 0}
@@ -825,6 +839,7 @@ textarea{background:var(--input);border:0;border-radius:14px;color:var(--ink)}
 </div>
 <div id="toast"></div>
 <input type="file" id="importFile" accept="application/json,.json" hidden>
+<input type="file" id="mealPhoto" accept="image/*" capture="environment" hidden>
 
 <script>
 // ---------- The plan (fitness.md §2d, updated 2026-10-18: home workout) ----------
@@ -1115,6 +1130,40 @@ function setTaken(id, on, at = Date.now(), day = dayKey()){
 // latest change (t) wins; a removed entry stays as {del:true} so the removal syncs too.
 const PROT_DIR = 'data/protein';
 const PSRC = ['Powder', 'Greek yogurt', 'Meal', 'Snack', 'Other'];
+// ---------- Meal photo (user, 2026-10-31; look: the approved mock-up) ----------
+// The phone shrinks the photo (1024 px, JPEG) and keeps it in IndexedDB until it is uploaded to the private repo
+// as data/food/photos/<date>/<entry id>.jpg. The entry keeps a tiny thumbnail (`photo.thumb`, a data: URL) so any
+// phone can show it. Nothing analyses it here: Claude estimates the meal at a review and writes `est`
+// ({g, kcal, fat, on, why}); then the photo file may be deleted (the numbers and the thumbnail stay).
+const PHOTO_DIR = 'data/food/photos', PCHIPS = ['big plate', 'half eaten', '+ oil / butter', 'restaurant'];
+let photoDraft = null;                                 // {full, thumb, w, h, kb} while the form is open; false = removed
+let photoWait = new Set();                             // paths still on this phone, to upload
+const idb = (mode, fn) => new Promise((ok, bad) => {
+  const o = indexedDB.open('fb3-photos', 1);
+  o.onupgradeneeded = () => o.result.createObjectStore('p');
+  o.onerror = () => bad(o.error);
+  o.onsuccess = () => { const tx = o.result.transaction('p', mode), st = tx.objectStore('p'), q = fn(st);
+    tx.oncomplete = () => { o.result.close(); ok(q && q.result); }; tx.onerror = () => bad(tx.error); };
+});
+const photoKeep = (path, b64) => idb('readwrite', st => st.put(b64, path)).then(() => { photoWait.add(path); });
+const photoKeys = () => idb('readonly', st => st.getAllKeys()).catch(() => []);
+idb('readonly', st => st.getAllKeys()).then(k => { photoWait = new Set(k || []); }).catch(() => {});
+// shrink: long side ≤ max px, JPEG
+function shrink(img, max, q){
+  const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight)), c = document.createElement('canvas');
+  c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  return { url:c.toDataURL('image/jpeg', q), w:c.width, h:c.height };
+}
+function readPhoto(file){
+  return new Promise((ok, bad) => { const fr = new FileReader(); fr.onerror = bad; fr.onload = () => {
+    const img = new Image(); img.onerror = bad;
+    img.onload = () => { const f = shrink(img, 1024, .75), t = shrink(img, 160, .6);
+      ok({ full:f.url, thumb:t.url, w:f.w, h:f.h, kb:Math.round(f.url.length * .75 / 1024) }); };
+    img.src = fr.result; }; fr.readAsDataURL(file); });
+}
+// waiting for Claude: a photo, no estimate yet, and a number still missing
+const toEstimate = e => !!e.photo && !e.est && ['g', 'kcal', 'fat'].some(k => !typed(e, k));
 const PQUICK = ['Powder', 'Greek yogurt'];             // one-tap buttons with their usual amount
 let prot = store.get('fb3.prot', null);               // {target:<g>}
 let protLog = store.get('fb3.protlog', {});           // {'2026-10-26': [{id, t, at, src, g, text}]}
@@ -2443,8 +2492,9 @@ function protCard(day, now, isToday){
   const kc = prot && prot.kcal, fatMin = prot && +prot.fat, kcal = foodSum(day, 'kcal'), fat = foodSum(day, 'fat');
   const approx = k => protDay(day).some(e => nut(e, k) == null || isEst(e, k)) ? '~' : '';   // some of it still to estimate
   // the form adds food, or changes the entry tapped in the list
-  const ed = protEdit && protDay(day).find(e => e.id === protEdit), src = ed ? ed.src : pMeal ? pMeal.src : protSrc, form = protForm || !!ed;
-  const last = ed || pMeal || { g:protLast[src], ...(foodLast[src] || {}) };
+  const ed = protEdit && protDay(day).find(e => e.id === protEdit), src = ed ? ed.src : pMeal ? pMeal.src : photoDraft ? 'Meal' : protSrc, form = protForm || !!ed;
+  const last = ed || pMeal || (photoDraft == null ? { g:protLast[src], ...(foodLast[src] || {}) } : {});   // a photo form starts empty
+  const pic = photoDraft ? photoDraft.thumb && (photoDraft.full || photoDraft.thumb) : photoDraft === false ? '' : ed && ed.photo ? ed.photo.thumb : '';
   // the hero: protein as a big ring, calories and fat as bars against their aims
   const kcPct = kc ? Math.min(100, kcal / kc[1] * 100) : 0, fatPct = fatMin ? Math.min(100, fat / fatMin * 100) : 0;
   const hero = `<div class="box fhero" id="secP">${target ? `<div class="pring">${ring(total / target, '#3DD68C', '', 128).replace(/<path[^>]*\/>|<text[^>]*>[^<]*<\/text>/, '')}
@@ -2455,17 +2505,23 @@ function protCard(day, now, isToday){
         <i class="kcal"><b style="width:${kcPct.toFixed(1)}%"></b></i><span class="ma">${kc ? `aim ${kc[0].toLocaleString('en')}–${kc[1].toLocaleString('en')} kcal` : 'kcal'}</span></div>
       <div class="mac"><span class="mt"><span>Fat</span><b class="${fatMin && fat >= fatMin ? 'ok' : ''}">${approx('fat')}${fat} g</b></span>
         <i class="fat"><b style="width:${fatPct.toFixed(1)}%"></b></i><span class="ma">${fatMin ? `at least ${fatMin} g fat` : 'g fat'}</span></div>
+      ${(n => n ? `<div class="wait-note">◷ + ${n} meal${n === 1 ? '' : 's'} to estimate</div>` : '')(protDay(day).filter(toEstimate).length)}
       ${target ? `<div class="pleft ${total >= target ? 'ok' : ''}">${total >= target ? `✓ Protein target reached${range && range[1] ? ` · fine up to ${range[1]} g` : ''}` : `${target - total} g to go`}</div>` : ''}
     </div></div>`;
   let h = '';
   if(!form) h += `<div class="qadd">${PQUICK.filter(x => +protLast[x] > 0).map(x => `<button data-pquick="${esc(x)}"><b>+ ${esc(x === 'Greek yogurt' ? 'Yogurt' : x)}</b><span>${esc(protLast[x])} g</span></button>`).join('')}
+      <button class="main pcam" data-act="pphoto" aria-label="Photo of a meal">${svgI('<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>', 2.2)}<b>Photo</b></button>
       <button class="main" data-act="pform"><b>+ Meal</b><span>or snack</span></button></div>`;
   else h += `<div class="padd">
-      <div class="full small"><b>${ed ? 'Changing an entry' : 'Add food'}</b> · what you ate; the numbers you know (the rest is estimated later)</div>
+      <div class="full small"><b>${ed ? 'Changing an entry' : 'Add food'}</b> · ${pic ? 'the photo is enough; the rest is estimated later' : 'what you ate; the numbers you know (the rest is estimated later)'}</div>
+      ${pic ? `<div class="full pphoto"><img class="pthumb" src="${esc(pic)}" alt="Meal photo">
+        <div class="pphacts">${ed && ed.est && ed.est.why ? `<div class="pwhy"><b>Claude’s estimate</b><br>${esc(ed.est.why)}</div>` : ''}
+          ${ed ? '' : '<button data-act="pphoto">Retake</button>'}<button class="rm" data-act="pnophoto">Remove photo</button></div></div>` : ''}
       <select id="pSrc" aria-label="Source">${PSRC.map(x => `<option ${x === src ? 'selected' : ''}>${x}</option>`).join('')}
         ${meals().length ? `<optgroup label="My meals">${meals().map((m, i) => `<option value="meal:${i}">☆ ${esc(m.name)}</option>`).join('')}</optgroup>` : ''}</select>
       <input id="pAt" type="time" value="${hhmm(ed ? ed.at : isToday ? now : atDay(day))}" aria-label="Time">
-      <input id="pText" class="full" value="${esc(ed && ed.text || pMeal && pMeal.name || '')}" placeholder="What was it? e.g. lentils with chicken, 1 plate" aria-label="What was it">
+      <input id="pText" class="full" value="${esc(ed && ed.text || pMeal && pMeal.name || '')}" placeholder="${pic ? 'Note (optional): lentils, rice, big plate' : 'What was it? e.g. lentils with chicken, 1 plate'}" aria-label="What was it">
+      ${pic ? `<div class="full pchips">${PCHIPS.map(c => `<button data-pchip="${esc(c)}">${esc(c)}</button>`).join('')}</div>` : ''}
       <div class="full pnums">
         <label>🥩 protein g<input id="pG" inputmode="decimal" value="${esc(last.g ?? '')}" aria-label="Protein grams"></label>
         <label>🔥 kcal<input id="pK" inputmode="decimal" value="${esc(last.kcal ?? '')}" aria-label="kcal"></label>
@@ -2487,8 +2543,8 @@ function protCard(day, now, isToday){
       + list.map(e => { const more = [num(e, 'kcal', ' kcal'), num(e, 'fat', ' g fat')].filter(Boolean).join(' · ');
         return `<div class="lrow"><button class="pline ${e.id === protEdit ? 'on' : ''}" data-pedit="${esc(e.id)}" aria-label="Change ${esc(e.src)} ${esc(e.text || '')}">
         <span class="small">${hhmm(e.at)}</span>
-        <span>${esc(e.src)}${e.text ? `<span class="small">${esc(e.text)}</span>` : ''}${more ? `<span class="small">${more}</span>` : ''}</span>
-        <span class="g">${num(e, 'g', ' g') || '~'}</span><span class="small">✎</span></button>
+        <span>${e.photo && e.photo.thumb ? `<img class="pmini" src="${esc(e.photo.thumb)}" alt="">` : ''}${esc(e.src)}${e.text ? `<span class="small">${esc(e.text)}</span>` : ''}${more ? `<span class="small">${more}</span>` : ''}${toEstimate(e) ? `<span class="ptag pwait">◷ to estimate${photoWait.has(e.photo.path) ? ' · on this phone' : ''}</span>` : e.est && e.photo ? `<span class="ptag pest">~ estimated${e.est.on ? ` · ${esc(e.est.on)}` : ''}</span>` : ''}</span>
+        <span class="g ${toEstimate(e) && nut(e, 'g') == null ? 'pq' : ''}">${num(e, 'g', ' g') || (toEstimate(e) ? '?' : '~')}</span><span class="small">✎</span></button>
         <button class="link x" data-pdel="${esc(e.id)}" aria-label="Remove ${esc(e.src)} at ${hhmm(e.at)}">✕</button></div>`; }).join('')
     : `<button class="foldline plain" data-unfold="pent">${list.length} entr${list.length === 1 ? 'y' : 'ies'} ${isToday ? 'today' : 'that day'} <span class="more">show ▾</span></button>`;
   return { st:`${total} g`, ok:!target || total >= target, hero, add, list:h };
@@ -3240,7 +3296,8 @@ document.addEventListener('click', e => {
     put(meals().filter(x => x !== m)); undoToast(`☆ ${m.name} removed`, () => put([...meals(), m].sort((a, b) => a.name.localeCompare(b.name))));
     return;
   }
-  if(t.dataset.pedit){ protEdit = protEdit === t.dataset.pedit ? null : t.dataset.pedit; render(); scrollTo(0, 0); return; }
+  if(t.dataset.pchip){ const b = document.getElementById('pText'); if(b){ b.value = (b.value.trim() ? b.value.trim() + ', ' : '') + t.dataset.pchip; } return; }
+  if(t.dataset.pedit){ photoDraft = null; protEdit = protEdit === t.dataset.pedit ? null : t.dataset.pedit; render(); scrollTo(0, 0); return; }
   if(t.dataset.pdel){
     const day = sDay(), e = (protLog[day] || []).find(x => x.id === t.dataset.pdel);
     if(e){
@@ -3416,7 +3473,8 @@ document.addEventListener('click', e => {
     const num = id => { const v = document.getElementById(id).value.replace(',', '.').trim(); return v === '' ? null : parseFloat(v); };
     const g = num('pG'), kcal = num('pK'), fat = num('pF'), text = document.getElementById('pText').value.trim();
     if([g, kcal, fat].some(v => v !== null && !(v >= 0))){ toast('Numbers only in the boxes'); return; }
-    if(!text && ![g, kcal, fat].some(v => v > 0)){ toast('Write what it was, or the grams of protein'); return; }
+    const ed0 = protEdit && protDay(day).find(e => e.id === protEdit), hasPic = photoDraft ? true : photoDraft === false ? false : !!(ed0 && ed0.photo);
+    if(!text && !hasPic && ![g, kcal, fat].some(v => v > 0)){ toast('Write what it was, the grams of protein, or take a photo'); return; }
     const at = /^\d\d:\d\d$/.test(hm) ? atDay(day, hm) : day === dayKey() ? Date.now() : atDay(day);
     if(at > Date.now()){ toast('That time hasn’t come yet'); return; }
     const src = document.getElementById('pSrc').value;
@@ -3429,7 +3487,15 @@ document.addEventListener('click', e => {
       protDirty.plan = true; saveProt();
     }
     pMeal = null;
-    if(ed){ const { text:_t, g:_g, kcal:_k, fat:_f, ...rest } = ed; protChange(day, { ...rest, at, src, ...vals }); protEdit = null; toast('Changed'); }
+    if(ed){ const { text:_t, g:_g, kcal:_k, fat:_f, photo:_p, ...rest } = ed;
+      protChange(day, { ...rest, at, src, ...vals, ...(ed.photo && photoDraft !== false ? { photo:ed.photo } : {}) }); protEdit = null; photoDraft = null; toast('Changed'); }
+    else if(photoDraft){
+      const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6), path = `${PHOTO_DIR}/${day}/${id}.jpg`, pd = photoDraft;
+      photoDraft = null; protForm = false;
+      photoKeep(path, pd.full.split(',')[1]).catch(() => {}).then(() => { render(); sync(); });
+      protChange(day, { id, at, src, ...vals, photo:{ path, w:pd.w, h:pd.h, kb:pd.kb, thumb:pd.thumb } });
+      toast('Meal added · Claude estimates it at the next review');
+    }
     else {
       if(g !== null) protLast[src] = String(g);
       foodLast[src] = { ...(kcal !== null ? { kcal } : {}), ...(fat !== null ? { fat } : {}) };
@@ -3438,7 +3504,9 @@ document.addEventListener('click', e => {
     }
     render(); sync();
   }
-  if(act === 'pcancel'){ protEdit = null; protForm = false; pMeal = null; render(); }
+  if(act === 'pcancel'){ protEdit = null; protForm = false; pMeal = null; photoDraft = null; render(); }
+  if(act === 'pphoto'){ document.getElementById('mealPhoto').click(); }
+  if(act === 'pnophoto'){ photoDraft = false; render(); }
   if(act === 'pform'){ protForm = true; render(); const g = document.getElementById('pG'); if(g) g.focus(); }
   if(act === 'ptarget'){
     const int = id => { const v = parseInt(document.getElementById(id).value, 10); return v > 0 ? v : undefined; };
@@ -3517,6 +3585,11 @@ document.addEventListener('change', e => {
     if(e){ symChange(day, { ...e, at }); render(); sync(); }
   }
   if(t.dataset.swap){ draft(view, true).slots[+t.dataset.swap].name = t.value; save(); render(); }
+  if(t.id === 'mealPhoto' && t.files[0]){
+    readPhoto(t.files[0]).then(p => { photoDraft = p; protForm = true; protEdit = null; pMeal = null; render(); })
+      .catch(() => toast('That photo could not be read'));
+    t.value = '';
+  }
   if(t.id === 'importFile' && t.files[0]){
     t.files[0].text().then(txt => {
       const data = JSON.parse(txt), ids = new Set(history.map(s => s.id));
@@ -3714,7 +3787,7 @@ function beep(n = 3, freq = 880){
 function tickClock(){
   const d = drafts[view], el = document.getElementById('clock'), prog = document.getElementById('prog');
   // sync dot: green = everything is in GitHub, orange = waiting (no signal, or a GitHub problem)
-  const dot = document.getElementById('sdot'), waiting = !!syncError || history.some(s => !s.synced) || suppDirty.plan || suppDirty.days.length > 0 || protDirty.plan || protDirty.days.length > 0 || gutDirty.days.length > 0 || waterDirty.days.length > 0 || coffeeDirty.days.length > 0;
+  const dot = document.getElementById('sdot'), waiting = !!syncError || history.some(s => !s.synced) || suppDirty.plan || suppDirty.days.length > 0 || protDirty.plan || protDirty.days.length > 0 || gutDirty.days.length > 0 || waterDirty.days.length > 0 || coffeeDirty.days.length > 0 || photoWait.size > 0;
   dot.hidden = !ghReady(); dot.classList.toggle('wait', waiting); dot.title = syncText();
   const all = d && d.startedAt && !PAGES[view] ? d.slots.flatMap(x => x.sets) : [];
   prog.textContent = all.length ? `${all.filter(s => s.done).length}/${all.length} sets` : '';
@@ -3808,6 +3881,7 @@ async function sync(){
     const added = await pullNew();
     if(added){ toast(`Loaded ${added} workout${added === 1 ? '' : 's'} from GitHub`); renderSoon(); }
     if(await syncSupp()) renderSoon();
+    await syncPhotos();
     if(await syncProt()) renderSoon();
     if(await syncGut()) renderSoon();
     if(await syncWater()) renderSoon();
@@ -3822,7 +3896,7 @@ async function sync(){
   syncing = false;
   if(view === 'history' || view === 'settings' || view === 'fuel' || view === 'report') renderSoon(); else tickClock();
   // ticked while this sync was running: go again
-  if(!syncError && (suppDirty.plan || suppDirty.days.length || protDirty.plan || protDirty.days.length || gutDirty.days.length || waterDirty.days.length || coffeeDirty.days.length)) setTimeout(sync, 1500);
+  if(!syncError && (suppDirty.plan || suppDirty.days.length || protDirty.plan || protDirty.days.length || gutDirty.days.length || waterDirty.days.length || coffeeDirty.days.length || photoWait.size)) setTimeout(sync, 1500);
 }
 // Supplements: the list (this phone's edit goes up, otherwise GitHub's comes down) and the ticks
 // of today and of any day changed here, merged both ways. Returns true if anything on screen changed.
@@ -3860,6 +3934,16 @@ async function pullPastDays(dir, have, put){
     if(file){ put(day, JSON.parse(b64dec(file.content))); n++; }
   }
   return n;
+}
+// Meal photos waiting on this phone: up first (already there from a half-finished upload = done), then forgotten here.
+async function syncPhotos(){
+  if(!photoWait.size) return;                          // nothing waiting: don't touch IndexedDB (keeps every sync fast)
+  for(const path of await photoKeys()){
+    const b64 = await idb('readonly', st => st.get(path));
+    if(b64) try{ await api(path, { method:'PUT', body:JSON.stringify({ message:`Meal photo ${path.slice(PHOTO_DIR.length + 1, PHOTO_DIR.length + 11)}`, content:b64, branch:gh.branch }) }); }
+      catch(e){ if(!/ 422$/.test(e.message)) throw e; }
+    await idb('readwrite', st => st.delete(path)); photoWait.delete(path); renderSoon();
+  }
 }
 // Protein: the target (as for the supplement list) and the entries of today and of any day changed here.
 async function syncProt(){
