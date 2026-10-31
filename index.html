@@ -1343,6 +1343,7 @@ function draft(day, create){
 // Forgot Start? The first ✓ starts it, dated 2 minutes back to cover the time already spent.
 // One workout at a time: another can't start until the running one is finished or cleared.
 const LATE_START = 2 * 60000;
+const FINISH_LATE = 15 * 60000;                       // Finish this long after the last tick = tapped late
 const running = except => ALL.find(x => x !== except && drafts[x]?.startedAt);
 function begin(day, late){
   const other = running(day);
@@ -1392,8 +1393,11 @@ function score(s, name, bw){
   return kg > 0 ? kg * (1 + r / 30) : r;
 }
 const best = (sets, name, bw) => sets.reduce((b, s) => !b || score(s, name, bw) > score(b, name, bw) ? s : b, null);
+// No more weight on these until a doctor has seen the leg (user, 2026-10-31: leg pain from before training, sometimes worse)
+const KG_HOLD = { 'Leg press':'same weight until the doctor has seen the leg' };
 // what to change once every set hit the top of the range
 function nextStep(ex, name, sets){
+  if(KG_HOLD[name]) return KG_HOLD[name];
   const bwk = bwOf(name);
   if(bandOf(name) === 'loop') return 'use the heavy band, then go single-leg';
   if(bandOf(name)) return 'add a band or a stronger one (or step further back)';
@@ -2284,7 +2288,7 @@ function renderDay(day){
     const tm = timedOf(ex, slot.name);
     let hint = '';
     if(last && last.sets.length >= ex.sets && last.sets.every(s => +s.reps >= topOf(ex, slot.name)))
-      hint = `Hit the top of the range on every set last time → ${nextStep(ex, slot.name, last.sets)}, restart at the bottom.`;
+      hint = KG_HOLD[slot.name] ? `Weight on hold: ${KG_HOLD[slot.name]}.` : `Hit the top of the range on every set last time → ${nextStep(ex, slot.name, last.sets)}, restart at the bottom.`;
     let unit = tm ? 'Tap a seconds box to time it · hold to type. ' : '';
     unit += bwk === 'plus' ? `Body weight. Holding weight? Enter ${load === 'hand' ? 'one dumbbell' : 'the extra kg'}; leave it empty if none.`
              : bwk === 'only' ? '' : load === 'hand' ? 'Dumbbells: enter the weight of one dumbbell.' : '';
@@ -2951,6 +2955,7 @@ function strengthLines(){
 }
 // the next weight to use once every set reached the top of the range
 function nextLoad(ex, name, sets){
+  if(KG_HOLD[name]) return 'same kg';
   const bwk = bwOf(name), kg = Math.max(...sets.map(t => parseFloat(t.kg) || 0));
   if(bandOf(name) || bwk === 'only' || ex.time || bwk === 'plus' && !kg) return nextStep(ex, name, sets);
   if(loadOf(name) === 'assist') return `assist ${Math.max(0, kg - kgStep(name))} kg`;
@@ -3285,6 +3290,7 @@ document.addEventListener('click', e => {
     if(!begin(view, true)) return;
     const d = draft(view, true), k = +t.dataset.cool;
     d.cool = COOL.map((_, n) => !!(d.cool || [])[n]); d.cool[k] = !d.cool[k];
+    if(d.cool[k]) d.lastAt = Date.now();
     if(d.cool.every(Boolean)) opened.delete('cool');
     save(); render(); return;
   }
@@ -3379,8 +3385,11 @@ document.addEventListener('click', e => {
       filled.forEach(s => s.done = true);
     }
     if(!d.startedAt) d.startedAt = Date.now() - LATE_START;   // typed in, never started
+    // Finish tapped late (user, 2026-10-31: "so we have good data"): more than FINISH_LATE after the last tick, the
+    // workout ended at that tick + 1 min; the real tap is kept as `tapped`
+    const now = Date.now(), endAt = d.lastAt && now - d.lastAt > FINISH_LATE ? d.lastAt + 60000 : 0;
     // id: time + random suffix, so two workouts can never share one (or one file name)
-    history.push({ ...d, id: Date.now() + Math.random().toString(36).slice(2, 7), finishedAt: Date.now(),
+    history.push({ ...d, id: now + Math.random().toString(36).slice(2, 7), finishedAt: endAt || now, ...(endAt ? { tapped: now } : {}),
       ...(bodyweight ? { bw: bodyweight } : {}), synced: false });
     delete drafts[view]; save(); stopRest(); render(); scrollTo(0, 0); toast('Workout saved ✓'); sync();
   }
@@ -3520,6 +3529,7 @@ document.addEventListener('change', e => {
 // A set was just ticked (or timed): fill in what was left empty, then start the rest timer.
 function setDone(day, i, j){
   const d = draft(day, true), slot = d.slots[i], s = slot.sets[j], list = exList(day, d), ex = list[i];
+  s.at = d.lastAt = Date.now();                          // when it was ticked: Finish tapped late is corrected from it
   const box = f => day === view ? document.querySelector(`[data-i="${i}"][data-j="${j}"][data-f="${f}"]`) : null;
   const sugg = f => box(f) ? box(f).placeholder || box(f).dataset.sugg || '' : '';
   // one tap if the numbers match last time: take the greyed-in values (body-weight exercises have none)
