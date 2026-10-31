@@ -730,6 +730,14 @@ textarea{background:var(--input);border:0;border-radius:14px;color:var(--ink)}
 .q .bar{position:relative;display:block;height:6px;border-radius:3px;margin-top:8px}
 .q .bar b{display:block;height:6px;border-radius:3px}
 .q .bar .lim{position:absolute;top:-3px;width:2px;height:12px;border-radius:1px;background:#E1E4EA}
+.qs{display:flex;gap:4px;margin:0 4px 4px}
+.qs .qp{flex:1;min-width:0;margin:0}
+.qm{flex:none;width:48px;min-height:52px;border-radius:14px;border:1.5px solid #2E3542;background:transparent;color:var(--soft);
+  font-size:24px;font-weight:700;line-height:1;display:grid;place-items:center;transition:transform .08s,opacity .15s}
+.qm:active{transform:scale(.93)}.qm:disabled{opacity:.28}
+.q-p .qm:not(:disabled){border-color:#2B5A40;color:var(--done)}.q-w .qm:not(:disabled){border-color:#24476A;color:var(--water)}
+.q-c .qm:not(:disabled){border-color:#4A3626;color:#E7B98F}
+.dip{animation:dip .3s ease-out}@keyframes dip{0%{transform:scale(1)}40%{transform:scale(.95)}100%{transform:scale(1)}}
 .qp{min-height:52px;margin:0 6px 6px;border:0;border-radius:14px;font-size:17px;font-weight:800;transition:transform .08s}
 .qp:active{transform:scale(.95)}
 .q-p .ql svg{color:var(--done)}.q-p .bar{background:#1E3527}.q-p .bar b{background:var(--done)}.q-p .qp{background:var(--done);color:#0E1116}
@@ -1179,10 +1187,26 @@ const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2
 // Quick adds on the dashboard (user, 2026-10-30): one tap = one step. Quick taps on the same tile, while its
 // Undo bar shows, grow one entry ("+15 g"), so the day's list doesn't fill with 5 g lines; Undo takes them all back.
 const QUICK = {
-  p:{ step:5, put:(day, e, n) => protChange(day, { ...e, src:'Quick add', g:n }), what:n => `+${n} g protein`, now:() => `${protTotal()} g today` },
-  w:{ step:100, put:(day, e, n) => waterChange(day, { ...e, ml:n }), what:n => `+${n} ml water`, now:() => `${litres(waterTotal())} L today` },
-  c:{ step:80, put:(day, e, n) => coffeeChange(day, { ...e, ml:n }), what:n => `+${n} ml coffee`, now:() => `${coffeeTotal()} ml today` },
+  p:{ step:5, unit:'g', name:'protein', put:(day, e, n) => protChange(day, { ...e, src:'Quick add', g:n }), of:e => +e.g, list:protDay,
+    what:n => `+${n} g protein`, now:() => `${protTotal()} g today` },
+  w:{ step:100, unit:'ml', name:'water', put:(day, e, n) => waterChange(day, { ...e, src:'Quick add', ml:n }), of:e => +e.ml, list:waterDay,
+    what:n => `+${n} ml water`, now:() => `${litres(waterTotal())} L today` },
+  c:{ step:80, unit:'ml', name:'coffee', put:(day, e, n) => coffeeChange(day, { ...e, src:'Quick add', ml:n }), of:e => +e.ml, list:coffeeDay,
+    what:n => `+${n} ml coffee`, now:() => `${coffeeTotal()} ml today` },
 };
+// − on a tile (user, 2026-10-31; look: the approved mock-up): takes one step back from today's LAST quick add of that tile,
+// at any time; never touches typed meals, cups or Other… amounts. At 0 the entry goes. Undo puts the step back.
+const lastQuick = (k, day = dayKey()) => QUICK[k].list(day).filter(e => e.src === 'Quick add' && QUICK[k].of(e) > 0).sort((a, b) => a.at - b.at).pop();
+function quickMinus(k){
+  const Q = QUICK[k], day = dayKey(), e = lastQuick(k, day);
+  if(!e) return;
+  const was = Q.of(e), n = was - Q.step;
+  Q.put(day, n > 0 ? e : { ...e, del:true }, n > 0 ? n : was);
+  if(quick && quick.id === e.id) quick = n > 0 ? { ...quick, n, t:Date.now() } : null;
+  render(); sync();
+  const tile = document.querySelector(`.q[data-q="${k}"]`); if(tile){ tile.classList.remove('dip'); void tile.offsetWidth; tile.classList.add('dip'); }
+  undoToast(`−${Q.step} ${Q.unit} ${Q.name} · ${Q.now()}`, () => { Q.put(day, e, was); if(quick && quick.id === e.id) quick = { ...quick, n:was }; });
+}
 const QUICK_MS = 5000;
 let quick = null;                                      // {k, day, id, at, n, t}: the entry the last taps grew
 function quickAdd(k){
@@ -2746,12 +2770,13 @@ function renderDash(){
       <button class="qb" data-go="${go}" aria-label="Open ${label} in Nutrition"><span class="ql">${svgI(icon, 2.2)}${label}<span class="ch">›</span></span>
         <span class="qv">${val}<small>${unit}</small></span><span class="qc">${cap}</span>
         <span class="bar"><b style="width:${Math.min(100, Math.round(frac * 100))}%"></b>${extra}</span></button>
-      <button class="qp" data-quick="${k}" aria-label="Add ${plus} ${label.toLowerCase()}">+${plus}</button></div>`;
+      <div class="qs"><button class="qm" data-qminus="${k}"${lastQuick(k) ? '' : ' disabled'} aria-label="Take back ${QUICK[k].step} ${QUICK[k].unit} ${label.toLowerCase()}">−</button>
+      <button class="qp" data-quick="${k}" aria-label="Add ${QUICK[k].step} ${QUICK[k].unit} ${label.toLowerCase()}">+${plus}</button></div></div>`;
   h += `<div class="qt">${qt('p', 'q-p', 'fuel#secP', '<path d="M7 14a5 5 0 1 0 10 0c0-4-5-10-5-10S7 10 7 14z"/>', 'Protein', g, ' g', target ? `of ${target} g` : 'no goal set', target ? g / target : 0, '5 g')}
-    ${qt('w', 'q-w', 'fuel#secW', '<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>', 'Water', litres(wml), ' L', water ? `of ${litres(water)} L` : 'no goal set', water ? wml / water : 0, '100 ml')}
+    ${qt('w', 'q-w', 'fuel#secW', '<path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/>', 'Water', litres(wml), ' L', water ? `of ${litres(water)} L` : 'no goal set', water ? wml / water : 0, '100')}
     ${qt('c', 'q-c' + (over ? ' qover' : ''), 'fuel#secC', '<path d="M4 9h12v5a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5z"/><path d="M16 10h1.5a2.5 2.5 0 0 1 0 5H16M8 3.5c0 1.2 1 1.2 1 2.5M12 3.5c0 1.2 1 1.2 1 2.5"/>',
       'Coffee', cml, ' ml', !lim ? 'no limit' : over ? `${cml - lim} over ${lim}` : cml === lim ? 'limit reached' : `of ${lim} max`,
-      lim ? cml / (lim / .86) : 0, '80 ml', lim ? '<i class="lim" style="left:86%"></i>' : '')}</div>`;
+      lim ? cml / (lim / .86) : 0, '80', lim ? '<i class="lim" style="left:86%"></i>' : '')}</div>`;
   // then what is due, and the next workout: one row each, same shape (the big card is gone)
   h += '<div class="acts">';
   if(due.length){
@@ -3096,6 +3121,7 @@ document.addEventListener('click', e => {
     return;
   }
   if(t.dataset.quick){ quickAdd(t.dataset.quick); return; }
+  if(t.dataset.qminus){ quickMinus(t.dataset.qminus); return; }
   // coffee in Nutrition: +80 ml (one lungo) or Other… for an exact amount; ✕ removes one (with Undo)
   if(t.dataset.act === 'cshot' || t.dataset.act === 'cadd'){
     const day = sDay(), ml = t.dataset.act === 'cshot' ? 80 : parseInt(document.getElementById('cMl').value, 10);
@@ -3570,7 +3596,7 @@ function heldTxt(d, kind, k, r){
   return `<span class="small got">Held: ${secs.map((x, n) => lab(n) + x).join(' · ')} s</span>`;
 }
 // a short buzz confirms a tick or a removal without looking (user, 2026-10-28)
-const BUZZ = '[data-tick],[data-supp],[data-suppslot],[data-reset],[data-cool],[data-rmset],.link.x,[data-undo]';
+const BUZZ = '[data-tick],[data-supp],[data-suppslot],[data-reset],[data-cool],[data-rmset],.link.x,[data-undo],[data-qminus]';
 function buzzFor(t){ if(t.matches(BUZZ)) try{ navigator.vibrate && navigator.vibrate(25); }catch(e){} }
 function signal(n){ beep(n); try{ navigator.vibrate && navigator.vibrate(n > 1 ? [300, 150, 300] : 200); }catch(e){} }
 function tickHold(){
