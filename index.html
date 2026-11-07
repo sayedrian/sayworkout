@@ -874,9 +874,9 @@ const PLAN = {
     {name:'Barbell back squat', sets:4, min:6, max:12, rest:120,
       cue:'Brace: belly breath, ribs down, hold through the rep. Two seconds down, drive up.',
       alts:['Hack squat','Goblet squat','Leg press']},
-    {name:'Weighted dead bug', sets:3, min:8, max:12, side:true, rest:45,
-      cue:'Lower back stays pressed flat. When it lifts, the set is over — even at rep 5.',
-      alts:['Plank','Hollow hold']},
+    {name:'Ab wheel rollout', sets:4, min:8, max:12, rest:60,
+      cue:'Distance, not reps. Stop the moment the lower back sags. Ribs down.',
+      alts:['Barbell rollout','Swiss ball rollout']},
     {name:'Flat dumbbell press', sets:4, min:6, max:12, rest:90,
       cue:'Lower to the lower chest, not the armpits. Elbows about 45° from the body.',
       alts:['Barbell bench press','Chest press machine']},
@@ -900,9 +900,9 @@ const PLAN = {
     {name:'Leg press', sets:4, min:8, max:15, rest:90,
       cue:'Go down until just before the bum lifts off the seat — the back is the signal, not the knees.',
       alts:['Hack squat','Goblet squat']},
-    {name:'Ab wheel rollout', sets:4, min:8, max:12, rest:60,
-      cue:'Distance, not reps. Stop the moment the lower back sags. Ribs down.',
-      alts:['Barbell rollout','Swiss ball rollout']},
+    {name:'Weighted dead bug', sets:3, min:8, max:12, side:true, rest:45,
+      cue:'Lower back stays pressed flat. When it lifts, the set is over — even at rep 5.',
+      alts:['Plank','Hollow hold']},
     {name:'Seated cable row (neutral grip)', sets:4, min:8, max:15, rest:90,
       cue:'Neutral grip. Drive the elbows back, stay tall, squeeze the shoulder blades 1 s.',
       alts:['Row machine','Chest-supported row machine','Barbell row']},
@@ -1135,6 +1135,10 @@ const store = {
 let history = store.get('fb3.history', []);
 let drafts  = store.get('fb3.drafts', {});
 setProgram(store.get('fb3.program', 'fb3'));   // the program picked on this phone (Settings → Program)
+// a plan change (e.g. 2026-11-07: ab wheel to A, dead bug to B) leaves a workout not yet started out of date: start it fresh.
+// It has nothing ticked (the first ✓ starts a workout), so nothing is lost.
+Object.keys(drafts).forEach(k => { const d = drafts[k], P = PLAN[k];
+  if(d && !d.startedAt && (!P || (d.slots || []).slice(0, P.ex.length).some((x, i) => ![P.ex[i].name, ...P.ex[i].alts].includes(x.name)))) delete drafts[k]; });
 let progBack = store.get('fb3.progback', '');   // 'YYYY-MM-DD': from then on, ask whether to go back to Full Body 3
 let progPick = null;                              // the program sheet is open with this one picked
 let view    = 'dash';     // the app opens on the dashboard (user, 2026-10-28)
