@@ -879,6 +879,11 @@ button.lline:active{background:var(--input)}
 .k-g .li{background:color-mix(in srgb,#F5A524 16%,transparent)}
 .lline.gone{grid-template-columns:44px 34px minmax(0,1fr) auto}
 .lline.gone .lt,.lline.gone .lw{opacity:.5;text-decoration:line-through}.lline.gone .li{opacity:.35}
+/* Train: what you remove leaves a dashed placeholder with Restore (no Undo bar, 2026-11-08) */
+.gonebox{display:flex;align-items:center;gap:12px;min-height:52px;border:1.5px dashed var(--line);border-radius:14px;padding:4px 6px 4px 12px;margin:6px 0}
+.gonebox .gt{flex:1;min-width:0;display:flex;flex-direction:column;font-size:14px;color:var(--muted)}
+.gonebox .gt b{color:var(--ink);font-size:15px}.gonebox .gt small{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nline.gone .nt,.nline.gone>.small{opacity:.5;text-decoration:line-through}
 .rst{min-height:44px;padding:0 14px;border-radius:12px;border:1.5px solid var(--accent);background:none;color:var(--accent);font-weight:800;font-size:14px}
 .lfoot{padding:8px 6px 6px;border-top:1px solid var(--line);margin:0}
 .loglink{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;border:0;border-radius:16px;background:var(--card);padding:0 14px;margin:0 0 10px;text-align:left;color:var(--ink);font:inherit}
@@ -1192,6 +1197,11 @@ const store = {
 };
 let history = store.get('fb3.history', []);
 let drafts  = store.get('fb3.drafts', {});
+// a cleared workout, kept until another one starts so Restore can bring it back: {day, copy}
+let cleared = store.get('fb3.cleared', null);
+let mealsGone = [];                                   // My meals removed this visit: crossed out with Restore
+const mealGoneLines = () => mealsGone.map((m, k) => `<div class="nline gone"><span class="nt">☆ ${esc(m.name)}</span>
+  <button class="rst" data-mealback="${k}" aria-label="Restore ${esc(m.name)}">Restore</button></div>`).join('');
 setProgram(store.get('fb3.program', 'fb3'));   // the program picked on this phone (Settings → Program)
 // a plan change (e.g. 2026-11-07: ab wheel to A, dead bug to B) leaves a workout not yet started out of date: start it fresh.
 // It has nothing ticked (the first ✓ starts a workout), so nothing is lost.
@@ -1661,6 +1671,12 @@ function lastUsed(ex){
   return used ? used.n : ex.name;
 }
 function newSet(){ return { kg:'', reps:'', done:false }; }
+function dropCleared(){ if(cleared){ cleared = null; store.set('fb3.cleared', null); } }
+// placeholders live in the draft (so they survive closing the app) and never reach the saved workout
+function cleanDraft(d){ d.slots.forEach(x => delete x.gone); delete d.goneEx; delete d.goneNotes; return d; }
+// a list of removed things, each with the place it had: removing or restoring one shifts the places after it
+const goneShift = (list, at, by) => (list || []).forEach(g => { if(g.at > at || (by > 0 && g.at === at)) g.at += by; });
+const setsTxt = (ex, name, sets) => sets.filter(x => x.done).map(x => setTxt(x, ex, name)).join(', ');
 function draft(day, create){
   if(!drafts[day] && create){ drafts[day] = blank(day); }
   return drafts[day] || blank(day);
@@ -1675,7 +1691,7 @@ function begin(day, late){
   const other = running(day);
   if(other){ toast(`${PLAN[other].title} is running — finish or clear it first`); return false; }
   const d = draft(day, true);
-  if(!d.startedAt){ d.startedAt = Date.now() - (late ? LATE_START : 0); wakeRefused = false; }
+  if(!d.startedAt){ d.startedAt = Date.now() - (late ? LATE_START : 0); wakeRefused = false; dropCleared(); }
   return true;
 }
 // a set that counts as done: ticked, with reps or seconds — a 0 × 0 (ticked to close it, 2026-10-27)
@@ -3104,6 +3120,9 @@ function switchProgram(k){
 function renderDay(day){
   const p = PLAN[day], d = draft(day, false), reset = resetFor(day);
   let h = progChip() + progAskBox() + `<p class="focus">${p.focus}</p>`;
+  if(cleared && cleared.day === day && !d.startedAt){ const all = cleared.copy.slots.flatMap(x => x.sets), n = all.filter(x => x.done).length;
+    h += `<div class="gonebox clr"><span class="gt"><b>${esc(p.title)} cleared</b><small>${n ? `${n} set${n > 1 ? 's' : ''} done` : `${all.length} sets, none ticked`} · Restore until you start a workout</small></span>
+      <button class="rst" data-clrback="1" aria-label="Restore ${esc(p.title)}">Restore</button></div>`; }
   if(d.startedAt){ const all = d.slots.flatMap(x => x.sets), n = all.filter(x => x.done).length;
     h += `<div class="wprog"><span>${n} of ${all.length} sets</span><b>${Math.round(n / all.length * 100)}%</b><i><b style="width:${(n / all.length * 100).toFixed(1)}%"></b></i></div>`; }
   if(!d.startedAt){
@@ -3124,7 +3143,12 @@ function renderDay(day){
       ${demoOpen === r.name ? howBox(r.name) : ''}</div>`).join('')}
     <div class="small">Hip flexors are the stretch that matters most. ${isHome(day) ? 'Start every set with the same band and distance as last time.' : 'Warm-up sets only for exercise 1.'}</div></div>`;
 
-  exList(day, d).forEach((ex, i) => {
+  const exGone = at => (d.goneEx || []).map((g, k) => g.at !== at ? '' : `<div class="gonebox exg"><span class="gt"><b>${esc(g.slot.name)} removed</b>
+      <small>${(w => w ? 'with ' + esc(w) : `${g.slot.sets.length} set${g.slot.sets.length > 1 ? 's' : ''}, none done`)(setsTxt(addedEx(g.slot), g.slot.name, g.slot.sets))}</small></span>
+      <button class="rst" data-exback="${k}" aria-label="Restore ${esc(g.slot.name)}">Restore</button></div>`).join('');
+  const exs = exList(day, d);
+  exs.forEach((ex, i) => {
+    h += exGone(i);
     const slot = d.slots[i], last = lastFor(slot.name);
     const doneCount = slot.sets.filter(s => s.done).length;
     const options = [ex.name, ...ex.alts].map(n => `<option ${n===slot.name?'selected':''}>${esc(n)}</option>`).join('');
@@ -3187,12 +3211,15 @@ function renderDay(day){
               : stepper(i, j, 'reps', s.done, `<input inputmode="numeric" data-i="${i}" data-j="${j}" data-f="reps" value="${esc(s.reps)}" placeholder="${ref ? esc(ref.reps) : ex.max ?? '–'}" aria-label="Set ${j+1} reps">`)}
             <button class="tick" data-tick="${i}.${j}" aria-label="Set ${j+1} done">✓</button>
           </div>`;}).join('')}
+        ${slot.gone ? `<div class="gonebox setg"><span class="gt"><b>Set ${slot.gone.at + 1} removed</b></span>
+          <button class="rst" data-setback="${i}" aria-label="Restore set ${slot.gone.at + 1}">Restore</button></div>` : ''}
       </div>
       <div class="setbtns"><button class="link" data-addset="${i}">+ set</button>
         ${doneCount > 0 && doneCount < slot.sets.length ? '<span class="small">− removes a set you won’t do</span>' : ''}</div>
     </article>`;
   });
 
+  h += (d.goneEx || []).filter(g => g.at >= exs.length).map(g => g.at).filter((a, k, l) => l.indexOf(a) === k).map(exGone).join('');
   h += addBox(day, d);
 
   if(isHome(day)){
@@ -3207,11 +3234,12 @@ function renderDay(day){
         <button class="tick" data-cool="${k}" aria-label="${esc(r.name)} done">✓</button>
         ${demoOpen === r.name ? howBox(r.name) : ''}</div>`).join('')}</div>`;
   }
-  const notes = noteLines(d.notes);
+  const notes = noteLines(d.notes), nl = (l, btn) => { const m = l.match(/^(\d\d:\d\d) (.*)$/);
+    return `<span class="small">${m ? m[1] : ''}</span><span class="nt">${esc(m ? m[2] : l)}</span>${btn}`; };
+  const noteGone = at => (d.goneNotes || []).map((g, k) => g.at !== at ? '' : `<div class="nline gone">${nl(g.line, `<button class="rst" data-noteback="${k}" aria-label="Restore this note">Restore</button>`)}</div>`).join('');
   h += `<div class="box wnotes"><h3>Notes${notes.length ? ` <span class="small">${notes.length}</span>` : ''}</h3>
-      ${notes.map((l, k) => { const m = l.match(/^(\d\d:\d\d) (.*)$/);
-        return `<div class="nline"><span class="small">${m ? m[1] : ''}</span><span class="nt">${esc(m ? m[2] : l)}</span>
-          <button class="link x" data-wnrm="${k}" aria-label="Remove this note">✕</button></div>`; }).join('')}
+      ${notes.map((l, k) => noteGone(k) + `<div class="nline">${nl(l, `<button class="link x" data-wnrm="${k}" aria-label="Remove this note">✕</button>`)}</div>`).join('')}
+      ${(d.goneNotes || []).filter(g => g.at >= notes.length).map(g => g.at).filter((a, k, l) => l.indexOf(a) === k).map(noteGone).join('')}
       <div class="nadd"><textarea id="noteNew" class="gnote" rows="2" placeholder="How did it feel? Anything to change?" aria-label="New note">${esc(d.noteDraft || '')}</textarea>
         <button class="btn" data-act="wnadd" ${(d.noteDraft || '').trim() ? '' : 'disabled'}>Add</button></div></div>
     <div class="actions"><button class="btn ghost" data-act="discard">Clear day</button>
@@ -3498,7 +3526,8 @@ function renderSettings(){
     + srow('t:m', sic('green', '☆'), 'My meals', `${meals().length}`, meals().length ? meals().map((m, i) => `<div class="nline"><span class="nt">☆ ${esc(m.name)}<span class="small"> · ${esc(m.src)}${
         [m.g != null ? `${m.g} g protein` : '', m.kcal != null ? `${m.kcal} kcal` : '', m.fat != null ? `${m.fat} g fat` : ''].filter(Boolean).map(x => ' · ' + x).join('')}</span></span>
         <button class="link x" data-mdel="${i}" aria-label="Remove ${esc(m.name)} from My meals">✕</button></div>`).join('')
-      : '<p class="small">None yet. In Nutrition → + Meal, tick ☆ Keep in My meals.</p>'));
+      + mealGoneLines()
+      : mealGoneLines() + '<p class="small">None yet. In Nutrition → + Meal, tick ☆ Keep in My meals.</p>'));
   if(supp) h += `<div id="suppEdit">` + sgroup('Supplements', supp.items.map((x, n) => srow('s:' + n,
       `<span class="stime">${x.time || 'Any'}</span>`, `${esc(x.name || 'New supplement')}<span class="kc">${esc(x.dose || '')}${(x.days || []).length === 7 ? ' · every day' : ` · ${(x.days || []).map(d => ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d - 1]).join(', ') || 'no day'}`}</span>`, '',
       `<div class="supped"><input data-sname="${n}" value="${esc(x.name)}" aria-label="Name" placeholder="Name"><input class="slotTime" type="time" data-stime="${n}" value="${esc(x.time || '')}" aria-label="Reminder time"></div>
@@ -3917,17 +3946,12 @@ document.addEventListener('click', e => {
 
   if(t.dataset.tick){
     if(!begin(view, true)) return;
-    const [i, j] = t.dataset.tick.split('.').map(Number), s = draft(view, true).slots[i].sets[j];
-    s.done = !s.done;
+    const [i, j] = t.dataset.tick.split('.').map(Number), slot = draft(view, true).slots[i], s = slot.sets[j];
+    s.done = !s.done; delete slot.gone;
     if(s.done) setDone(view, i, j);
     save(); render(); return;
   }
   if(t.dataset.hold){ startHold(view, t.dataset.hold); return; }
-  if(t.dataset.undo){
-    const fn = undoFn; undoFn = null; document.getElementById('toast').classList.remove('show', 'undo');
-    if(fn){ fn(); render(); sync(); }
-    return;
-  }
   if(t.dataset.again){
     const fn = t.dataset.again === 'add' ? againFn : null; againFn = null; document.getElementById('toast').classList.remove('show', 'undo');
     if(fn) fn();
@@ -3966,9 +3990,15 @@ document.addEventListener('click', e => {
   // workout notes (user, 2026-10-30): typed, then Add → a line with its time; ✕ removes one (with Undo)
   if(t.dataset.act === 'wnadd'){ addWorkoutNote(view); render(); return; }
   if(t.dataset.wnrm){
-    const day = view, d = draft(day, true), lines = noteLines(d.notes), k = +t.dataset.wnrm, [gone] = lines.splice(k, 1);
-    d.notes = lines.join('\n'); save(); render();
-    undoToast('Note removed', () => { const x = drafts[day]; if(x){ const l = noteLines(x.notes); l.splice(k, 0, gone); x.notes = l.join('\n'); save(); } });
+    const d = draft(view, true), lines = noteLines(d.notes), k = +t.dataset.wnrm, [line] = lines.splice(k, 1);
+    goneShift(d.goneNotes, k, -1); (d.goneNotes = d.goneNotes || []).push({ at:k, line });
+    d.notes = lines.join('\n'); save(); render(); say('Note removed');
+    return;
+  }
+  if(t.dataset.noteback){
+    const d = draft(view, true), [g] = (d.goneNotes || []).splice(+t.dataset.noteback, 1); if(!g) return;
+    const lines = noteLines(d.notes), at = Math.min(g.at, lines.length);
+    goneShift(d.goneNotes, at, 1); lines.splice(at, 0, g.line); d.notes = lines.join('\n'); save(); render(); say('Note restored');
     return;
   }
   if(t.dataset.cup){
@@ -4029,7 +4059,12 @@ document.addEventListener('click', e => {
   if(t.dataset.mdel){
     const m = meals()[+t.dataset.mdel]; if(!m) return;
     const put = list => { prot = { ...prot, meals:list }; protDirty.plan = true; saveProt(); render(); sync(); };
-    put(meals().filter(x => x !== m)); undoToast(`☆ ${m.name} removed`, () => put([...meals(), m].sort((a, b) => a.name.localeCompare(b.name))));
+    mealsGone.push(m); put(meals().filter(x => x !== m)); say(`${m.name} removed`);
+    return;
+  }
+  if(t.dataset.mealback){
+    const [m] = mealsGone.splice(+t.dataset.mealback, 1); if(!m) return;
+    prot = { ...prot, meals:[...meals(), m].sort((a, b) => a.name.localeCompare(b.name)) }; protDirty.plan = true; saveProt(); render(); sync(); say(`${m.name} restored`);
     return;
   }
   if(t.dataset.pchip){ const b = document.getElementById('pText'); if(b){ b.value = (b.value.trim() ? b.value.trim() + ', ' : '') + t.dataset.pchip; } return; }
@@ -4115,9 +4150,14 @@ document.addEventListener('click', e => {
   if(t.dataset.addset){ draft(view, true).slots[+t.dataset.addset].sets.push(newSet()); save(); render(); return; }
   // − on a set not done (user, 2026-10-28): remove it, instead of typing 0 to close the exercise
   if(t.dataset.rmset){
-    const [i, j] = t.dataset.rmset.split('.').map(Number), day = view, slot = draft(day, true).slots[i], [gone] = slot.sets.splice(j, 1);
-    save(); render();
-    undoToast(`Set ${j + 1} removed`, () => { const sl = drafts[day] && drafts[day].slots[i]; if(sl){ sl.sets.splice(j, 0, gone); save(); } });
+    const [i, j] = t.dataset.rmset.split('.').map(Number), slot = draft(view, true).slots[i], [set] = slot.sets.splice(j, 1);
+    slot.gone = { at:j, set }; save(); render(); say(`Set ${j + 1} removed`);
+    return;
+  }
+  // the placeholder of a removed set: Restore puts it back; it goes when the next set is ticked
+  if(t.dataset.setback){
+    const slot = draft(view, true).slots[+t.dataset.setback], g = slot && slot.gone; if(!g) return;
+    slot.sets.splice(Math.min(g.at, slot.sets.length), 0, g.set); delete slot.gone; save(); render(); say(`Set ${g.at + 1} restored`);
     return;
   }
   if(t.dataset.editsess){
@@ -4150,9 +4190,21 @@ document.addEventListener('click', e => {
   if(t.dataset.addn){ addForm.n = Math.min(10, Math.max(1, addForm.n + +t.dataset.addn)); render(); return; }
   if(t.dataset.addagain){ const a = addedBefore(view, draft(view, true))[+t.dataset.addagain]; if(a) addExercise(view, a.name, a.add, a.n); return; }
   if(t.dataset.addrm){
-    const i = +t.dataset.addrm, day = view, [gone] = draft(day, true).slots.splice(i, 1);
-    save(); render();
-    undoToast(`${gone.name} removed`, () => { const d = drafts[day]; if(d) d.slots.splice(i, 0, gone); save(); });
+    const i = +t.dataset.addrm, d = draft(view, true), [slot] = d.slots.splice(i, 1);
+    goneShift(d.goneEx, i, -1); (d.goneEx = d.goneEx || []).push({ at:i, slot });
+    save(); render(); say(`${slot.name} removed`);
+    return;
+  }
+  // a removed exercise keeps its placeholder until the workout is finished
+  if(t.dataset.exback){
+    const d = draft(view, true), [g] = (d.goneEx || []).splice(+t.dataset.exback, 1); if(!g) return;
+    const at = Math.min(g.at, d.slots.length);
+    goneShift(d.goneEx, at, 1); d.slots.splice(at, 0, g.slot); opened.add(at); save(); render(); say(`${g.slot.name} restored`);
+    return;
+  }
+  if(t.dataset.clrback){
+    if(!cleared || running(cleared.day)) return;
+    const day = cleared.day; drafts[day] = cleared.copy; dropCleared(); save(); render(); say(`${PLAN[day].title} restored`);
     return;
   }
   const act = t.dataset.act;
@@ -4182,15 +4234,15 @@ document.addEventListener('click', e => {
     // workout ended at that tick + 1 min; the real tap is kept as `tapped`
     const now = Date.now(), endAt = d.lastAt && now - d.lastAt > FINISH_LATE ? d.lastAt + 60000 : 0;
     // id: time + random suffix, so two workouts can never share one (or one file name)
+    cleanDraft(d); dropCleared();
     history.push({ ...d, id: now + Math.random().toString(36).slice(2, 7), finishedAt: endAt || now, ...(endAt ? { tapped: now } : {}),
       ...(bodyweight ? { bw: bodyweight } : {}), synced: false });
     delete drafts[view]; save(); stopRest(); render(); scrollTo(0, 0); toast('Workout saved ✓'); sync();
   }
   if(act === 'discard'){
     if(drafts[view]){
-      const day = view, copy = drafts[day];
-      delete drafts[day]; save(); render();
-      undoToast(`${PLAN[day].title} cleared`, () => { if(!running(day)) drafts[day] = copy; save(); });
+      cleared = { day:view, copy:drafts[view] }; store.set('fb3.cleared', cleared);
+      delete drafts[view]; save(); render(); scrollTo(0, 0); say(`${PLAN[view].title} cleared`);
     }
   }
   if(act === 'ghsave'){
@@ -4414,7 +4466,7 @@ function heldTxt(d, kind, k, r){
   return `<span class="small got">Held: ${secs.map((x, n) => lab(n) + x).join(' · ')} s</span>`;
 }
 // a short buzz confirms a tick or a removal without looking (user, 2026-10-28)
-const BUZZ = '[data-act="ldel"],[data-lrestore],[data-tick],[data-supp],[data-suppslot],[data-reset],[data-cool],[data-rmset],.link.x,[data-undo],[data-qminus]';
+const BUZZ = '[data-act="ldel"],[data-lrestore],[data-tick],[data-supp],[data-suppslot],[data-reset],[data-cool],[data-rmset],.link.x,[data-qminus],[data-setback],[data-exback],[data-noteback],[data-clrback],[data-mealback]';
 function buzzFor(t){ if(t.matches(BUZZ)) try{ navigator.vibrate && navigator.vibrate(25); }catch(e){} }
 function signal(n){ beep(n); try{ navigator.vibrate && navigator.vibrate(n > 1 ? [300, 150, 300] : 200); }catch(e){} }
 function tickHold(){
@@ -4775,9 +4827,7 @@ document.addEventListener('visibilitychange', () => { if(document.visibilityStat
 sync();
 
 let toastT;
-function toast(msg){ const t = document.getElementById('toast'); undoFn = null; againFn = null; t.classList.remove('undo'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2000); }
-// Act at once and offer Undo for a few seconds, instead of asking "are you sure?" (user, 2026-10-25)
-let undoFn = null;
+function toast(msg){ const t = document.getElementById('toast'); againFn = null; t.classList.remove('undo'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2000); }
 // ---------- Reminders (user, 2026-10-26) ----------
 // Sent by the Reminders job in the private repo (.github/reminders/remind.mjs): supplements at their
 // reminder times, protein 19:00, gut 20:00. This phone subscribes in ⋯ → Settings; its subscription
@@ -4829,19 +4879,12 @@ async function pushCheck(){
 }
 const pushErr = e => toast(e && e.message && e.message.startsWith('GitHub') ? e.message : 'Couldn’t change reminders — try again with signal');
 
-// Undo is left only in Train and for My meals (Today's log, 2026-11-08, took it out everywhere else)
-function undoToast(msg, fn){
-  const t = document.getElementById('toast');
-  t.innerHTML = `<span>${esc(msg)}</span><button data-undo="1">Undo</button>`;
-  t.classList.add('show', 'undo'); undoFn = fn; againFn = null;
-  clearTimeout(toastT); toastT = setTimeout(() => { t.classList.remove('show', 'undo'); undoFn = null; }, 5000);
-}
 // "Another one?" in the same bar: Add logs it, Cancel (or waiting) logs nothing
 let againFn = null;
 function askToast(msg, fn){
   const t = document.getElementById('toast');
   t.innerHTML = `<span>${esc(msg)}</span><button data-again="add">Add</button><button data-again="no">Cancel</button>`;
-  t.classList.add('show', 'undo'); againFn = fn; undoFn = null;
+  t.classList.add('show', 'undo'); againFn = fn;
   clearTimeout(toastT); toastT = setTimeout(() => { t.classList.remove('show', 'undo'); againFn = null; }, 8000);
 }
 
