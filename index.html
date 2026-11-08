@@ -865,6 +865,18 @@ textarea{background:var(--input);border:0;border-radius:14px;color:var(--ink)}
 #asheet .sheet{position:absolute;left:0;right:0;bottom:0;max-height:88vh;overflow:auto;background:var(--card);border-radius:20px 20px 0 0;padding:10px 16px calc(16px + env(safe-area-inset-bottom));max-width:560px;margin:0 auto}
 #asheet .grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 12px}
 #asheet h3{margin:0;font-size:19px}
+.evs{display:flex;flex-wrap:wrap;gap:8px}
+.evs button{min-height:44px;padding:0 14px;border-radius:22px;border:1.5px solid var(--line);background:var(--input);color:var(--ink);font:inherit;font-size:14px;font-weight:650}
+.evs button[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 18%,transparent)}
+.evs button.nw{border-style:dashed;color:var(--accent);background:none}
+.newt{display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:8px;margin-top:10px;padding:10px;border-radius:16px;border:1.5px dashed var(--accent)}
+.newt input{min-height:44px;border:1px solid var(--line);background:var(--input);color:var(--ink);border-radius:10px;padding:0 10px;font:inherit;font-size:15px;min-width:0}
+.newt input#evEmoji{text-align:center;font-size:20px}.newt .btn{margin:0;width:auto;padding:0 14px}
+.newt .emo{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}.newt .emo button{min-width:40px;min-height:40px;border:0;border-radius:10px;background:var(--input);font-size:19px}
+.evrow{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--line)}
+.evrow input{min-height:44px;border:1px solid var(--line);background:var(--input);color:var(--ink);border-radius:10px;padding:0 10px;font:inherit;font-size:15px;min-width:0}
+.evrow input[data-evemoji]{text-align:center;font-size:19px}
+.k-e .li{background:color-mix(in srgb,#B18CFF 16%,transparent)}
 .ahead{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}.ahead .link{min-height:44px}
 .again{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
 .achip{flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:2px;max-width:200px;min-height:52px;padding:8px 12px;border-radius:14px;border:1px solid var(--line);background:var(--input);color:var(--ink);font:inherit;text-align:left}
@@ -1457,6 +1469,8 @@ const LOGK = {
   s:{ all:day => (gutLog[day] || {}).sym || [], put:(d, e) => symChange(d, e), ic:e => symOf(e)[1], cls:'k-g', name:e => symOf(e)[2],
       sub:e => e.lvl ? GLVL[e.lvl] : 'tap to say how bad', amt:() => '' },
   n:{ all:gutNotesAll, put:(d, e) => gutNoteChange(d, e), ic:'📝', cls:'k-n', name:() => 'Note', sub:e => e.text, amt:() => '' },
+  e:{ all:day => (gutLog[day] || {}).ev || [], put:(d, e) => evChange(d, e), ic:e => evOf(e).emoji || '⭐', cls:'k-e', name:e => evOf(e).name || 'Event',
+      sub:e => e.note || 'Event', amt:() => '' },
   u:{ all:suppAll, put:(day, e) => setTaken(e.id, !e.del, e.at, day), ic:'💊', cls:'k-s', name:e => e.name, sub:e => e.dose, amt:() => '' },
 };
 const icOf = (k, e) => typeof LOGK[k].ic === 'function' ? LOGK[k].ic(e) : LOGK[k].ic;
@@ -1479,7 +1493,7 @@ function logLine(day, x){
       <button class="rst" data-lrestore="${ref}" aria-label="Restore ${esc(K.name(e))} at ${hhmm(e.at)}">Restore</button></div>`;
   const sub = x.grp ? x.items.map(i => i.name).join(' · ') : K.sub(e), amt = x.grp ? '' : K.amt(e);
   return `<button class="lline ${K.cls}" data-led="${ref}" aria-label="Change ${esc(lineName(x))} at ${hhmm(e.at)}"><span class="lt">${hhmm(e.at)}</span>
-      <span class="li">${pic}</span><span class="lw"><b>${esc(lineName(x))}</b>${sub ? `<small class="${x.k === 'n' ? 'nt' : ''}">${esc(sub)}</small>` : ''}</span>
+      <span class="li">${pic}</span><span class="lw"><b>${esc(lineName(x))}</b>${sub ? `<small class="${x.k === 'n' || (x.k === 'e' && x.e.note) ? 'nt' : ''}">${esc(sub)}</small>` : ''}</span>
       <span class="la">${esc(amt)}</span><span class="lc" aria-hidden="true">›</span></button>`;
 }
 function logCard(day, isToday){
@@ -1525,6 +1539,7 @@ function lsSheet(){
       <div class="gtags">${GTAGS.map(([k, ic, lb]) => `<button data-gtag="${k}" aria-pressed="${(e.tags || []).includes(k)}"><span>${ic}</span>${lb}</button>`).join('')}</div>`;
   if(w.k === 's') b += `<div class="lab">How bad?</div><div class="glvl">${[1, 2, 3].map(n => `<button data-symlvl="${n}" aria-pressed="${e.lvl === n}"><span>${icOf('s', e).repeat(n)}</span>${GLVL[n]}</button>`).join('')}</div>`;
   if(w.k === 'n') b += `<div class="lab">Note</div><textarea id="lNote" class="gnote" rows="3" aria-label="Note">${esc(e.text)}</textarea>`;
+  if(w.k === 'e') b += `<div class="lab">Note <span class="opt">· optional</span></div><textarea id="lEvNote" class="gnote" rows="3" aria-label="Note">${esc(e.note || '')}</textarea>`;
   if(w.k === 'u') b += `<div class="lab">Taken</div>${x.items.map(i => `<div class="sline done"><span><b>${esc(i.name)}</b> · ${esc(i.dose)}</span>
       <button class="tick" data-lsupp="${esc(i.id)}" aria-label="${esc(i.name)}: not taken">✓</button></div>`).join('')}`;
   const ok = t => whenOk(w, t) ? '' : 'disabled';
@@ -1570,7 +1585,7 @@ function lsRestore(ref){
 // their cards. Food writes the same entry as + Meal (text, g, kcal); empty numbers → Claude estimates at the review.
 // Notes are the one general note (they used to be the gut card's), still saved in the day's gut file.
 let addSh = null;                                      // {kind:null|'food'|'note', at, name, g, kcal, fat, keep}
-const AKINDS = [['food', '🍽️', 'Food'], ['note', '📝', 'Note'], ['p', '🥩', 'Protein'], ['w', '💧', 'Water'], ['c', '☕', 'Coffee'], ['supp', '💊', 'Supplement'], ['gut', '💩', 'Gut']];
+const AKINDS = [['food', '🍽️', 'Food'], ['ev', '⭐', 'Event'], ['note', '📝', 'Note'], ['p', '🥩', 'Protein'], ['w', '💧', 'Water'], ['c', '☕', 'Coffee'], ['supp', '💊', 'Supplement'], ['gut', '💩', 'Gut']];
 const addAt = day => addSh && addSh.at != null ? addSh.at : day === dayKey() ? Date.now() : atDay(day);
 const mealNums = m => [m.g != null ? `${m.g} g` : '', m.kcal != null ? `${m.kcal} kcal` : ''].filter(Boolean).join(' · ');
 function addChip(day, c){
@@ -1588,9 +1603,10 @@ function addSheet(){
   const day = sDay(), s = addSh, today = day === dayKey(), back = `<button class="link" data-akind="">‹ All kinds</button>`;
   let b;
   if(!s.kind){
-    const again = meals().slice(0, 8);
+    const again = meals().slice(0, 8), evs = evTypes();
     b = `<div class="ahead"><h3>Add to ${today ? 'today' : esc(dateTxt(atDay(day)))}</h3></div><p class="small">Logged ${today ? 'now' : 'at noon'} unless you change it.</p>
-      ${again.length ? `<div class="lab">Again · one tap</div><div class="again">${again.map((m, k) => `<button class="achip" data-aquick="${k}"><b>☆ ${esc(m.name)}</b><small>${esc(mealNums(m) || m.src)}</small></button>`).join('')}</div>` : ''}
+      ${again.length || evs.length ? `<div class="lab">Again · one tap</div><div class="again">${again.map((m, k) => `<button class="achip" data-aquick="${k}"><b>☆ ${esc(m.name)}</b><small>${esc(mealNums(m) || m.src)}</small></button>`).join('')
+        }${evs.map(x => `<button class="achip" data-aev="${esc(x.id)}"><b>${esc(x.emoji)} ${esc(x.name)}</b><small>event</small></button>`).join('')}</div>` : ''}
       <div class="lab">${again.length ? 'Or pick a kind' : 'Pick a kind'}</div>
       <div class="akinds">${AKINDS.map(([k, ic, l]) => `<button data-akind="${k}"><span aria-hidden="true">${ic}</span>${l}</button>`).join('')}</div>`;
   } else if(s.kind === 'food'){
@@ -1604,6 +1620,19 @@ function addSheet(){
       <label class="akeep"><input type="checkbox" id="aKeep" ${s.keep ? 'checked' : ''}>☆ Keep in My meals with these numbers</label>
       <p class="small">Leave the numbers empty and Claude estimates them at the review.</p>
       ${addTime(day)}<button class="btn" data-act="afood">Add</button>`;
+  } else if(s.kind === 'ev'){
+    const pick = evTypes().find(x => x.id === s.type);
+    b = `<div class="ahead"><h3>⭐ Event</h3>${back}</div>
+      <div class="evs">${evTypes().map(x => `<button data-evpick="${esc(x.id)}" aria-pressed="${x.id === s.type}">${esc(x.emoji)} ${esc(x.name)}</button>`).join('')}
+        <button class="nw" data-act="evnewopen" aria-expanded="${!!s.newt}">＋ New type</button></div>
+      ${s.newt ? `<div class="newt"><input id="evEmoji" data-af="emoji" maxlength="8" value="${esc(s.emoji || '🙂')}" aria-label="Emoji">
+        <input id="evName" data-af="tname" maxlength="40" placeholder="Name, e.g. Late dinner" aria-label="Type name" value="${esc(s.tname || '')}">
+        <button class="btn" data-act="evnew">Save</button>
+        <div class="emo">${EMOJI.map(m => `<button data-evemo="${m}" aria-label="Use ${m}">${m}</button>`).join('')}</div></div>` : ''}
+      ${!evTypes().length && !s.newt ? '<p class="small">Make your first type: an emoji and a name. Next time it is one tap.</p>' : ''}
+      <div class="lab">Note <span class="opt">· optional</span></div>
+      <textarea class="gnote" data-af="note" rows="2" placeholder="Anything worth remembering" aria-label="Note">${esc(s.note || '')}</textarea>
+      ${addTime(day)}<button class="btn" data-act="aev" ${pick ? '' : 'disabled'}>${pick ? `Add ${esc(pick.emoji)} ${esc(pick.name)}` : 'Pick a type'}</button>`;
   } else {
     b = `<div class="ahead"><h3>📝 Note</h3>${back}</div>
       <textarea class="gnote" data-gnote="1" rows="3" placeholder="Food, stress, travel, sleep… whatever is worth remembering" aria-label="New note">${esc(noteDraft[day] || '')}</textarea>
@@ -1613,7 +1642,7 @@ function addSheet(){
 }
 function addKind(k){
   const day = sDay();
-  if(k === '' || k === 'food' || k === 'note'){
+  if(k === '' || k === 'food' || k === 'note' || k === 'ev'){
     addSh = { at:addSh && addSh.at, kind:k || null }; render();
     document.querySelector(k === 'food' ? '#aName' : k === 'note' ? '#asheet [data-gnote]' : 'x')?.focus();
     return;
@@ -1625,6 +1654,12 @@ function addKind(k){
   }
   addSh = null; render();
   document.getElementById(k === 'supp' ? 'secS' : 'secG')?.scrollIntoView({ block:'start' });
+}
+function addEvent(x, note){
+  const day = sDay(), at = addAt(day);
+  if(at > Date.now() || dayKey(at) !== day){ toast('That time hasn’t come yet'); return; }
+  evChange(day, { id:newId(), at, type:x.id, emoji:x.emoji, name:x.name, ...(note ? { note } : {}) });
+  addSh = null; render(); sync(); say(`${x.name} added at ${hhmm(at)}`);
 }
 function addFood(){
   const day = sDay(), s = addSh, text = (s.name || '').trim(), num = v => { v = String(v ?? '').replace(',', '.').trim(); return v === '' ? null : parseFloat(v); };
@@ -1736,11 +1771,22 @@ function gutNotes(day){
   return [...old, ...list].filter(n => !n.del).sort((a, b) => a.at - b.at);
 }
 const gutNoteChange = (day, n) => gutTouch(day, g => { g.notes = [...(g.notes || []).filter(x => x.id !== n.id), { ...n, t:Date.now() }]; });
+// Events (Today's log step 4, 2026-11-08): types the user makes, {id, emoji, name}, kept in the food plan (data/protein/
+// plan.json, `events`) next to My meals; a logged one is {id, t, at, type, emoji, name, note?} in the day's gut file (`ev`).
+// Its emoji and name are copied in, so a renamed or removed type leaves old lines readable. No words come built in.
+const evTypes = () => (prot && prot.events) || [];
+const evOf = e => evTypes().find(x => x.id === e.type) || e;
+const evDay = (day = dayKey()) => ((gutLog[day] || {}).ev || []).filter(e => !e.del);
+const evChange = (day, e) => gutTouch(day, g => { g.ev = [...(g.ev || []).filter(x => x.id !== e.id), { ...e, t:Date.now() }]; });
+const evPut = list => { prot = { ...(prot || {}), events:list }; protDirty.plan = true; saveProt(); };
+let evGone = [];                                       // types removed in Settings this visit: crossed out with Restore
+const EMOJI = ['🙂', '😴', '😣', '🚶', '🍺', '🍕', '🏃', '🧘', '✈️', '🎉', '🥵', '📺'];
 let noteDraft = store.get('fb3.notedraft', {});        // {day: text typed but not added yet}
 // a day as saved: notes and the old note only when there are any
 const gutShape = (g = {}) => ({ entries:mergeEntries(g.entries), flags:g.flags || {},
   ...(g.sym && g.sym.length ? { sym:mergeEntries(g.sym) } : {}),
-  ...(g.notes && g.notes.length ? { notes:mergeEntries(g.notes) } : {}), ...(g.note ? { note:g.note } : {}) });
+  ...(g.notes && g.notes.length ? { notes:mergeEntries(g.notes) } : {}), ...(g.note ? { note:g.note } : {}),
+  ...(g.ev && g.ev.length ? { ev:mergeEntries(g.ev) } : {}) });
 const laterNote = (a, b) => !a ? b : !b ? a : (b.t || 0) > (a.t || 0) ? b : a;
 
 const slug = s => s.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'item';
@@ -3623,7 +3669,13 @@ function renderSettings(){
         [m.g != null ? `${m.g} g protein` : '', m.kcal != null ? `${m.kcal} kcal` : '', m.fat != null ? `${m.fat} g fat` : ''].filter(Boolean).map(x => ' · ' + x).join('')}</span></span>
         <button class="link x" data-mdel="${i}" aria-label="Remove ${esc(m.name)} from My meals">✕</button></div>`).join('')
       + mealGoneLines()
-      : mealGoneLines() + '<p class="small">None yet. In Nutrition → + Meal, tick ☆ Keep in My meals.</p>'));
+      : mealGoneLines() + '<p class="small">None yet. In Nutrition → + Meal, tick ☆ Keep in My meals.</p>')
+    + srow('t:e', sic('green', '⭐'), 'Event types', `${evTypes().length}`, evTypes().map(x => `<div class="evrow">
+        <input data-evemoji="${esc(x.id)}" maxlength="8" value="${esc(x.emoji)}" aria-label="Emoji of ${esc(x.name)}">
+        <input data-evname="${esc(x.id)}" maxlength="40" value="${esc(x.name)}" aria-label="Name of ${esc(x.name)}">
+        <button class="link x" data-evdel="${esc(x.id)}" aria-label="Remove ${esc(x.name)}">✕</button></div>`).join('')
+      + evGone.map((x, k) => `<div class="nline gone"><span class="nt">${esc(x.emoji)} ${esc(x.name)}</span><button class="rst" data-evback="${k}" aria-label="Restore ${esc(x.name)}">Restore</button></div>`).join('')
+      + `<p class="small">${evTypes().length ? 'Change a name or emoji here. Removing a type keeps the lines already logged.' : 'None yet. In Nutrition → ＋ Add → Event, make one.'}</p>`));
   if(supp) h += `<div id="suppEdit">` + sgroup('Supplements', supp.items.map((x, n) => srow('s:' + n,
       `<span class="stime">${x.time || 'Any'}</span>`, `${esc(x.name || 'New supplement')}<span class="kc">${esc(x.dose || '')}${(x.days || []).length === 7 ? ' · every day' : ` · ${(x.days || []).map(d => ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][d - 1]).join(', ') || 'no day'}`}</span>`, '',
       `<div class="supped"><input data-sname="${n}" value="${esc(x.name)}" aria-label="Name" placeholder="Name"><input class="slotTime" type="time" data-stime="${n}" value="${esc(x.time || '')}" aria-label="Reminder time"></div>
@@ -4154,6 +4206,30 @@ document.addEventListener('click', e => {
     addSh = null; render(); sync(); say(`${m.name} added at ${hhmm(at)}`); return;
   }
   if(t.dataset.act === 'afood' && addSh){ addFood(); return; }
+  if(t.dataset.aev && addSh){ const x = evTypes().find(y => y.id === t.dataset.aev); if(x) addEvent(x); return; }
+  if(t.dataset.evpick && addSh){ addSh.type = addSh.type === t.dataset.evpick ? null : t.dataset.evpick; render(); return; }
+  if(t.dataset.act === 'evnewopen' && addSh){ addSh.newt = !addSh.newt; render(); document.getElementById('evName')?.focus(); return; }
+  if(t.dataset.evemo && addSh){ addSh.emoji = t.dataset.evemo; render(); return; }
+  if(t.dataset.act === 'evnew' && addSh){
+    const name = (addSh.tname || '').trim().replace(/\s+/g, ' '), emoji = (addSh.emoji || '🙂').trim() || '🙂';
+    if(!name){ toast('Give the type a name'); return; }
+    const same = evTypes().find(x => x.name.toLowerCase() === name.toLowerCase());
+    if(same){ addSh = { ...addSh, type:same.id, newt:false, tname:'' }; render(); return; }
+    if(evTypes().length >= 12){ toast('12 types at most: remove one in Settings → Event types'); return; }
+    const x = { id:newId(), emoji, name };
+    evPut([...evTypes(), x]); addSh = { ...addSh, type:x.id, newt:false, tname:'', emoji:'' }; render(); sync(); say(`${name} saved as a type`);
+    return;
+  }
+  if(t.dataset.act === 'aev' && addSh){ const x = evTypes().find(y => y.id === addSh.type); if(x) addEvent(x, (addSh.note || '').trim()); return; }
+  // Settings → Event types: Remove keeps old lines (they have the name); crossed out with Restore until the app closes
+  if(t.dataset.evdel){
+    const x = evTypes().find(y => y.id === t.dataset.evdel); if(!x) return;
+    evGone.push(x); evPut(evTypes().filter(y => y !== x)); render(); sync(); say(`${x.name} removed`); return;
+  }
+  if(t.dataset.evback){
+    const [x] = evGone.splice(+t.dataset.evback, 1); if(!x) return;
+    evPut([...evTypes(), x]); render(); sync(); say(`${x.name} restored`); return;
+  }
   if(t.dataset.gflag){ const day = sDay(), k = t.dataset.gflag; gutSetFlag(day, k, !gutFlag(day, k)); render(); sync(); return; }
   if(t.dataset.gtype || t.dataset.gtag){
     const day = sDay(), e = gutDay(day).find(x => x.id === gutEdit); if(!e) return;
@@ -4485,6 +4561,12 @@ document.addEventListener('change', e => {
     if(at > Date.now()){ toast('That time hasn’t come yet'); render(); return; }
     addSh.at = at; render(); return;
   }
+  if(t.id === 'lEvNote' && lsEd){ const x = lsFind(lsEd); if(x){ const note = t.value.trim(), { note:_n, ...rest } = x.e; evChange(lsEd.day, note ? { ...rest, note } : rest); render(); sync(); } return; }
+  if((t.dataset.evname || t.dataset.evemoji) && prot){
+    const id = t.dataset.evname || t.dataset.evemoji, f = t.dataset.evname ? 'name' : 'emoji', v = t.value.trim().replace(/\s+/g, ' ');
+    if(!v){ render(); return; }
+    evPut(evTypes().map(x => x.id === id ? { ...x, [f]:v } : x)); render(); sync(); return;
+  }
   if(t.id === 'lNote' && lsEd){ const x = lsFind(lsEd); if(x && t.value.trim()){ gutNoteChange(lsEd.day, { ...x.e, text:t.value.trim() }); render(); sync(); } return; }
   if(t.dataset.swap){ draft(view, true).slots[+t.dataset.swap].name = t.value; save(); render(); }
   if(t.id === 'mealPhoto' && t.files[0]){
@@ -4583,7 +4665,7 @@ function heldTxt(d, kind, k, r){
   return `<span class="small got">Held: ${secs.map((x, n) => lab(n) + x).join(' · ')} s</span>`;
 }
 // a short buzz confirms a tick or a removal without looking (user, 2026-10-28)
-const BUZZ = '[data-act="ldel"],[data-lrestore],[data-tick],[data-supp],[data-suppslot],[data-reset],[data-cool],[data-rmset],.link.x,[data-qminus],[data-setback],[data-exback],[data-noteback],[data-clrback],[data-mealback]';
+const BUZZ = '[data-act="ldel"],[data-lrestore],[data-tick],[data-supp],[data-suppslot],[data-reset],[data-cool],[data-rmset],.link.x,[data-qminus],[data-setback],[data-exback],[data-noteback],[data-clrback],[data-mealback],[data-evback],[data-aev],[data-aquick]';
 function buzzFor(t){ if(t.matches(BUZZ)) try{ navigator.vibrate && navigator.vibrate(25); }catch(e){} }
 function signal(n){ beep(n); try{ navigator.vibrate && navigator.vibrate(n > 1 ? [300, 150, 300] : 200); }catch(e){} }
 function tickHold(){
@@ -4909,7 +4991,7 @@ async function syncGut(){
     const remote = f ? JSON.parse(b64dec(f.content)) : {}, mine = gutLog[day] || {};
     const merged = gutShape({ entries:mergeEntries(remote.entries, mine.entries), flags:mergeDay(remote.flags, mine.flags),
       sym:mergeEntries(remote.sym, mine.sym),
-      notes:mergeEntries(remote.notes, mine.notes), note:laterNote(remote.note, mine.note) });
+      notes:mergeEntries(remote.notes, mine.notes), note:laterNote(remote.note, mine.note), ev:mergeEntries(remote.ev, mine.ev) });
     if(JSON.stringify(merged) !== JSON.stringify(gutShape(mine))){ gutLog[day] = merged; changed = true; }
     if(gutDirty.days.includes(day) && JSON.stringify(merged) !== JSON.stringify(gutShape(remote)))
       await api(path, { method:'PUT', body:JSON.stringify({ message:`Gut ${day}`,
